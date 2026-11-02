@@ -1,0 +1,170 @@
+<app-shop-shell>
+  <div class="ms-container page-wrap">
+    @if (loading) {
+      <div class="loading-row"><span class="shop-loader"></span></div>
+    } @else if (!order) {
+      <div class="empty-state">
+        <i class="bi bi-box-seam"></i>
+        <h2>Order not found</h2>
+        <p>This order does not exist, or it belongs to another account.</p>
+        <button class="btn-brand" type="button" (click)="back()">Back to my orders</button>
+      </div>
+    } @else {
+      <div class="page-head">
+        <div>
+          <h1>Order #{{ order.invoice_number }}</h1>
+          <p>Placed {{ (order.created_at || order.createdAt || order.sale_date) | date: 'medium' }}</p>
+        </div>
+        <button class="btn-plain" type="button" (click)="back()"><i class="bi bi-arrow-left"></i> All orders</button>
+      </div>
+
+      @if (error) {
+        <div class="form-error page-alert"><i class="bi bi-exclamation-circle"></i> {{ error }}</div>
+      }
+      @if (returnSuccess) {
+        <div class="form-success page-alert"><i class="bi bi-check-circle"></i> {{ returnSuccess }}</div>
+      }
+
+      @if (order.status === 'cancelled') {
+        <div class="order-banner order-banner--cancelled"><i class="bi bi-x-circle"></i> This order was cancelled.</div>
+      } @else {
+        <ol class="track">
+          @for (step of steps; track step.key) {
+            <li class="track__step" [class]="'track__step track__step--' + stepState(step.key)">
+              <span class="track__dot"><i class="bi" [ngClass]="stepState(step.key) === 'done' ? 'bi-check-lg' : 'bi-circle-fill'"></i></span>
+              <span>{{ step.label }}</span>
+            </li>
+          }
+        </ol>
+      }
+
+      <div class="two-col order-detail">
+        <div class="order-main">
+          <section class="panel">
+            <div class="panel__head">
+              <h2 class="panel__title">Items</h2>
+              <span class="status-chip" [ngClass]="'status-chip--' + order.status">{{ order.status }}</span>
+            </div>
+            @for (item of order.items || []; track item.id) {
+              <article class="order-item">
+                <div class="order-item__body">
+                  <span class="order-item__name">{{ item.product_name }}</span>
+                  <span class="order-item__meta">
+                    {{ item.quantity }} × {{ item.unit_price | currency: currency : 'symbol' : '1.0-2' }}
+                  </span>
+                </div>
+                <span class="order-item__total">{{ item.total_price | currency: currency : 'symbol' : '1.0-2' }}</span>
+                @if (canReturn) {
+                  <button class="btn-plain" type="button" (click)="openReturn(item)">Return</button>
+                }
+              </article>
+            }
+          </section>
+
+          <section class="panel">
+            <div class="panel__head">
+              <h2 class="panel__title">Delivery address</h2>
+            </div>
+            <p class="order-address">
+              <strong>{{ order.shipping_name }}</strong><br />
+              {{ order.shipping_address }}<br />
+              {{ order.shipping_city }}, {{ order.shipping_state }} {{ order.shipping_postal_code }}<br />
+              {{ order.shipping_country }}<br />
+              @if (order.shipping_phone) {
+                <i class="bi bi-telephone"></i> {{ order.shipping_phone }}
+              }
+            </p>
+          </section>
+
+          @if (canCancel) {
+            <section class="panel order-cancel">
+              <div class="panel__head">
+                <h2 class="panel__title">Need to cancel?</h2>
+                <span class="panel__muted">Possible while the order is pending or confirmed.</span>
+              </div>
+              @if (!cancelOpen) {
+                <button class="btn-outline-brand" type="button" (click)="openCancel()">Cancel this order</button>
+              } @else {
+                <div class="shop-form">
+                  <label class="field">
+                    <span>Reason (optional)</span>
+                    <input type="text" name="cancel_reason" [(ngModel)]="cancelReason" maxlength="500" />
+                  </label>
+                  <div class="order-cancel__actions">
+                    <button class="btn-plain" type="button" (click)="cancelOpen = false" [disabled]="cancelling">Keep order</button>
+                    <button class="btn-brand" type="button" (click)="cancelOrder()" [disabled]="cancelling">
+                      {{ cancelling ? 'Cancelling…' : 'Confirm cancellation' }}
+                    </button>
+                  </div>
+                </div>
+              }
+            </section>
+          }
+        </div>
+
+        <aside class="summary-card">
+          <h2 class="summary-card__title">Payment summary</h2>
+          <div class="summary-card__row">
+            <span>Subtotal</span>
+            <strong>{{ order.subtotal | currency: currency : 'symbol' : '1.0-2' }}</strong>
+          </div>
+          @if (discountAmount() > 0) {
+            <div class="summary-card__row summary-card__row--discount">
+              <span>Discount{{ order.coupon_code ? ' (' + order.coupon_code + ')' : '' }}</span>
+              <strong>− {{ order.discount_amount | currency: currency : 'symbol' : '1.0-2' }}</strong>
+            </div>
+          }
+          <div class="summary-card__row">
+            <span>Tax</span>
+            <strong>{{ order.tax_amount | currency: currency : 'symbol' : '1.0-2' }}</strong>
+          </div>
+          <div class="summary-card__row">
+            <span>Delivery</span>
+            <strong>{{ order.shipping_charge | currency: currency : 'symbol' : '1.0-2' }}</strong>
+          </div>
+          <div class="summary-card__total">
+            <span>Total</span>
+            <strong>{{ order.total_amount | currency: currency : 'symbol' : '1.0-2' }}</strong>
+          </div>
+          <p class="summary-card__note">
+            Payment: <strong>{{ order.payment_status }}</strong>
+            @if (order.payments?.length) {
+              · {{ order.payments![0].payment_method }}
+            }
+          </p>
+        </aside>
+      </div>
+    }
+
+    @if (returnItem) {
+      <div class="return-backdrop" (click)="closeReturn()">
+        <div class="return-card" (click)="$event.stopPropagation()">
+          <div class="panel__head">
+            <h2 class="panel__title">Request a return</h2>
+            <button class="btn-plain" type="button" (click)="closeReturn()" aria-label="Close"><i class="bi bi-x-lg"></i></button>
+          </div>
+          <p class="return-card__copy">{{ returnItem.product_name }}</p>
+          @if (returnError) {
+            <div class="form-error"><i class="bi bi-exclamation-circle"></i> {{ returnError }}</div>
+          }
+          <div class="shop-form">
+            <label class="field">
+              <span>Quantity to return (max {{ returnItem.quantity }})</span>
+              <input type="number" name="return_qty" [(ngModel)]="returnQty" min="1" [max]="returnItem.quantity" />
+            </label>
+            <label class="field">
+              <span>Why are you returning it?</span>
+              <textarea name="return_reason" [(ngModel)]="returnReason" maxlength="500"></textarea>
+            </label>
+            <div class="order-cancel__actions">
+              <button class="btn-plain" type="button" (click)="closeReturn()" [disabled]="returning">Cancel</button>
+              <button class="btn-brand" type="button" (click)="submitReturn()" [disabled]="returning">
+                {{ returning ? 'Requesting…' : 'Request return' }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    }
+  </div>
+</app-shop-shell>

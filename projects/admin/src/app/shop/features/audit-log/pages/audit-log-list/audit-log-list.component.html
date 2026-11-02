@@ -1,0 +1,133 @@
+<div class="page-wrap">
+  <div class="page-header">
+    <div class="page-header-left">
+      <div class="page-title-main">Audit Log</div>
+      <div class="page-breadcrumb">
+        <a [routerLink]="'/dashboard' | shopUrl">System</a>
+        <span class="sep">›</span>
+        <span class="current">Audit Log</span>
+      </div>
+    </div>
+    <div class="page-header-actions">
+      <span class="entry-count-badge">{{ loading ? '—' : (total | number) + ' entries' }}</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="toolbar">
+      <div class="toolbar-left">
+        <select class="filter-select" style="min-width:140px" [(ngModel)]="fModule">
+          <option value="">All Modules</option>
+          <option *ngFor="let m of modules" [value]="m">{{ moduleLabel(m) }}</option>
+        </select>
+        <select class="filter-select" style="min-width:120px" [(ngModel)]="fAction">
+          <option value="">All Actions</option>
+          <option *ngFor="let a of actions" [value]="a">{{ moduleLabel(a) }}</option>
+        </select>
+        <input type="number" class="form-control" placeholder="User ID" style="width:90px" [(ngModel)]="fUser"/>
+        <input type="date" class="form-control" style="width:145px" [(ngModel)]="fFrom"/>
+        <span style="font-size:.82rem;color:#9c8b91">to</span>
+        <input type="date" class="form-control" style="width:145px" [(ngModel)]="fTo"/>
+      </div>
+      <div class="toolbar-right">
+        <button class="btn btn-primary btn-sm" (click)="applyFilter()">Filter</button>
+        <button class="btn btn-outline btn-sm" (click)="reset()">Reset</button>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table class="pos-table">
+        <thead>
+          <tr>
+            <th style="width:46px">#</th>
+            <th>Module</th>
+            <th>Action</th>
+            <th>User</th>
+            <th>Reference</th>
+            <th>Description</th>
+            <th>IP</th>
+            <th style="width:160px">Timestamp</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngIf="loading"><td colspan="8" class="tbl-empty"><span class="pos-loader"><span></span><span></span><span></span></span></td></tr>
+          <tr *ngIf="!loading && errorMessage"><td colspan="8" class="tbl-empty" style="color:#ef4444">{{ errorMessage }}</td></tr>
+          <tr *ngIf="!loading && !errorMessage && !logs.length"><td colspan="8" class="tbl-empty">📋 No log entries found for the selected filters</td></tr>
+          <tr class="log-row" *ngFor="let entry of logs; let i = index" (click)="openDetail(entry)">
+            <td style="color:#9c8b91;font-size:.78rem">{{ (page - 1) * limit + i + 1 }}</td>
+            <td><span class="mod-badge" [ngClass]="moduleBadgeClass(entry.module)">{{ entry.module || '—' }}</span></td>
+            <td><span class="act-badge" [ngClass]="actionBadgeClass(entry.action)">{{ entry.action || '—' }}</span></td>
+            <td style="font-weight:600;font-size:.84rem">{{ userLabel(entry) }}</td>
+            <td>
+              <span class="ref-badge" *ngIf="entry.reference_type">{{ entry.reference_type }}{{ entry.reference_id ? ' #' + entry.reference_id : '' }}</span>
+              <span class="text-muted" *ngIf="!entry.reference_type">—</span>
+            </td>
+            <td class="log-desc"><span class="text-muted" style="font-size:12px">{{ describe(entry) }}</span></td>
+            <td style="color:#9c8b91;font-size:.72rem;font-family:monospace">{{ entry.ip_address || '—' }}</td>
+            <td style="color:#9c8b91;font-size:.72rem;white-space:nowrap">{{ formatDate(entry.created_at) }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="pagination-bar" *ngIf="!loading && logs.length">
+      <div class="pagination-info">
+        <select [ngModel]="limit" (ngModelChange)="onLimitChange($event)">
+          <option [ngValue]="20">20 / page</option>
+          <option [ngValue]="50">50 / page</option>
+          <option [ngValue]="100">100 / page</option>
+          <option [ngValue]="200">200 / page</option>
+        </select>
+        <span>Page {{ page }} of {{ totalPages }} · {{ total | number }} total entries</span>
+      </div>
+      <app-pagination [currentPage]="page" [totalPages]="totalPages" (pageChange)="load($event)"></app-pagination>
+    </div>
+  </div>
+</div>
+
+<app-modal [open]="detailOpen" [title]="detailTitle" [showFooter]="false" (closed)="closeDetail()">
+  <ng-container *ngIf="detailEntry as entry">
+    <small class="text-muted d-block mb-3">{{ detailMeta }}</small>
+
+    <div class="mb-3" *ngIf="entry.reference_type || entry.reference_id">
+      <span class="section-label">Reference</span><br/>
+      <span class="ref-badge">{{ entry.reference_type }}{{ entry.reference_id ? ' #' + entry.reference_id : '' }}</span>
+    </div>
+
+    <ng-container *ngIf="detailRows.length; else noChanges">
+      <div class="section-label mb-2">Changes</div>
+      <div class="table-wrap">
+        <table class="pos-table diff-table">
+          <thead>
+            <tr *ngIf="detailHasBeforeAfter">
+              <th style="width:28%">Field</th><th>Before</th><th>After</th>
+            </tr>
+            <tr *ngIf="!detailHasBeforeAfter">
+              <th style="width:35%">Field</th><th>Value</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let row of detailRows" [class.diff-changed]="row.changed">
+              <td class="fw-semibold">{{ row.key }}</td>
+              <ng-container *ngIf="detailHasBeforeAfter; else singleVal">
+                <td class="text-danger"><code>{{ row.before }}</code></td>
+                <td class="text-success"><code>{{ row.after }}</code></td>
+              </ng-container>
+              <ng-template #singleVal>
+                <td><code>{{ row.value }}</code></td>
+              </ng-template>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </ng-container>
+    <ng-template #noChanges>
+      <p class="text-muted small">No detailed change values recorded for this entry.</p>
+    </ng-template>
+
+    <div class="mt-2" *ngIf="entry.user_agent">
+      <span class="section-label">User Agent</span><br/>
+      <small class="text-muted">{{ entry.user_agent }}</small>
+    </div>
+  </ng-container>
+</app-modal>

@@ -1,0 +1,112 @@
+<app-shop-shell>
+  <div class="ms-container page-wrap">
+    <div class="page-head">
+      <div>
+        <h1>Your cart</h1>
+        <p>Review your items before checkout.</p>
+      </div>
+      <a routerLink="/catalog" class="btn-plain"><i class="bi bi-arrow-left"></i> Continue shopping</a>
+    </div>
+
+    @if (cart.loaded$ | async) {
+      @if (cart.lines$ | async; as lines) {
+      @if (!lines.length) {
+        <div class="empty-state">
+          <i class="bi bi-bag"></i>
+          <h2>Your cart is empty</h2>
+          <p>Find something you love and it will show up here.</p>
+          <a class="btn-brand" routerLink="/catalog">Browse products</a>
+        </div>
+      } @else {
+        <div class="two-col">
+          <section class="panel cart-list">
+            <div class="panel__head">
+              <h2 class="panel__title">{{ count(lines) }} item{{ count(lines) === 1 ? '' : 's' }}</h2>
+              <button class="btn-plain" type="button" (click)="cart.clear()">Clear cart</button>
+            </div>
+
+            @for (line of lines; track line.product_id + ':' + line.variant_id) {
+              <article class="cart-line">
+                <a class="cart-line__img" [routerLink]="['/catalog/product', line.public_id]">
+                  <img [src]="image(line)" [alt]="line.name" />
+                </a>
+                <div class="cart-line__body">
+                  <a class="cart-line__name" [routerLink]="['/catalog/product', line.public_id]">{{ line.name }}</a>
+                  @if (line.variant_name) {
+                    <span class="cart-line__variant">{{ line.variant_name }}</span>
+                  }
+                  <span class="cart-line__price">
+                    <strong>{{ line.price | currency: currency : 'symbol' : '1.0-2' }}</strong>
+                    @if (line.mrp > line.price) {
+                      <s>{{ line.mrp | currency: currency : 'symbol' : '1.0-2' }}</s>
+                    }
+                  </span>
+                  <div class="cart-line__actions">
+                    <div class="qty">
+                      <button type="button" (click)="changeQty(line, -1)" [disabled]="line.quantity <= 1" aria-label="Less">−</button>
+                      <input
+                        type="number"
+                        [ngModel]="line.quantity"
+                        (change)="setQty(line, $any($event.target).value)"
+                        min="1"
+                        max="100"
+                        aria-label="Quantity"
+                      />
+                      <button type="button" (click)="changeQty(line, 1)" [disabled]="line.quantity >= 100" aria-label="More">+</button>
+                    </div>
+                    <button class="btn-plain" type="button" (click)="remove(line)"><i class="bi bi-trash3"></i> Remove</button>
+                    @if (wishlistEnabled) {
+                      <button class="btn-plain" type="button" (click)="moveToWishlist(line)">
+                        <i class="bi bi-heart"></i> Save for later
+                      </button>
+                    }
+                  </div>
+                </div>
+                <div class="cart-line__total">
+                  {{ line.price * line.quantity | currency: currency : 'symbol' : '1.0-2' }}
+                </div>
+              </article>
+            }
+          </section>
+
+          <aside class="summary-card">
+            <h2 class="summary-card__title">Order summary</h2>
+            <div class="summary-card__row">
+              <span>Subtotal</span>
+              <strong>{{ subtotal(lines) | currency: currency : 'symbol' : '1.0-2' }}</strong>
+            </div>
+            @if (savings(lines) > 0) {
+              <div class="summary-card__row summary-card__row--discount">
+                <span>You save</span>
+                <strong>− {{ savings(lines) | currency: currency : 'symbol' : '1.0-2' }}</strong>
+              </div>
+            }
+            <div class="summary-card__row">
+              <span>Delivery</span>
+              <strong>Calculated at checkout</strong>
+            </div>
+            <div class="summary-card__total">
+              <span>Estimated total</span>
+              <strong>{{ subtotal(lines) | currency: currency : 'symbol' : '1.0-2' }}</strong>
+            </div>
+            <button class="btn-brand cart-checkout" type="button" (click)="checkout()">
+              {{ auth.isLoggedIn ? 'Proceed to checkout' : 'Sign in to checkout' }}
+              <i class="bi bi-arrow-right"></i>
+            </button>
+            <p class="summary-card__note">
+              Taxes and delivery are calculated from your address at checkout.
+              @if (!auth.isLoggedIn) {
+                Your guest cart is saved and merged into your account after sign-in.
+              }
+            </p>
+          </aside>
+        </div>
+      }
+      } @else {
+        <div class="loading-row"><span class="shop-loader"></span></div>
+      }
+    } @else {
+      <div class="loading-row"><span class="shop-loader"></span></div>
+    }
+  </div>
+</app-shop-shell>

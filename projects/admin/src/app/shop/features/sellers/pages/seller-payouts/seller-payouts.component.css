@@ -1,0 +1,65 @@
+.toolbar-label {
+  font-size: 0.78rem;
+  color: #6b5a60;
+}
+
+.cell-sub {
+  font-size: 0.74rem;
+  color: #6b5a60;
+}
+
+.pay-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.pay-summary > div {
+  background: #fdf4f5;
+  border: 1px solid #f6e7e9;
+  border-radius: 8px;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pay-summary span,
+.pay-bank span {
+  font-size: 0.7rem;
+  color: #6b5a60;
+}
+
+.pay-summary strong,
+.pay-bank strong {
+  font-size: 0.82rem;
+  color: #2a1a20;
+}
+
+.pay-bank {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #fdf4f5;
+  border: 1px dashed #efd6da;
+  margin-bottom: 14px;
+}
+
+.pay-bank > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+@media (max-width: 640px) {
+  .pay-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .pay-bank {
+    grid-template-columns: 1fr;
+  }
+}

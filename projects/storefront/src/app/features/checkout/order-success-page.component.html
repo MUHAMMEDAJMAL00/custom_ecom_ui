@@ -1,0 +1,64 @@
+<app-shop-shell>
+  <div class="ms-container page-wrap">
+    @if (loading) {
+      <div class="loading-row"><span class="shop-loader"></span></div>
+    } @else if (!order) {
+      <div class="empty-state">
+        <i class="bi bi-box-seam"></i>
+        <h2>Order not found</h2>
+        <p>{{ error || 'This order does not belong to your account.' }}</p>
+        <a class="btn-brand" routerLink="/my-orders">My orders</a>
+      </div>
+    } @else {
+      <div class="success">
+        <span class="success__icon"><i class="bi bi-check-lg"></i></span>
+        <span class="success__eyebrow">Thank you</span>
+        <h1>Your order is placed</h1>
+        <p class="success__lead">
+          Order <strong>#{{ order.invoice_number }}</strong> is with {{ shopName }}.
+          We will email updates as it moves.
+        </p>
+
+        <div class="success__meta">
+          <div>
+            <span>Total</span>
+            <strong>{{ order.total_amount | currency: currency : 'symbol' : '1.0-2' }}</strong>
+          </div>
+          <div>
+            <span>Payment</span>
+            <strong>{{ paymentMethod }}</strong>
+          </div>
+          <div>
+            <span>Status</span>
+            <strong class="status-chip" [ngClass]="'status-chip--' + order.status">{{ order.status }}</strong>
+          </div>
+        </div>
+
+        <div class="success__items">
+          @for (item of order.items || []; track item.id) {
+            <div class="success__item">
+              <span>{{ item.product_name }}</span>
+              <span>× {{ item.quantity }}</span>
+              <strong>{{ item.total_price | currency: currency : 'symbol' : '1.0-2' }}</strong>
+            </div>
+          }
+        </div>
+
+        @if (order.shipping_address) {
+          <p class="success__address">
+            <i class="bi bi-geo-alt"></i>
+            <span>
+              {{ order.shipping_name }}, {{ order.shipping_address }},
+              {{ order.shipping_city }}, {{ order.shipping_state }} {{ order.shipping_postal_code }}
+            </span>
+          </p>
+        }
+
+        <div class="success__actions">
+          <a class="btn-outline-brand" [routerLink]="['/my-orders', order.public_id]">View order</a>
+          <a class="btn-brand" routerLink="/catalog">Continue shopping</a>
+        </div>
+      </div>
+    }
+  </div>
+</app-shop-shell>

@@ -1,0 +1,82 @@
+<app-shop-shell>
+  <div class="ms-container page-wrap">
+    <div class="page-head">
+      <div>
+        <h1>My orders</h1>
+        <p>Track deliveries, cancel eligible orders and request returns.</p>
+      </div>
+      <a routerLink="/account" class="btn-plain"><i class="bi bi-arrow-left"></i> Back to account</a>
+    </div>
+
+    <div class="order-tabs">
+      @for (tab of tabs; track tab.value) {
+        <button
+          type="button"
+          class="order-tabs__item"
+          [class.is-active]="status === tab.value"
+          (click)="filter(tab.value)"
+        >
+          {{ tab.label }}
+        </button>
+      }
+    </div>
+
+    @if (error) {
+      <div class="form-error page-alert"><i class="bi bi-exclamation-circle"></i> {{ error }}</div>
+    }
+
+    @if (loading) {
+      <div class="loading-row"><span class="shop-loader"></span></div>
+    } @else if (!page.data.length) {
+      <div class="empty-state">
+        <i class="bi bi-box-seam"></i>
+        <h2>No orders{{ status ? ' with this status' : ' yet' }}</h2>
+        <p>When you place an order it will appear here with tracking updates.</p>
+        <a class="btn-brand" routerLink="/catalog">Start shopping</a>
+      </div>
+    } @else {
+      <div class="order-list">
+        @for (order of page.data; track order.id) {
+          <article class="order-card">
+            <div class="order-card__head">
+              <div>
+                <span class="order-card__label">Order</span>
+                <strong>#{{ order.invoice_number }}</strong>
+                <span class="order-card__date">{{ orderDate(order) | date: 'mediumDate' }}</span>
+              </div>
+              <span class="status-chip" [ngClass]="'status-chip--' + order.status">{{ order.status }}</span>
+            </div>
+
+            <div class="order-card__body">
+              <div class="order-card__meta">
+                <span>{{ itemCount(order) }} item{{ itemCount(order) === 1 ? '' : 's' }}</span>
+                <span>{{ order.total_amount | currency: currency : 'symbol' : '1.0-2' }}</span>
+                <span class="order-card__pay">{{ order.payment_status }}</span>
+              </div>
+              <div class="order-card__items">
+                @for (item of (order.items || []).slice(0, 3); track item.id) {
+                  <span>{{ item.product_name }} × {{ item.quantity }}</span>
+                }
+                @if ((order.items?.length || 0) > 3) {
+                  <span>+{{ (order.items?.length || 0) - 3 }} more</span>
+                }
+              </div>
+            </div>
+
+            <div class="order-card__actions">
+              <a class="btn-outline-brand" [routerLink]="['/my-orders', order.public_id]">View order</a>
+            </div>
+          </article>
+        }
+      </div>
+
+      @if (page.total_pages > 1) {
+        <div class="order-pages">
+          @for (p of pages(); track p) {
+            <button type="button" [class.is-active]="p === page.page" (click)="load(p)">{{ p }}</button>
+          }
+        </div>
+      }
+    }
+  </div>
+</app-shop-shell>

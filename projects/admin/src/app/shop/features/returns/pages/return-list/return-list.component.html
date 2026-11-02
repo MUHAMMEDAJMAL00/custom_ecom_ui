@@ -1,0 +1,327 @@
+<div class="page-wrap">
+  <div class="page-header">
+    <div class="page-header-left">
+      <div class="page-title-main">Sales Returns</div>
+      <div class="page-breadcrumb">
+        <a [routerLink]="'/sales/list' | shopUrl">Sales</a>
+        <span class="sep">›</span>
+        <span class="current">Returns &amp; Refunds</span>
+      </div>
+    </div>
+    <div class="page-header-actions">
+      <div class="mode-toggle">
+        <button class="mode-btn" [class.active]="mode === 'requests'" (click)="switchMode('requests')">
+          Customer Requests <span class="req-count" *ngIf="pendingCount">{{ pendingCount }}</span>
+        </button>
+        <button class="mode-btn" [class.active]="mode === 'log'" (click)="switchMode('log')">View History</button>
+        <button class="mode-btn" [class.active]="mode === 'process'" (click)="switchMode('process')">+ Record New Return</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CUSTOMER REQUESTS (from the website) -->
+  <div *ngIf="mode === 'requests'">
+    <div class="req-hint">
+      <i class="bi bi-info-circle"></i>
+      <span>Returns customers asked for on the website (My Orders → Return). <strong>Approve</strong> to take the items back into stock
+        and refund the customer; <strong>Reject</strong> to decline with a reason. The customer is emailed either way.</span>
+    </div>
+
+    <div class="card">
+      <div *ngIf="requestsLoading" class="tbl-empty">Loading requests…</div>
+      <div *ngIf="!requestsLoading && !requests.length" class="req-empty">
+        <i class="bi bi-inbox"></i>
+        <p>No return requests waiting.</p>
+      </div>
+
+      <div class="req-list" *ngIf="!requestsLoading && requests.length">
+        <div class="req-row" *ngFor="let r of requests" [class.open]="expandedRequestId === r.id">
+          <div class="req-main" (click)="toggleRequest(r)">
+            <div class="req-id">
+              <strong>{{ r.return_number }}</strong>
+              <span>Order <code>{{ r.Sale?.invoice_number || '—' }}</code></span>
+            </div>
+            <div class="req-customer">
+              <strong>{{ r.Customer?.name || 'Customer' }}</strong>
+              <span>{{ r.Customer?.phone || '' }}</span>
+            </div>
+            <div class="req-reason">
+              <span class="req-label">Reason</span>
+              {{ r.return_reason || '—' }}
+            </div>
+            <div class="req-amount">
+              <span class="req-label">Refund value</span>
+              <strong>{{ formatCurrency(r.total_amount) }}</strong>
+              <span class="req-paid" [class.cod]="r.refund_method !== 'original'">{{ r.refund_method === 'original' ? 'Paid online' : 'COD / not prepaid' }}</span>
+            </div>
+            <div class="req-date">{{ formatDate(r.created_at) }}</div>
+            <div class="req-actions" (click)="$event.stopPropagation()">
+              <button class="btn btn-outline btn-sm" (click)="openReject(r)">Reject</button>
+              <button class="btn btn-primary btn-sm" (click)="openApprove(r)">Approve &amp; refund</button>
+            </div>
+          </div>
+          <div class="req-items" *ngIf="expandedRequestId === r.id">
+            <div class="req-item" *ngFor="let it of r.items">
+              <span>{{ it.product_name || 'Item' }}</span>
+              <span>× {{ it.quantity }}</span>
+              <strong>{{ formatCurrency(it.total_amount) }}</strong>
+            </div>
+            <div class="req-note" *ngIf="r.notes">{{ r.notes }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Approve / reject dialog -->
+  <div class="req-modal-backdrop" *ngIf="acting" (click)="closeAction()">
+    <div class="req-modal" (click)="$event.stopPropagation()">
+      <ng-container *ngIf="actingMode === 'approve'">
+        <div class="req-modal-head">
+          <div>
+            <div class="req-modal-title">Approve return {{ acting.return_number }}</div>
+            <div class="req-modal-sub">{{ acting.Customer?.name }} · order {{ acting.Sale?.invoice_number }}</div>
+          </div>
+          <button class="req-x" (click)="closeAction()"><i class="bi bi-x-lg"></i></button>
+        </div>
+
+        <div class="req-field-label">Refund the customer by</div>
+        <div class="req-methods">
+          <label class="req-method" *ngFor="let o of refundOptions" [class.on]="approveForm.refund_method === o.value"
+                 [class.disabled]="o.value === 'original' && acting.refund_method !== 'original'">
+            <input type="radio" name="refund" [value]="o.value" [(ngModel)]="approveForm.refund_method"
+                   [disabled]="o.value === 'original' && acting.refund_method !== 'original'" />
+            <span><strong>{{ o.label }}</strong><small>{{ o.hint }}</small></span>
+          </label>
+        </div>
+
+        <div class="req-grid">
+          <div class="form-group">
+            <label class="form-label">Restocking fee (₹)</label>
+            <input type="number" class="form-control" min="0" [(ngModel)]="approveForm.restocking_fee" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Stock</label>
+            <label class="req-check"><input type="checkbox" [(ngModel)]="approveForm.restock" /> Put items back in stock</label>
+          </div>
+          <div class="form-group req-span">
+            <label class="form-label">Note (optional)</label>
+            <input class="form-control" [(ngModel)]="approveForm.notes" maxlength="500" placeholder="e.g. Item checked, seal intact" />
+          </div>
+        </div>
+
+        <div class="req-total">
+          <span>Customer gets</span>
+          <strong>{{ formatCurrency(approveRefund) }}</strong>
+        </div>
+
+        <div class="req-modal-foot">
+          <button class="btn btn-outline" (click)="closeAction()" [disabled]="actingBusy">Cancel</button>
+          <button class="btn btn-primary" (click)="confirmApprove()" [disabled]="actingBusy">{{ actingBusy ? 'Processing…' : 'Approve & refund' }}</button>
+        </div>
+      </ng-container>
+
+      <ng-container *ngIf="actingMode === 'reject'">
+        <div class="req-modal-head">
+          <div>
+            <div class="req-modal-title">Reject return {{ acting.return_number }}</div>
+            <div class="req-modal-sub">The customer is told this reason.</div>
+          </div>
+          <button class="req-x" (click)="closeAction()"><i class="bi bi-x-lg"></i></button>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Reason</label>
+          <textarea class="form-control" rows="3" [(ngModel)]="rejectReason" maxlength="500" placeholder="e.g. Product has been used / return window closed"></textarea>
+        </div>
+        <div class="req-modal-foot">
+          <button class="btn btn-outline" (click)="closeAction()" [disabled]="actingBusy">Cancel</button>
+          <button class="btn btn-danger" (click)="confirmReject()" [disabled]="actingBusy">{{ actingBusy ? 'Saving…' : 'Reject request' }}</button>
+        </div>
+      </ng-container>
+    </div>
+  </div>
+
+  <!-- LOG SECTION -->
+  <div *ngIf="mode === 'log'">
+    <div class="card">
+      <div class="toolbar">
+        <div class="toolbar-left">
+          <div class="search-box">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="text" placeholder="Search Return # or Invoice…" autocomplete="off"
+                   [value]="search" (input)="onSearchInput($any($event.target).value)"/>
+          </div>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table class="pos-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Return #</th>
+              <th>Sale Invoice</th>
+              <th>Customer</th>
+              <th>Items</th>
+              <th>Net Refund</th>
+              <th>Method</th>
+              <th>Status</th>
+              <th>Date</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngIf="loading"><td colspan="9" class="tbl-empty">Loading history…</td></tr>
+            <tr *ngIf="!loading && errorMessage"><td colspan="9" class="tbl-empty" style="color:#ef4444">{{ errorMessage }}</td></tr>
+            <tr *ngIf="!loading && !errorMessage && !returns.length"><td colspan="9" class="tbl-empty">No returns recorded yet</td></tr>
+            <tr *ngFor="let r of returns; let i = index">
+              <td>{{ (page - 1) * limit + i + 1 }}</td>
+              <td><strong>{{ r.return_number }}</strong></td>
+              <td><code>{{ r.Sale?.invoice_number || '—' }}</code></td>
+              <td>{{ r.Customer?.name || 'Walk-in' }}</td>
+              <td>{{ r.items?.length || 0 }} items</td>
+              <td><strong class="text-danger">{{ formatCurrency(netRefund(r)) }}</strong></td>
+              <td><span class="badge">{{ r.refund_method }}</span></td>
+              <td><span class="badge" [ngClass]="statusClass(r.status)">{{ r.status }}</span></td>
+              <td style="color:#6b5a60;font-size:0.8rem">{{ formatDate(r.return_date || r.created_at) }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="pagination-bar">
+        <div class="pagination-info">
+          Row Per Page
+          <select [ngModel]="limit" (ngModelChange)="limit = $event; loadHistory(1)">
+            <option [ngValue]="20">20</option>
+            <option [ngValue]="50">50</option>
+          </select>
+          Entries
+        </div>
+        <app-pagination [currentPage]="page" [totalPages]="totalPages" (pageChange)="loadHistory($event)"></app-pagination>
+      </div>
+    </div>
+  </div>
+
+  <!-- PROCESS SECTION -->
+  <div *ngIf="mode === 'process'">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Record New Return</div>
+      </div>
+      <div class="card-body">
+
+        <!-- Step 1 -->
+        <div class="form-section">
+          <div class="form-section-label">Step 1 — Find Original Sale</div>
+          <div class="invoice-search-row">
+            <div class="form-group" style="flex:1;">
+              <label class="form-label">Sale Invoice Number</label>
+              <input type="text" id="f-invoice-input" class="form-control" placeholder="e.g. INV-20240501-0001" autocomplete="off"
+                     [(ngModel)]="invoiceInput" (keydown.enter)="fetchSale()"/>
+            </div>
+            <div class="search-btn-wrap">
+              <button class="btn btn-primary" [disabled]="isFetching" (click)="fetchSale()">{{ isFetching ? 'Searching…' : 'Fetch Sale' }}</button>
+            </div>
+          </div>
+
+          <div class="sale-info-bar" *ngIf="activeSale">
+            <div class="sale-info-pair">
+              <span class="sale-info-label">Customer</span>
+              <span class="sale-info-val">{{ activeSale.Customer?.name || 'Walk-in Customer' }}</span>
+            </div>
+            <div class="sale-info-pair">
+              <span class="sale-info-label">Sale Date</span>
+              <span class="sale-info-val">{{ (activeSale.sale_date || activeSale.created_at) | date }}</span>
+            </div>
+            <div class="sale-info-pair">
+              <span class="sale-info-label">Sale Total</span>
+              <span class="sale-info-val sale-info-amount">{{ formatCurrency(activeSale.total_amount) }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 2 -->
+        <div class="form-section" *ngIf="activeSale">
+          <div class="form-section-label">Step 2 — Select Items to Return</div>
+
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;padding:10px 14px;background:#fdf4f5;border:1px solid #efd6da;border-radius:8px">
+            <svg style="flex-shrink:0;opacity:.5" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="4" height="16"/><rect x="7" y="4" width="2" height="16"/><rect x="11" y="4" width="4" height="16"/><rect x="17" y="4" width="2" height="16"/><rect x="21" y="4" width="2" height="16"/></svg>
+            <input type="text" id="f-item-barcode" class="form-control"
+                   placeholder="Scan item barcode to auto-select…"
+                   autocomplete="off" autocorrect="off" spellcheck="false"
+                   style="flex:1;font-family:monospace;letter-spacing:.04em"
+                   [ngModel]="barcodeInput" (ngModelChange)="onBarcodeInput($event)" (keydown.enter)="onBarcodeEnter()"/>
+            <span style="font-size:0.72rem;white-space:nowrap;min-width:70px;text-align:right" [style.color]="scanStatusColor">{{ scanStatus }}</span>
+          </div>
+
+          <div class="return-items-list">
+            <p class="tbl-empty" *ngIf="!itemRows.length">No items found in this sale.</p>
+            <div class="ri-card" [class.selected]="row.checked" *ngFor="let row of itemRows">
+              <input type="checkbox" class="ri-check" [checked]="row.checked" (change)="toggleItem(row)"/>
+              <div class="ri-info">
+                <span class="ri-name">{{ row.saleItem.product_name }}</span>
+                <span class="ri-price">Price: {{ formatCurrency(row.unitPriceResolved) }} &nbsp;|&nbsp; Qty: {{ row.saleItem.quantity }}</span>
+              </div>
+              <div class="ri-inputs" *ngIf="row.checked">
+                <div class="ri-field">
+                  <label class="ri-field-label">Return Qty</label>
+                  <input type="number" class="form-control ri-qty" [(ngModel)]="row.qty" min="0.001" [max]="+row.saleItem.quantity"/>
+                </div>
+                <div class="ri-field">
+                  <label class="ri-field-label">Inventory</label>
+                  <select class="form-control ri-stock" [(ngModel)]="row.restock">
+                    <option [ngValue]="1">Restock</option>
+                    <option [ngValue]="0">Damaged</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 3 -->
+        <div class="form-section" *ngIf="activeSale">
+          <div class="form-section-label">Step 3 — Refund Details</div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="form-label">Restocking Fee (₹)</label>
+              <input type="number" class="form-control" [(ngModel)]="restockingFee" step="0.01" min="0"/>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Refund Method</label>
+              <select class="form-control" [(ngModel)]="refundMethod">
+                <option value="cash">Cash</option>
+                <option value="upi">UPI / Online</option>
+                <option value="card">Card Refund</option>
+                <option value="bank">Bank Transfer</option>
+                <option value="credit">Store Credit</option>
+              </select>
+            </div>
+            <div class="form-group col-span-2">
+              <label class="form-label">Return Reason / Notes</label>
+              <textarea class="form-control" rows="2" placeholder="Why is this being returned?" [(ngModel)]="notes"></textarea>
+            </div>
+          </div>
+
+          <div class="refund-summary">
+            <div class="refund-row">
+              <span>Items Subtotal</span>
+              <span>{{ formatCurrency(refundSubtotal) }}</span>
+            </div>
+            <div class="refund-row">
+              <span>Restocking Fee</span>
+              <span>{{ formatCurrency(restockingFee || 0) }}</span>
+            </div>
+            <div class="refund-row refund-total">
+              <span>Net Refund</span>
+              <span>{{ formatCurrency(refundNet) }}</span>
+            </div>
+          </div>
+
+          <div style="display:flex;justify-content:flex-end;margin-top:14px;">
+            <button class="btn btn-danger" [disabled]="isSubmitting" (click)="submitReturn()">{{ isSubmitting ? 'Processing…' : 'Confirm & Process Refund' }}</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>

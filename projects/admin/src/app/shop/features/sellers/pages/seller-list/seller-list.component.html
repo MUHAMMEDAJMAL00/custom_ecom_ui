@@ -1,0 +1,323 @@
+<div class="page-wrap">
+  <div class="page-header">
+    <div class="page-header-left">
+      <div class="page-title-main">Sellers</div>
+      <div class="page-breadcrumb">
+        <a [routerLink]="'/dashboard' | shopUrl">Dashboard</a>
+        <span class="sep">›</span>
+        <span class="current">Sellers</span>
+      </div>
+    </div>
+    <div class="page-header-actions">
+      <button class="btn btn-outline" (click)="load()" title="Refresh">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="23 4 23 10 17 10" /><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10" />
+        </svg>
+      </button>
+      <a class="btn btn-outline" [routerLink]="'/sellers/payouts' | shopUrl">Seller Payouts</a>
+    </div>
+  </div>
+
+  <!-- Commission: default rate + how it is worked out -->
+  <div class="card cm-card">
+    <div class="cm-row">
+      <div class="cm-icon"><i class="bi bi-percent"></i></div>
+      <div class="cm-text">
+        <div class="cm-title">Seller commission</div>
+        <div class="cm-sub">
+          The shop keeps a % of every product a seller sells. Sellers with their own rate (set in <em>Edit seller</em>) use that;
+          everyone else uses the default below.
+        </div>
+      </div>
+      <div class="cm-rate">
+        <label>Default commission</label>
+        <div class="cm-input">
+          <input type="number" min="0" max="100" step="0.5" [(ngModel)]="defaultRateInput" />
+          <span>%</span>
+        </div>
+      </div>
+      <button class="btn btn-primary" (click)="saveDefaultRate()" [disabled]="savingRate || defaultRateInput === '' + defaultRate">
+        {{ savingRate ? 'Saving…' : 'Save' }}
+      </button>
+      <button class="btn btn-outline" (click)="showCommissionHelp = !showCommissionHelp">
+        <i class="bi" [ngClass]="showCommissionHelp ? 'bi-chevron-up' : 'bi-question-circle'"></i> How it works
+      </button>
+    </div>
+
+    <div class="cm-help" *ngIf="showCommissionHelp">
+      <div class="cm-rules">
+        <div class="cm-rule"><span>1</span><div><strong>Per product line.</strong> Commission is worked out on each product in an order: price × quantity (GST included, before any coupon — coupons are paid by the shop).</div></div>
+        <div class="cm-rule"><span>2</span><div><strong>Which rate.</strong> The seller's own rate if set, otherwise the default rate.</div></div>
+        <div class="cm-rule"><span>3</span><div><strong>Several products.</strong> An order with many products is just many lines. Each line uses the rate of the seller who sold it; the order's commission is the sum.</div></div>
+        <div class="cm-rule"><span>4</span><div><strong>Locked per order.</strong> The rate is saved on each order line when the order is placed. Changing a rate later only affects new orders.</div></div>
+        <div class="cm-rule"><span>5</span><div><strong>Payouts.</strong> Seller earning = line total − commission. It becomes payable once the order is delivered; returned items are taken off.</div></div>
+      </div>
+
+      <div class="cm-calc">
+        <div class="cm-calc-title">Calculator — try an order</div>
+        <table class="cm-table">
+          <thead><tr><th>Product</th><th>Price ₹</th><th>Qty</th><th>Rate %</th><th>Line total</th><th>Commission</th><th>Seller gets</th></tr></thead>
+          <tbody>
+            <tr *ngFor="let l of calcLines">
+              <td>{{ l.name }}</td>
+              <td><input type="number" min="0" [(ngModel)]="l.price" /></td>
+              <td><input type="number" min="1" [(ngModel)]="l.qty" /></td>
+              <td><input type="number" min="0" max="100" [ngModel]="l.rate" (ngModelChange)="l.rate = $event === '' || $event === null ? null : +$event" [placeholder]="'' + (defaultRate ?? '')" /></td>
+              <td>₹{{ formatCurrency(calcRow(l).total) }}</td>
+              <td class="cm-com">₹{{ formatCurrency(calcRow(l).commission) }} <small>({{ calcRow(l).rate }}%)</small></td>
+              <td>₹{{ formatCurrency(calcRow(l).earning) }}</td>
+            </tr>
+          </tbody>
+          <tfoot>
+            <tr><td colspan="4">Order total</td><td>₹{{ formatCurrency(calcTotals.total) }}</td><td class="cm-com">₹{{ formatCurrency(calcTotals.commission) }}</td><td>₹{{ formatCurrency(calcTotals.earning) }}</td></tr>
+          </tfoot>
+        </table>
+        <small class="form-hint">Leave a rate empty to use the default. This is only a calculator — it doesn't change any seller.</small>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="toolbar">
+      <div class="toolbar-left">
+        <div class="search-box">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+          </svg>
+          <input type="text" placeholder="Search seller, owner, email or phone…" autocomplete="off" [value]="search"
+                 (input)="onSearchInput($any($event.target).value)" />
+        </div>
+      </div>
+      <div class="toolbar-right">
+        <select class="filter-select" [(ngModel)]="statusFilter" (change)="onFilterChange()">
+          <option value="">All Statuses</option>
+          <option value="pending">Pending</option>
+          <option value="approved">Approved</option>
+          <option value="rejected">Rejected</option>
+          <option value="suspended">Suspended</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table class="pos-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Seller</th>
+            <th>Contact</th>
+            <th>Commission</th>
+            <th>Joined</th>
+            <th>Status</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngIf="loading">
+            <td colspan="7" class="tbl-empty"><span class="pos-loader"><span></span><span></span><span></span></span></td>
+          </tr>
+          <tr *ngIf="!loading && errorMessage">
+            <td colspan="7" class="tbl-empty" style="color: #ef4444">{{ errorMessage }}</td>
+          </tr>
+          <tr *ngIf="!loading && !errorMessage && !sellers.length">
+            <td colspan="7" class="tbl-empty">No sellers found</td>
+          </tr>
+          <tr *ngFor="let seller of sellers; let i = index" [hidden]="loading">
+            <td>{{ (page - 1) * limit + i + 1 }}</td>
+            <td>
+              <div class="cell-seller">
+                <div class="row-avatar">{{ (seller.business_name || '?').charAt(0).toUpperCase() }}</div>
+                <div>
+                  <div class="cell-name">{{ seller.business_name }}</div>
+                  <div class="cell-sub">{{ seller.owner_name }}</div>
+                </div>
+              </div>
+            </td>
+            <td>
+              <div>{{ seller.phone }}</div>
+              <div class="cell-sub">{{ seller.email }}</div>
+            </td>
+            <td>{{ commissionLabel(seller) }}</td>
+            <td>{{ seller.created_at | date: 'dd MMM yyyy' }}</td>
+            <td><span class="badge" [ngClass]="statusClass(seller.status)">{{ seller.status }}</span></td>
+            <td>
+              <div class="row-actions">
+                <button class="btn btn-outline btn-sm" (click)="openView(seller)">View</button>
+                <button class="btn btn-primary btn-sm" *ngIf="seller.status === 'pending'" (click)="approve(seller)">Approve</button>
+                <button class="btn btn-outline btn-sm" *ngIf="seller.status === 'pending'" (click)="startReason('reject', seller)">Reject</button>
+                <button class="btn btn-outline btn-sm" *ngIf="seller.status === 'approved'" (click)="startReason('suspend', seller)">Suspend</button>
+                <button class="btn btn-primary btn-sm" *ngIf="seller.status === 'suspended'" (click)="reactivate(seller)">Reactivate</button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="pagination-bar">
+      <div class="pagination-info">
+        Row Per Page
+        <select [ngModel]="limit" (ngModelChange)="onLimitChange($event)">
+          <option [ngValue]="20">20</option>
+          <option [ngValue]="10">10</option>
+          <option [ngValue]="50">50</option>
+        </select>
+        Entries
+      </div>
+      <app-pagination [currentPage]="page" [totalPages]="totalPages" (pageChange)="load($event)"></app-pagination>
+    </div>
+  </div>
+</div>
+
+<app-drawer [open]="drawerMode !== null" [title]="drawerTitle" saveLabel="Save Changes"
+            [saving]="saving" [showFooter]="drawerMode === 'edit'"
+            (closed)="closeDrawer()" (saveClicked)="saveEdit()">
+
+  <div *ngIf="detailLoading" class="tbl-empty">
+    <span class="pos-loader"><span></span><span></span><span></span></span>
+  </div>
+
+  <form *ngIf="drawerMode === 'edit' && !detailLoading" [formGroup]="editForm" class="pf-form">
+    <div class="pf-section">
+      <div class="pf-section-header"><span class="pf-section-title">Marketplace Settings</span></div>
+      <div class="pf-section-body">
+        <div class="form-group">
+          <label class="form-label">Commission Rate (%)</label>
+          <input type="number" class="form-control" formControlName="commission_rate" min="0" max="100" step="0.01"
+                 placeholder="Leave blank to use the platform default" />
+          <small class="form-hint">Platform commission charged on this seller's sale lines. Blank = default rate.</small>
+        </div>
+      </div>
+    </div>
+  </form>
+
+  <div *ngIf="drawerMode === 'view'">
+    <ng-container *ngIf="selected as s">
+      <div class="seller-hero">
+        <div class="row-avatar row-avatar-lg">{{ (s.business_name || '?').charAt(0).toUpperCase() }}</div>
+        <div class="seller-hero-info">
+          <div class="seller-hero-name">{{ s.business_name }}</div>
+          <div class="cell-sub">{{ s.owner_name }} · {{ s.email }}</div>
+        </div>
+        <span class="badge" [ngClass]="statusClass(s.status)">{{ s.status }}</span>
+      </div>
+
+      <div class="seller-actions">
+        <button class="btn btn-primary btn-sm" *ngIf="s.status === 'pending'" (click)="approve(s)">Approve</button>
+        <button class="btn btn-outline btn-sm" *ngIf="s.status === 'pending'" (click)="startReason('reject', s)">Reject</button>
+        <button class="btn btn-outline btn-sm" *ngIf="s.status === 'approved'" (click)="startReason('suspend', s)">Suspend</button>
+        <button class="btn btn-primary btn-sm" *ngIf="s.status === 'suspended'" (click)="reactivate(s)">Reactivate</button>
+        <button class="btn btn-outline btn-sm" (click)="openEdit(s)">Edit Commission</button>
+      </div>
+
+      <div class="tbl-empty seller-note" *ngIf="s.rejection_reason">
+        <strong>{{ s.status === 'rejected' ? 'Rejection reason' : 'Suspension reason' }}:</strong> {{ s.rejection_reason }}
+      </div>
+
+      <div class="stat-cards seller-stats" *ngIf="s.stats">
+        <div class="stat-card stat-card--teal">
+          <div class="stat-card-info">
+            <div class="stat-card-label">Gross Sales</div>
+            <div class="stat-card-value">₹{{ formatCurrency(s.stats.gross) }}</div>
+          </div>
+        </div>
+        <div class="stat-card stat-card--orange">
+          <div class="stat-card-info">
+            <div class="stat-card-label">Commission</div>
+            <div class="stat-card-value">₹{{ formatCurrency(s.stats.commission) }}</div>
+          </div>
+        </div>
+        <div class="stat-card stat-card--dark">
+          <div class="stat-card-info">
+            <div class="stat-card-label">Seller Earnings</div>
+            <div class="stat-card-value">₹{{ formatCurrency(s.stats.earnings) }}</div>
+          </div>
+        </div>
+        <div class="stat-card stat-card--blue">
+          <div class="stat-card-info">
+            <div class="stat-card-label">Products / Orders</div>
+            <div class="stat-card-value">{{ s.stats.products }} / {{ s.stats.orders }}</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="detail-grid">
+        <div class="detail-item"><label>Commission</label><span>{{ commissionLabel(s) }}</span></div>
+        <div class="detail-item"><label>Phone</label><span>{{ s.phone || '—' }}</span></div>
+        <div class="detail-item"><label>GSTIN</label><span>{{ s.gst_number || '—' }}</span></div>
+        <div class="detail-item"><label>PAN</label><span>{{ s.pan_number || '—' }}</span></div>
+        <div class="detail-item"><label>City / State</label><span>{{ s.city || '—' }}<ng-container *ngIf="s.state">, {{ s.state }}</ng-container></span></div>
+        <div class="detail-item"><label>Postal Code</label><span>{{ s.postal_code || '—' }}</span></div>
+        <div class="detail-item col-span-2"><label>Address</label><span>{{ s.address || '—' }}</span></div>
+        <div class="detail-item"><label>Bank Account</label><span>{{ s.bank_account_name || '—' }}</span></div>
+        <div class="detail-item"><label>Account Number</label><span>{{ s.bank_account_number || '—' }}</span></div>
+        <div class="detail-item"><label>IFSC</label><span>{{ s.bank_ifsc || '—' }}</span></div>
+        <div class="detail-item"><label>UPI ID</label><span>{{ s.upi_id || '—' }}</span></div>
+        <div class="detail-item"><label>Approved At</label><span>{{ s.approved_at ? (s.approved_at | date: 'dd MMM yyyy, hh:mm a') : '—' }}</span></div>
+        <div class="detail-item"><label>Last Login</label><span>{{ s.last_login ? (s.last_login | date: 'dd MMM yyyy, hh:mm a') : '—' }}</span></div>
+        <div class="detail-item"><label>Joined</label><span>{{ s.created_at | date: 'dd MMM yyyy' }}</span></div>
+        <div class="detail-item"><label>Status</label><span>{{ s.status }}</span></div>
+      </div>
+
+      <div class="section-block">
+        <div class="section-head">
+          <span class="section-title">Payout Preview</span>
+        </div>
+        <div class="payout-controls">
+          <input type="date" class="form-control" [(ngModel)]="previewDate" [max]="today" name="previewDate" />
+          <button class="btn btn-outline btn-sm" (click)="previewPayout()" [disabled]="previewLoading">
+            {{ previewLoading ? 'Calculating…' : 'Calculate' }}
+          </button>
+        </div>
+
+        <div class="payout-summary" *ngIf="preview">
+          <div><span>Lines</span><strong>{{ preview.line_count }}</strong></div>
+          <div><span>Gross</span><strong>₹{{ formatCurrency(preview.gross_sales) }}</strong></div>
+          <div><span>Commission</span><strong>₹{{ formatCurrency(preview.commission_amount) }}</strong></div>
+          <div><span>Net Payable</span><strong>₹{{ formatCurrency(preview.net_payable) }}</strong></div>
+        </div>
+
+        <div class="table-wrap payout-lines" *ngIf="preview && preview.lines.length">
+          <table class="pos-table">
+            <thead>
+              <tr>
+                <th>Product</th>
+                <th>Qty</th>
+                <th>Total</th>
+                <th>Commission</th>
+                <th>Earning</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let line of preview.lines">
+                <td>{{ line.product_name }}</td>
+                <td>{{ line.quantity }}</td>
+                <td>₹{{ formatCurrency(line.total_price) }}</td>
+                <td>₹{{ formatCurrency(line.commission_amount) }}</td>
+                <td>₹{{ formatCurrency(line.seller_earning) }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="payout-footer" *ngIf="preview">
+          <button class="btn btn-primary btn-sm" (click)="createPayout()" [disabled]="payoutSaving || !preview.line_count">
+            {{ payoutSaving ? 'Creating…' : 'Create Payout' }}
+          </button>
+        </div>
+      </div>
+    </ng-container>
+  </div>
+</app-drawer>
+
+<app-modal [open]="reasonAction !== null" [title]="reasonAction === 'reject' ? 'Reject Seller' : 'Suspend Seller'"
+           [saveLabel]="reasonAction === 'reject' ? 'Reject' : 'Suspend'" [saving]="reasonSaving"
+           (closed)="closeReason()" (saveClicked)="submitReason()">
+  <div class="form-group">
+    <label class="form-label">
+      Reason <span class="req" *ngIf="reasonAction === 'reject'">*</span>
+    </label>
+    <textarea class="form-control" rows="3" [(ngModel)]="reasonText"
+              placeholder="Explain the reason for this decision"></textarea>
+  </div>
+</app-modal>

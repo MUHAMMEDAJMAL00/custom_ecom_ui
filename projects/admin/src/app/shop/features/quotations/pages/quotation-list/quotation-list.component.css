@@ -1,0 +1,24 @@
+.qt-section-title {
+  margin-top: 16px;
+  margin-bottom: 8px;
+  font-weight: 700;
+}
+
+.qt-item-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+.qt-item-row .form-control:first-child { flex: 2; min-width: 160px; }
+.qt-item-row .form-control { flex: 1; min-width: 80px; }
+
+.qt-rem-btn {
+  padding: 6px 10px;
+  color: #ef4444;
+  flex-shrink: 0;
+}
+
+.badge-pending { background: #fef3c7; color: #d97706; }
+.badge-qt-converted { background: #dbeafe; color: #1d4ed8; }

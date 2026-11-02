@@ -1,0 +1,81 @@
+.exp-stat-cards {
+  grid-template-columns: repeat(3, 1fr) !important;
+}
+@media (max-width: 991px) {
+  .exp-stat-cards { grid-template-columns: repeat(2, 1fr) !important; }
+}
+@media (max-width: 480px) {
+  .exp-stat-cards { grid-template-columns: 1fr !important; }
+}
+
+:host ::ng-deep .stat-card {
+  background: #fff;
+  border: 1px solid #efd6da;
+  border-left: 1px solid #efd6da;
+  border-radius: 8px;
+  padding: 16px 20px;
+}
+
+:host ::ng-deep .stat-card--teal,
+:host ::ng-deep .stat-card--dark,
+:host ::ng-deep .stat-card--orange {
+  border-left: 1px solid #efd6da;
+}
+
+:host ::ng-deep .stat-card--teal .stat-card-icon { background: #ecfdf5; color: #10b981; }
+:host ::ng-deep .stat-card--dark .stat-card-icon { background: #f6e7e9; color: #2a1a20; }
+:host ::ng-deep .stat-card--orange .stat-card-icon { background: #fff7ed; color: #f97316; }
+
+.exp-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 16px;
+  border-bottom: 2px solid var(--border-light);
+  padding-bottom: 0;
+}
+.exp-tab {
+  padding: 8px 18px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  font-family: inherit;
+  color: var(--text-secondary);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+.exp-tab:hover { color: var(--primary); }
+.exp-tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+
+.badge-method-cash { background: #dcfce7; color: #16a34a; }
+.badge-method-bank { background: #f3e8ff; color: #7c3aed; }
+.badge-method-upi { background: #fef3c7; color: #d97706; }
+
+.btn-icon-tool {
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: #fff;
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.btn-icon-tool:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.pf-section { margin-bottom: 16px; }
+.pf-section-header {
+  padding-bottom: 6px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid var(--border-light);
+}
+.pf-section-title { font-size: 0.82rem; font-weight: 700; color: var(--text-primary); }

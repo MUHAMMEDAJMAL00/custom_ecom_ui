@@ -1,0 +1,213 @@
+<div class="page-wrap">
+  <div class="page-header">
+    <div class="page-header-left">
+      <div class="page-title-main">Vendors</div>
+      <div class="page-breadcrumb">
+        <a [routerLink]="'/dashboard' | shopUrl">Dashboard</a>
+        <span class="sep">›</span>
+        <span class="current">Vendors</span>
+      </div>
+    </div>
+    <div class="page-header-actions">
+      <button class="btn btn-primary" (click)="openAdd()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+        </svg>
+        Add Vendor
+      </button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="toolbar">
+      <div class="toolbar-left">
+        <div class="search-box">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+          </svg>
+          <input type="text" placeholder="Search vendors…" autocomplete="off" [value]="search"
+                 (input)="onSearchInput($any($event.target).value)" />
+        </div>
+      </div>
+      <div class="toolbar-right">
+        <select class="filter-select" [(ngModel)]="statusFilter" (change)="onFilterChange()">
+          <option value="">Status ▾</option>
+          <option value="1">Active</option>
+          <option value="0">Inactive</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table class="pos-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Vendor</th>
+            <th>Company</th>
+            <th>Phone</th>
+            <th>Email</th>
+            <th>Balance</th>
+            <th>Status</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngIf="loading">
+            <td colspan="8" class="tbl-empty">
+              <span class="pos-loader"><span></span><span></span><span></span></span>
+            </td>
+          </tr>
+          <tr *ngIf="!loading && errorMessage">
+            <td colspan="8" class="tbl-empty" style="color: #ef4444">{{ errorMessage }}</td>
+          </tr>
+          <tr *ngIf="!loading && !errorMessage && !vendors.length">
+            <td colspan="8" class="tbl-empty">No vendors found</td>
+          </tr>
+          <tr *ngFor="let v of vendors; let i = index" [hidden]="loading">
+            <td>{{ (page - 1) * limit + i + 1 }}</td>
+            <td>
+              <div class="cell-with-img">
+                <div class="row-avatar">{{ (v.name || '?').charAt(0).toUpperCase() }}</div>
+                <div class="cell-name">{{ v.name }}</div>
+              </div>
+            </td>
+            <td style="color: #6b5a60">{{ v.company || '—' }}</td>
+            <td>{{ v.phone || '—' }}</td>
+            <td style="color: #6b5a60">{{ v.email || '—' }}</td>
+            <td [style.color]="+v.balance > 0 ? '#ef4444' : null" [style.font-weight]="+v.balance > 0 ? 600 : null">
+              ₹{{ formatCurrency(v.balance) }}
+            </td>
+            <td><span class="badge" [ngClass]="v.is_active ? 'badge-active' : 'badge-inactive'">{{ v.is_active ? 'active' : 'inactive' }}</span></td>
+            <td>
+              <app-row-actions [showView]="true" [showEdit]="true" [showDelete]="true"
+                (view)="openView(v)" (edit)="openEdit(v)" (delete)="confirmDelete(v)"></app-row-actions>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="pagination-bar">
+      <div class="pagination-info">
+        Row Per Page
+        <select [ngModel]="limit" (ngModelChange)="onLimitChange($event)">
+          <option [ngValue]="20">20</option>
+          <option [ngValue]="10">10</option>
+          <option [ngValue]="25">25</option>
+          <option [ngValue]="50">50</option>
+        </select>
+        Entries
+      </div>
+      <app-pagination [currentPage]="page" [totalPages]="totalPages" (pageChange)="load($event)"></app-pagination>
+    </div>
+  </div>
+</div>
+
+<app-drawer [open]="drawerMode !== null" [title]="drawerTitle" [saveLabel]="editId ? 'Update Vendor' : 'Save Vendor'"
+            [saving]="saving" [showFooter]="drawerMode === 'form'" (closed)="closeDrawer()" (saveClicked)="handleSave()">
+
+  <form *ngIf="drawerMode === 'form'" [formGroup]="form">
+    <div class="form-grid">
+      <div class="form-group">
+        <label class="form-label">Name <span class="req">*</span></label>
+        <input type="text" class="form-control" formControlName="name" placeholder="Contact / vendor name" autocomplete="off" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Company</label>
+        <input type="text" class="form-control" formControlName="company" placeholder="Business / company name" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Phone</label>
+        <input type="text" class="form-control" formControlName="phone" placeholder="+91 9999999999" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Email</label>
+        <input type="email" class="form-control" formControlName="email" placeholder="vendor@example.com" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Tax Number (GSTIN)</label>
+        <input type="text" class="form-control" formControlName="tax_number" placeholder="GSTIN / tax number" />
+      </div>
+      <div class="form-group" *ngIf="!editId">
+        <label class="form-label">Opening Balance</label>
+        <input type="number" class="form-control" formControlName="opening_balance" min="0" step="0.01" />
+        <small class="form-hint">Amount owed to vendor at start.</small>
+      </div>
+      <div class="form-group" *ngIf="editId">
+        <label class="form-label">Balance</label>
+        <input type="text" class="form-control" [value]="formatCurrency(form.value.opening_balance)" disabled />
+      </div>
+      <div class="form-group col-span-2">
+        <label class="form-label">Address</label>
+        <textarea class="form-control" formControlName="address" rows="2" placeholder="Full address"></textarea>
+      </div>
+      <div class="form-group col-span-2">
+        <label class="form-label">Notes</label>
+        <textarea class="form-control" formControlName="notes" rows="2" placeholder="Any additional notes"></textarea>
+      </div>
+      <div class="form-group" *ngIf="editId">
+        <label class="form-label">Status</label>
+        <select class="form-control" formControlName="is_active">
+          <option [ngValue]="1">Active</option>
+          <option [ngValue]="0">Inactive</option>
+        </select>
+      </div>
+    </div>
+  </form>
+
+  <div *ngIf="drawerMode === 'view' && viewingVendor as v">
+    <div class="detail-grid">
+      <div class="detail-item"><label>Name</label><span>{{ v.name || '—' }}</span></div>
+      <div class="detail-item"><label>Company</label><span>{{ v.company || '—' }}</span></div>
+      <div class="detail-item"><label>Phone</label><span>{{ v.phone || '—' }}</span></div>
+      <div class="detail-item"><label>Email</label><span>{{ v.email || '—' }}</span></div>
+      <div class="detail-item"><label>Tax Number</label><span>{{ v.tax_number || '—' }}</span></div>
+      <div class="detail-item"><label>Balance</label><span>₹{{ formatCurrency(v.balance) }}</span></div>
+      <div class="detail-item"><label>Status</label><span class="badge" [ngClass]="v.is_active ? 'badge-active' : 'badge-inactive'">{{ v.is_active ? 'active' : 'inactive' }}</span></div>
+      <div class="detail-item"><label>Opening Balance</label><span>₹{{ formatCurrency(v.opening_balance) }}</span></div>
+      <div class="detail-item col-span-2" *ngIf="v.address"><label>Address</label><span>{{ v.address }}</span></div>
+      <div class="detail-item col-span-2" *ngIf="v.notes"><label>Notes</label><span>{{ v.notes }}</span></div>
+    </div>
+
+    <div class="vdr-tabs">
+      <button class="vdr-tab" [class.active]="activeTab === 'purchases'" (click)="switchTab('purchases')">Purchases</button>
+      <button class="vdr-tab" [class.active]="activeTab === 'payments'" (click)="switchTab('payments')">Payments</button>
+    </div>
+
+    <div *ngIf="tabLoading" class="tbl-empty">Loading…</div>
+
+    <ng-container *ngIf="!tabLoading && activeTab === 'purchases'">
+      <div *ngIf="!purchases.length" class="tbl-empty">No purchases found</div>
+      <table class="pos-table mini-table" *ngIf="purchases.length">
+        <thead><tr><th>Invoice</th><th>Date</th><th>Total</th><th>Paid</th><th>Due</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr *ngFor="let r of purchases">
+            <td style="font-weight: 600">{{ r.purchase_number || '—' }}</td>
+            <td style="color: #6b5a60; font-size: 0.78rem">{{ r.purchase_date | slice: 0:10 }}</td>
+            <td>₹{{ formatCurrency(r.total_amount) }}</td>
+            <td>₹{{ formatCurrency(r.paid_amount) }}</td>
+            <td [style.color]="+r.due_amount > 0 ? '#ef4444' : '#16a34a'" style="font-weight: 600">₹{{ formatCurrency(r.due_amount) }}</td>
+            <td><span class="badge" [ngClass]="'badge-' + ((r.payment_status || r.status || 'pending') | lowercase)">{{ r.payment_status || r.status }}</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </ng-container>
+
+    <ng-container *ngIf="!tabLoading && activeTab === 'payments'">
+      <div *ngIf="!payments.length" class="tbl-empty">No payments found</div>
+      <table class="pos-table mini-table" *ngIf="payments.length">
+        <thead><tr><th>Date</th><th>Amount</th><th>Method</th><th>Invoice</th><th>Reference</th></tr></thead>
+        <tbody>
+          <tr *ngFor="let r of payments">
+            <td style="color: #6b5a60; font-size: 0.78rem">{{ r.payment_date | slice: 0:10 }}</td>
+            <td style="font-weight: 600; color: #16a34a">₹{{ formatCurrency(r.amount) }}</td>
+            <td>{{ r.payment_method || '—' }}</td>
+            <td style="color: #6b5a60">{{ r.Purchase?.purchase_number || '—' }}</td>
+            <td style="color: #6b5a60">{{ r.reference_number || '—' }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </ng-container>
+  </div>
+</app-drawer>

@@ -1,0 +1,54 @@
+<aside class="sidebar" [class.collapsed]="collapsed" [class.mobile-open]="mobileOpen">
+  <div class="sidebar-brand">
+    <a class="brand-logo" [routerLink]="['/t', slug, 'dashboard']">
+      <span class="brand-initial" aria-hidden="true">{{ initial }}</span>
+      <img *ngIf="session.tenant.logo_url" class="brand-img" [src]="session.tenant.logo_url" [alt]="session.tenant.name" />
+      <div class="brand-text" *ngIf="!session.tenant.logo_url">
+        <span class="brand-word">{{ session.tenant.name }}</span>
+        <span class="brand-tagline">Shop admin</span>
+      </div>
+    </a>
+    <button class="sidebar-toggle" title="Collapse sidebar" (click)="toggleCollapse.emit()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <polyline points="15 18 9 12 15 6" />
+        <polyline points="9 18 3 12 9 6" />
+      </svg>
+    </button>
+  </div>
+
+  <nav class="sidebar-nav">
+    <ng-container *ngFor="let group of navGroups">
+      <div class="nav-section-label" *ngIf="!group.collapsible">{{ group.label }}</div>
+
+      <!-- Collapsible group (Sales) -->
+      <ng-container *ngIf="group.collapsible; else flatGroup">
+        <div class="nav-item nav-group-toggle" [class.open]="openGroupId === group.id" (click)="toggleGroup(group.id)">
+          <span class="nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" [innerHTML]="group.icon! | trustSvg"></svg></span>
+          <span class="nav-label">{{ group.label }}</span>
+          <svg class="nav-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6" /></svg>
+        </div>
+        <div class="nav-sub" [class.open]="openGroupId === group.id">
+          <a *ngFor="let leaf of group.children" class="nav-item" [routerLink]="'/t/' + slug + '/' + leaf.path" routerLinkActive="active" [routerLinkActiveOptions]="exactMatch" (click)="onNavClick()">
+            <span class="nav-label">{{ leaf.label }}</span>
+          </a>
+        </div>
+      </ng-container>
+
+      <ng-template #flatGroup>
+        <a *ngFor="let leaf of group.children" class="nav-item" [routerLink]="'/t/' + slug + '/' + leaf.path" routerLinkActive="active" [routerLinkActiveOptions]="exactMatch" (click)="onNavClick()" [title]="leaf.label">
+          <span class="nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" [innerHTML]="leaf.icon | trustSvg"></svg></span>
+          <span class="nav-label">{{ leaf.label }}</span>
+        </a>
+      </ng-template>
+    </ng-container>
+
+    <a class="nav-item nav-item--danger" (click)="logout.emit()">
+      <span class="nav-icon">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+        </svg>
+      </span>
+      <span class="nav-label">Logout</span>
+    </a>
+  </nav>
+</aside>

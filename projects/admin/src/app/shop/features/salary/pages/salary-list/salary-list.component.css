@@ -1,0 +1,14 @@
+.stat-card {
+  background: #fff;
+  border: 1px solid #efd6da;
+  border-left: 1px solid #efd6da;
+  border-radius: 8px;
+  padding: 16px 20px;
+}
+.stat-card--teal, .stat-card--dark, .stat-card--orange, .stat-card--blue, .stat-card--red {
+  border-left: 1px solid #efd6da;
+}
+.stat-card--teal .stat-card-icon   { background: #ecfdf5; color: #10b981; }
+.stat-card--dark .stat-card-icon   { background: #f6e7e9; color: #2a1a20; }
+.stat-card--orange .stat-card-icon { background: #fff7ed; color: #f97316; }
+.stat-card--blue .stat-card-icon   { background: #eff6ff; color: #3b82f6; }

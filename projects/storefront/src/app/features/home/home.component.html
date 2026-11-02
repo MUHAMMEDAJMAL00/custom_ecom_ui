@@ -1,0 +1,167 @@
+<div class="tenant-picker" *ngIf="needsTenant">
+  <div class="picker-card">
+    <span class="picker-mark">S</span>
+    <p class="eyebrow">Local development</p>
+    <h1>Open a shop</h1>
+    <p>Enter the shop slug. In production the tenant comes from the domain automatically.</p>
+    <form (submit)="openTenant()">
+      <input [(ngModel)]="tenantInput" name="tenant" placeholder="beauty-glow" autocomplete="off" />
+      <button type="submit">Open shop</button>
+    </form>
+    <small>Example: <code>?tenant=beauty-glow</code></small>
+  </div>
+</div>
+
+<div class="store-loading" *ngIf="loading && !needsTenant">
+  <span class="loader"></span>
+  Loading shop…
+</div>
+
+<div class="store-error" *ngIf="errorMessage && !loading">
+  <p class="eyebrow">Shop unavailable</p>
+  <h1>{{ errorMessage }}</h1>
+  <p>Check the API and the tenant slug, then try again.</p>
+  <a href="/">Back</a>
+</div>
+
+<app-classic-home
+  *ngIf="bootstrap && isClassic && !loading && !errorMessage"
+  [bootstrap]="bootstrap"
+  [categoryTree]="categories"
+  [banners]="banners"
+  [sections]="sections"
+  [products]="products"
+></app-classic-home>
+
+<div class="storefront" *ngIf="bootstrap && !isClassic && !loading && !errorMessage" [ngStyle]="themeVars">
+  <div class="announcement">
+    <span>Free delivery on orders over {{ bootstrap.tenant.currency }} 999</span>
+    <span class="announcement-right">Secure checkout · Easy returns</span>
+  </div>
+
+  <header class="sf-header">
+    <div class="sf-container header-inner">
+      <a class="brand" href="/">
+        <span class="brand-mark" *ngIf="!bootstrap.tenant.logo_url">{{ tenantInitial }}</span>
+        <img *ngIf="bootstrap.tenant.logo_url" [src]="bootstrap.tenant.logo_url" [alt]="tenantName" class="brand-logo" />
+        <span class="brand-name">{{ tenantName }}</span>
+      </a>
+
+      <nav class="sf-nav" aria-label="Main navigation">
+        <a *ngFor="let category of categories | slice: 0:5" href="#catalog">{{ category.name }}</a>
+      </nav>
+
+      <button class="header-cta" type="button" (click)="scrollTo('catalog')">Shop now</button>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="sf-container hero-inner">
+        <div class="hero-copy">
+          <p class="eyebrow">{{ heroEyebrow }}</p>
+          <h1>{{ heroTitle }}</h1>
+          <p class="hero-text">{{ heroText }}</p>
+          <button class="primary-btn" type="button" (click)="scrollTo('catalog')">{{ heroCta }}</button>
+          <div class="hero-meta">
+            <span><strong>Free delivery</strong> over {{ bootstrap.tenant.currency }} 999</span>
+            <span><strong>Easy returns</strong> within 7 days</span>
+          </div>
+        </div>
+
+        <div class="hero-art" [style.background]="heroArtBackground">
+          <div class="hero-glow"></div>
+          <div class="art-card art-card-main">
+            <span class="art-kicker">{{ hero?.category?.name || 'Curated for you' }}</span>
+            <strong>{{ heroTitle }}</strong>
+            <span class="art-line"></span>
+            <span class="art-line short"></span>
+          </div>
+          <div class="art-card art-card-small">
+            <span class="art-dot"></span>
+            <span>New arrivals</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="categories" id="catalog">
+      <div class="sf-container">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">Browse the shop</p>
+            <h2>Shop by category</h2>
+          </div>
+          <span class="section-count">{{ categories.length }} {{ categories.length === 1 ? 'category' : 'categories' }}</span>
+        </div>
+
+        <div class="category-grid" *ngIf="categories.length; else noCategories">
+          <article class="category-card" *ngFor="let category of categories; let i = index" [style.background]="categoryBackground(i)">
+            <span class="cat-index">0{{ i + 1 }}</span>
+            <div>
+              <h3>{{ category.name }}</h3>
+              <p>{{ category.description || 'Explore the collection' }}</p>
+            </div>
+            <span class="cat-arrow">→</span>
+          </article>
+        </div>
+
+        <ng-template #noCategories>
+          <div class="empty-categories">Categories will appear here once the shop adds them.</div>
+        </ng-template>
+      </div>
+    </section>
+
+    <section class="benefits">
+      <div class="sf-container benefits-grid">
+        <article class="benefit" *ngFor="let benefit of benefits">
+          <span class="benefit-icon">{{ benefit.icon }}</span>
+          <div>
+            <h3>{{ benefit.title }}</h3>
+            <p>{{ benefit.text }}</p>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="next-drop">
+      <div class="sf-container next-inner">
+        <div>
+          <p class="eyebrow">Next drop</p>
+          <h2>New arrivals are being prepared.</h2>
+          <p>The product catalog and checkout are the next phase of this shop.</p>
+        </div>
+        <span class="next-mark">✦</span>
+      </div>
+    </section>
+  </main>
+
+  <footer class="sf-footer">
+    <div class="sf-container footer-grid">
+      <div class="footer-brand">
+        <span class="brand-mark">{{ tenantInitial }}</span>
+        <div>
+          <strong>{{ tenantName }}</strong>
+          <p>{{ bootstrap.seo.description || 'Thoughtful products, delivered with care.' }}</p>
+        </div>
+      </div>
+
+      <div class="footer-col">
+        <h4>Shop</h4>
+        <a *ngFor="let category of categories | slice: 0:4" href="#catalog">{{ category.name }}</a>
+      </div>
+
+      <div class="footer-col">
+        <h4>Contact</h4>
+        <a [href]="'mailto:' + bootstrap.tenant.email">{{ bootstrap.tenant.email }}</a>
+        <span *ngIf="bootstrap.tenant.phone">{{ bootstrap.tenant.phone }}</span>
+        <span>{{ bootstrap.tenant.timezone }}</span>
+      </div>
+    </div>
+
+    <div class="sf-container footer-bottom">
+      <span>© {{ currentYear }} {{ tenantName }}</span>
+      <span>Powered by Platform</span>
+    </div>
+  </footer>
+</div>

@@ -1,0 +1,61 @@
+<div class="page-wrap">
+  <div class="page-header">
+    <div class="page-header-left">
+      <div class="page-title-main">Notifications</div>
+      <div class="page-breadcrumb">
+        <a [routerLink]="'/dashboard' | shopUrl">Dashboard</a>
+        <span class="sep">›</span>
+        <span class="current">Notifications</span>
+      </div>
+    </div>
+    <div class="page-header-actions">
+      <button class="btn btn-icon-tool" title="Refresh" (click)="load()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="23 4 23 10 17 10"/>
+          <path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/>
+        </svg>
+      </button>
+      <button class="btn btn-outline btn-sm" (click)="generateAlerts()">Generate Alerts</button>
+      <button class="btn btn-primary" (click)="markAllRead()">Mark All Read</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="table-wrap">
+      <table class="pos-table">
+        <thead>
+          <tr>
+            <th style="width:30px">#</th>
+            <th style="width:80px">Type</th>
+            <th>Message</th>
+            <th style="width:140px">Date</th>
+            <th style="width:160px">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngIf="loading"><td colspan="5" class="tbl-empty">Loading notifications…</td></tr>
+          <tr *ngIf="!loading && errorMessage"><td colspan="5" class="tbl-empty" style="color:var(--danger)">{{ errorMessage }}</td></tr>
+          <tr *ngIf="!loading && !errorMessage && !notifications.length"><td colspan="5" class="tbl-empty">No notifications</td></tr>
+          <tr *ngFor="let n of notifications; let i = index" [class.notif-unread]="!n.is_read">
+            <td>{{ i + 1 }}</td>
+            <td><span class="badge" [ngClass]="typeBadgeClass(n.type)">{{ n.type || 'info' }}</span></td>
+            <td>
+              <strong>{{ n.title || n.message || 'Notification' }}</strong>
+              <br *ngIf="n.title && n.message"/>
+              <span class="text-muted" style="font-size:0.78rem" *ngIf="n.title && n.message">{{ n.message }}</span>
+            </td>
+            <td style="white-space:nowrap">{{ formatDate(n.createdAt || n.created_at) }}</td>
+            <td>
+              <button class="btn-icon btn-icon-teal" *ngIf="!n.is_read" title="Mark Read" (click)="markRead(n)">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              </button>
+              <button class="btn-icon btn-icon-red" title="Delete" (click)="remove(n)">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6m5 0V4h4v2"/></svg>
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

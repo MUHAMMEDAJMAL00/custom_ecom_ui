@@ -1,0 +1,316 @@
+<div class="page-wrap">
+  <div class="page-header">
+    <div class="page-header-left">
+      <div class="page-title-main">Sales History</div>
+      <div class="page-breadcrumb">
+        <a [routerLink]="'/dashboard' | shopUrl">Dashboard</a>
+        <span class="sep">›</span>
+        <span class="current">Sales History</span>
+      </div>
+    </div>
+    <div class="page-header-actions">
+      <button class="btn btn-icon-tool" title="Refresh" (click)="refresh()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="23 4 23 10 17 10"/>
+          <path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <div class="stat-cards">
+    <div class="stat-card stat-card--teal">
+      <div class="stat-card-icon">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/>
+          <path d="M16 10a4 4 0 01-8 0"/>
+        </svg>
+      </div>
+      <div class="stat-card-info">
+        <div class="stat-card-value">{{ stats ? stats.total_orders : '—' }}</div>
+        <div class="stat-card-label">Total Orders</div>
+      </div>
+    </div>
+    <div class="stat-card stat-card--dark">
+      <div class="stat-card-icon">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/>
+        </svg>
+      </div>
+      <div class="stat-card-info">
+        <div class="stat-card-value">{{ stats ? formatCompact(stats.total_revenue) : '—' }}</div>
+        <div class="stat-card-label">Total Revenue</div>
+      </div>
+    </div>
+    <div class="stat-card stat-card--blue">
+      <div class="stat-card-icon">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/>
+        </svg>
+      </div>
+      <div class="stat-card-info">
+        <div class="stat-card-value">{{ stats ? formatCompact(stats.total_collected) : '—' }}</div>
+        <div class="stat-card-label">Amount Collected</div>
+      </div>
+    </div>
+    <div class="stat-card stat-card--red">
+      <div class="stat-card-icon">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/>
+          <line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+      </div>
+      <div class="stat-card-info">
+        <div class="stat-card-value">{{ stats ? formatCompact(stats.total_due) : '—' }}</div>
+        <div class="stat-card-label">Pending Due</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="toolbar">
+      <div class="toolbar-left">
+        <div class="search-box">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+          <input type="text" placeholder="Invoice # or customer…" autocomplete="off"
+                 [value]="search" (input)="onSearchInput($any($event.target).value)"/>
+        </div>
+      </div>
+      <div class="toolbar-right">
+        <select class="filter-select" [(ngModel)]="filterStatus" (change)="applyFilter()">
+          <option value="">All Status ▾</option>
+          <option value="completed">Completed</option>
+          <option value="draft">Draft</option>
+          <option value="cancelled">Cancelled</option>
+          <option value="returned">Returned</option>
+          <option value="partial_return">Partial Return</option>
+        </select>
+        <select class="filter-select" [(ngModel)]="filterPaymentStatus" (change)="applyFilter()">
+          <option value="">All Payment ▾</option>
+          <option value="paid">Paid</option>
+          <option value="partial">Partial</option>
+          <option value="unpaid">Unpaid</option>
+          <option value="refunded">Refunded</option>
+        </select>
+        <input type="date" class="date-filter" title="From date" [(ngModel)]="filterFrom" (change)="applyFilter()"/>
+        <input type="date" class="date-filter" title="To date" [(ngModel)]="filterTo" (change)="applyFilter()"/>
+        <button class="btn btn-outline btn-sm" (click)="clearFilters()">Clear</button>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table class="pos-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Invoice</th>
+            <th>Customer</th>
+            <th>Items</th>
+            <th>Subtotal</th>
+            <th>Discount</th>
+            <th>Tax</th>
+            <th>Total</th>
+            <th title="Own-product margin plus marketplace commission">Profit</th>
+            <th>Paid</th>
+            <th>Due</th>
+            <th>Payment</th>
+            <th>Status</th>
+            <th>Date</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngIf="loading"><td colspan="15" class="tbl-empty"><span class="pos-loader"><span></span><span></span><span></span></span></td></tr>
+          <tr *ngIf="!loading && errorMessage"><td colspan="15" class="tbl-empty" style="color:#ef4444">{{ errorMessage }}</td></tr>
+          <tr *ngIf="!loading && !errorMessage && !sales.length"><td colspan="15" class="tbl-empty">No sales found</td></tr>
+          <tr *ngFor="let item of sales; let i = index">
+            <td>{{ (page - 1) * limit + i + 1 }}</td>
+            <td><code>{{ item.invoice_number || item.id }}</code></td>
+            <td>{{ item.Customer?.name || 'Walk-in' }}</td>
+            <td>{{ item.items?.length || 0 }}</td>
+            <td>{{ formatCurrency(item.subtotal) }}</td>
+            <td style="color:#16a34a">{{ +item.discount_amount ? '-' + formatCurrency(item.discount_amount) : formatCurrency(0) }}</td>
+            <td>{{ formatCurrency(item.tax_amount) }}</td>
+            <td style="font-weight:700">{{ formatCurrency(item.total_amount) }}</td>
+            <td style="font-weight:700" [style.color]="+(item.total_profit || 0) >= 0 ? '#16a34a' : '#ef4444'">{{ formatCurrency(item.total_profit || 0) }}</td>
+            <td style="color:#16a34a">{{ formatCurrency(item.paid_amount) }}</td>
+            <td [style.color]="+item.due_amount > 0 ? '#ef4444' : '#6b5a60'" [style.fontWeight]="+item.due_amount > 0 ? '700' : '400'">{{ formatCurrency(item.due_amount) }}</td>
+            <td><span class="badge" [ngClass]="paymentBadgeClass(item.payment_status)">{{ item.payment_status }}</span></td>
+            <td><span class="badge" [ngClass]="statusBadgeClass(item.status)">{{ item.status }}</span></td>
+            <td style="color:#9c8b91;font-size:.78rem">{{ formatDate(item.sale_date) }}</td>
+            <td><app-row-actions [showView]="true" (view)="openView(item)"></app-row-actions></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="pagination-bar">
+      <div class="pagination-info">
+        Row Per Page
+        <select [ngModel]="limit" (ngModelChange)="onLimitChange($event)">
+          <option [ngValue]="10">10</option>
+          <option [ngValue]="20">20</option>
+          <option [ngValue]="25">25</option>
+          <option [ngValue]="50">50</option>
+        </select>
+        Entries
+      </div>
+      <app-pagination [currentPage]="page" [totalPages]="totalPages" (pageChange)="load($event)"></app-pagination>
+    </div>
+  </div>
+</div>
+
+<app-drawer [open]="drawerMode !== null" [title]="drawerTitle"
+            [showFooter]="drawerMode === 'payment' || drawerMode === 'cancel'"
+            [saveLabel]="drawerMode === 'payment' ? 'Record Payment' : 'Confirm Cancel'"
+            [saving]="saving" (closed)="closeDrawer()" (saveClicked)="handleSave()">
+
+  <!-- Invoice view -->
+  <ng-container *ngIf="drawerMode === 'view'">
+    <p class="tbl-empty" *ngIf="!viewingSale">Loading…</p>
+    <ng-container *ngIf="viewingSale as item">
+      <div class="inv-wrapper">
+        <div class="inv-accent-bar"></div>
+
+        <div class="inv-header">
+          <div class="inv-brand">
+            <div class="inv-logo-box">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>
+            </div>
+            <div class="inv-brand-info">
+              <div class="inv-store">{{ item.Store?.name || 'Your Company' }}</div>
+              <div class="inv-meta">{{ item.Store?.code || 'Address, City, State' }}</div>
+            </div>
+          </div>
+          <div class="inv-doc-title">INVOICE</div>
+        </div>
+
+        <div class="inv-body">
+          <div class="inv-info-row">
+            <div class="inv-info-block">
+              <div class="inv-info-title">Bill To</div>
+              <div class="inv-info-bold">{{ item.Customer?.name || 'Walk-in' }}</div>
+              <div class="inv-info-text" *ngIf="item.Customer?.phone">{{ item.Customer?.phone }}</div>
+            </div>
+            <div class="inv-info-block">
+              <div class="inv-info-title">Details</div>
+              <div class="inv-info-text"><span class="inv-info-label">Invoice #</span>{{ item.invoice_number || item.id }}</div>
+              <div class="inv-info-text"><span class="inv-info-label">Date</span>{{ formatDate(item.sale_date) }}</div>
+              <div class="inv-info-text"><span class="inv-info-label">Status</span><span class="badge" [ngClass]="statusBadgeClass(item.status)">{{ item.status }}</span></div>
+              <div class="inv-info-text"><span class="inv-info-label">Cashier</span>{{ item.User?.name || '—' }}</div>
+            </div>
+          </div>
+
+          <table class="inv-line-items">
+            <thead>
+              <tr>
+                <th style="width:38%">Product / Service</th>
+                <th class="inv-center">Qty</th>
+                <th class="inv-right">Rate</th>
+                <th class="inv-right">Tax Rate</th>
+                <th class="inv-right">Tax</th>
+                <th class="inv-right">Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngIf="!item.items?.length"><td colspan="6" class="tbl-empty">No items</td></tr>
+              <tr *ngFor="let si of item.items">
+                <td>{{ si.product_name }}<small class="inv-sku" *ngIf="si.product_sku || si.Product?.sku">{{ si.product_sku || si.Product?.sku }}</small></td>
+                <td class="inv-center">{{ si.quantity }}</td>
+                <td class="inv-right">{{ formatCurrency(si.unit_price) }}</td>
+                <td class="inv-right">{{ si.tax_rate ? (si.tax_rate + '%') : '—' }}</td>
+                <td class="inv-right">{{ formatCurrency(si.tax_amount) }}</td>
+                <td class="inv-right inv-bold">{{ formatCurrency(si.total_price) }}</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="inv-footer-section">
+            <div class="inv-message">
+              <div class="inv-message-icon">Thank You</div>
+              <p>We appreciate your business.</p>
+              <p>For any queries, please contact support.</p>
+            </div>
+            <div class="inv-total-box">
+              <div class="inv-total-row"><span>Subtotal</span><span class="inv-right">{{ formatCurrency(item.subtotal) }}</span></div>
+              <div class="inv-total-row"><span>Discount</span><span class="inv-right inv-green">-{{ formatCurrency(item.discount_amount) }}</span></div>
+              <ng-container *ngIf="item.tax_breakdown?.length; else singleTax">
+                <div class="inv-total-row" style="font-size:11px;color:#6b5a60" *ngFor="let tb of item.tax_breakdown">
+                  <span>{{ tb.name }}{{ tb.rate ? ' @ ' + tb.rate + '%' : '' }}</span><span class="inv-right">{{ formatCurrency(tb.amount) }}</span>
+                </div>
+                <div class="inv-total-row" style="font-weight:600"><span>{{ item.invoice_tax_mode === 'invoice' ? 'Invoice Tax' : 'Total Tax' }}</span><span class="inv-right">{{ formatCurrency(item.tax_amount) }}</span></div>
+              </ng-container>
+              <ng-template #singleTax>
+                <div class="inv-total-row"><span>{{ item.invoice_tax_mode === 'invoice' ? 'Invoice Tax' : 'Tax' }}</span><span class="inv-right">{{ formatCurrency(item.tax_amount) }}</span></div>
+              </ng-template>
+              <div class="inv-total-divider"></div>
+              <div class="inv-total-row inv-grand-total"><span>Grand Total</span><span class="inv-right">{{ formatCurrency(item.total_amount) }}</span></div>
+              <div class="inv-due-row"><span>Balance Due</span><span class="inv-right" [style.color]="+item.due_amount > 0 ? '#ef4444' : '#6b5a60'">{{ formatCurrency(item.due_amount) }}</span></div>
+            </div>
+          </div>
+
+          <div class="inv-payments-block" *ngIf="item.payments?.length">
+            <div class="inv-payments-header">Payments Received</div>
+            <div class="inv-payments-list">
+              <div class="inv-payment-badge" *ngFor="let p of item.payments"><span>{{ p.payment_source_name || p.payment_method }}</span><span class="inv-bold">{{ formatCurrency(p.amount) }}</span></div>
+            </div>
+          </div>
+
+          <div class="inv-internal" *ngIf="+item.total_cost > 0">
+            <div class="inv-internal-title">Internal — Cost &amp; Profit</div>
+            <div class="inv-total-box">
+              <div class="inv-total-row"><span>Total Cost</span><span class="inv-right">{{ formatCurrency(item.total_cost) }}</span></div>
+              <div class="inv-total-row" [style.color]="+(item.total_profit || 0) >= 0 ? '#16a34a' : '#ef4444'"><span>Net Profit</span><span class="inv-right inv-bold">{{ +(item.total_profit || 0) >= 0 ? '+' : '-' }}{{ formatCurrency(absVal(item.total_profit)) }}</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="inv-actions">
+        <button class="btn btn-outline btn-sm" (click)="printInvoice()">Print</button>
+        <button class="btn btn-primary btn-sm" *ngIf="+item.due_amount > 0" (click)="openAddPayment()">Add Payment</button>
+        <button class="btn btn-danger btn-sm" *ngIf="item.status === 'completed'" (click)="openCancelSale()">Cancel Sale</button>
+      </div>
+    </ng-container>
+  </ng-container>
+
+  <!-- Add payment -->
+  <ng-container *ngIf="drawerMode === 'payment' && viewingSale">
+    <div class="form-grid cols-2">
+      <div class="form-group">
+        <label class="form-label">Payment Method <span class="req">*</span></label>
+        <select class="form-control" [(ngModel)]="payMethod">
+          <option value="cash">Cash</option>
+          <option value="card">Card</option>
+          <option value="upi">UPI</option>
+          <option value="bank">Bank Transfer</option>
+          <option value="credit">Credit</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Amount <span class="req">*</span></label>
+        <input type="number" class="form-control" step="0.01" min="0.01" [max]="+viewingSale.due_amount" [(ngModel)]="payAmount"/>
+        <small style="color:#6b5a60">Max: {{ formatCurrency(viewingSale.due_amount) }}</small>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Reference No.</label>
+        <input type="text" class="form-control" [(ngModel)]="payRef" placeholder="Cheque / UTR / ref"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Notes</label>
+        <input type="text" class="form-control" [(ngModel)]="payNotes" placeholder="Optional"/>
+      </div>
+    </div>
+  </ng-container>
+
+  <!-- Cancel sale -->
+  <ng-container *ngIf="drawerMode === 'cancel'">
+    <p style="color:#6b5a60;font-size:.85rem;margin-bottom:14px">This will mark the sale as cancelled, reverse ledger entries, and restore inventory. This action cannot be undone.</p>
+    <div class="form-group">
+      <label class="form-label">Reason for cancellation <span class="req">*</span></label>
+      <textarea class="form-control" rows="3" placeholder="Enter reason for cancelling this sale…" [(ngModel)]="cancelReason"></textarea>
+    </div>
+  </ng-container>
+</app-drawer>

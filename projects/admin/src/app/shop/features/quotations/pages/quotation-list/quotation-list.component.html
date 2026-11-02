@@ -1,0 +1,232 @@
+<div class="page-wrap">
+  <div class="page-header">
+    <div class="page-header-left">
+      <div class="page-title-main">Quotations</div>
+      <div class="page-breadcrumb">
+        <a [routerLink]="'/dashboard' | shopUrl">Dashboard</a>
+        <span class="sep">›</span>
+        <span class="current">Quotations</span>
+      </div>
+    </div>
+    <div class="page-header-actions">
+      <button class="btn btn-icon-tool" title="Refresh" (click)="refresh()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="23 4 23 10 17 10"/>
+          <path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/>
+        </svg>
+      </button>
+      <button class="btn btn-primary" (click)="openCreate()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/>
+        </svg>
+        New Quotation
+      </button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="toolbar">
+      <div class="toolbar-left">
+        <div class="search-box">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+          <input type="text" placeholder="QT number or customer…" autocomplete="off"
+                 [value]="search" (input)="onSearchInput($any($event.target).value)"/>
+        </div>
+      </div>
+      <div class="toolbar-right">
+        <select class="filter-select" [(ngModel)]="filterStatus" (change)="applyFilter()">
+          <option value="">All Status ▾</option>
+          <option value="pending">Pending</option>
+          <option value="approved">Approved</option>
+          <option value="converted">Converted</option>
+          <option value="rejected">Rejected</option>
+          <option value="expired">Expired</option>
+          <option value="cancelled">Cancelled</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table class="pos-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Quote #</th>
+            <th>Customer</th>
+            <th>Items</th>
+            <th>Total</th>
+            <th>Valid Until</th>
+            <th>Status</th>
+            <th>Date</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngIf="loading"><td colspan="9" class="tbl-empty"><span class="pos-loader"><span></span><span></span><span></span></span></td></tr>
+          <tr *ngIf="!loading && errorMessage"><td colspan="9" class="tbl-empty" style="color:#ef4444">{{ errorMessage }}</td></tr>
+          <tr *ngIf="!loading && !errorMessage && !quotations.length"><td colspan="9" class="tbl-empty">No quotations found</td></tr>
+          <tr *ngFor="let q of quotations; let i = index">
+            <td>{{ (page - 1) * limit + i + 1 }}</td>
+            <td><code>{{ q.quotation_number || q.id }}</code></td>
+            <td>{{ q.Customer?.name || 'Walk-in' }}</td>
+            <td>{{ q.items?.length || '—' }}</td>
+            <td style="font-weight:700">{{ formatCurrency(q.total_amount) }}</td>
+            <td>{{ formatDate(q.valid_until) }}</td>
+            <td><span class="badge" [ngClass]="statusBadgeClass(q.status)">{{ q.status }}</span></td>
+            <td style="color:#9c8b91;font-size:.78rem">{{ formatDate(q.quotation_date || q.created_at) }}</td>
+            <td>
+              <div class="row-actions">
+                <app-row-actions [showView]="true" (view)="openView(q)"></app-row-actions>
+                <button class="btn-icon btn-icon-teal" title="Edit" *ngIf="canEditOrConvert(q)" (click)="openEdit(q)">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                </button>
+                <button class="btn-icon btn-icon-blue" title="Convert to Sale" *ngIf="canEditOrConvert(q)" (click)="openConvertModal(q)">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6"/></svg>
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="pagination-bar">
+      <div class="pagination-info">
+        Row Per Page
+        <select [ngModel]="limit" (ngModelChange)="onLimitChange($event)">
+          <option [ngValue]="10">10</option>
+          <option [ngValue]="20">20</option>
+          <option [ngValue]="25">25</option>
+          <option [ngValue]="50">50</option>
+        </select>
+        Entries
+      </div>
+      <app-pagination [currentPage]="page" [totalPages]="totalPages" (pageChange)="load($event)"></app-pagination>
+    </div>
+  </div>
+</div>
+
+<app-drawer [open]="drawerMode !== null" [title]="drawerTitle"
+            [showFooter]="drawerMode === 'create' || drawerMode === 'edit'"
+            [saveLabel]="drawerMode === 'edit' ? 'Save Changes' : 'Save Quotation'"
+            [saving]="saving" (closed)="closeDrawer()" (saveClicked)="handleSave()">
+
+  <!-- View -->
+  <ng-container *ngIf="drawerMode === 'view'">
+    <p class="tbl-empty" *ngIf="!viewingQuotation">Loading…</p>
+    <ng-container *ngIf="viewingQuotation as q">
+      <div class="detail-grid">
+        <div class="detail-item"><label>QT Number</label><span><code>{{ q.quotation_number || q.id }}</code></span></div>
+        <div class="detail-item"><label>Customer</label><span>{{ q.Customer?.name || 'Walk-in' }}</span></div>
+        <div class="detail-item"><label>Status</label><span class="badge" [ngClass]="statusBadgeClass(q.status)">{{ q.status }}</span></div>
+        <div class="detail-item"><label>Valid Until</label><span>{{ formatDate(q.valid_until) }}</span></div>
+        <div class="detail-item"><label>Total</label><span style="font-weight:700">{{ formatCurrency(q.total_amount) }}</span></div>
+        <div class="detail-item"><label>Date</label><span>{{ formatDate(q.quotation_date || q.created_at) }}</span></div>
+        <div class="detail-item col-span-2" *ngIf="q.notes"><label>Notes</label><span>{{ q.notes }}</span></div>
+      </div>
+
+      <div class="qt-section-title">Items</div>
+      <table class="pos-table">
+        <thead><tr><th>Product</th><th>Qty</th><th>Unit Price</th><th>Tax</th><th>Total</th></tr></thead>
+        <tbody>
+          <tr *ngFor="let qi of q.items">
+            <td>{{ qi.product_name || '—' }}</td>
+            <td>{{ qi.quantity }}</td>
+            <td>{{ formatCurrency(qi.unit_price) }}</td>
+            <td>{{ formatCurrency(qi.tax_amount) }}</td>
+            <td style="font-weight:700">{{ formatCurrency(qi.total_price) }}</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-outline btn-sm" (click)="openVersions(q.id)">Version History</button>
+        <button class="btn btn-outline btn-sm" *ngIf="canEditOrConvert(q)" (click)="openEdit(q)">Edit</button>
+        <button class="btn btn-primary" *ngIf="canEditOrConvert(q)" (click)="openConvertModal(q)">Convert to Sale</button>
+      </div>
+    </ng-container>
+  </ng-container>
+
+  <!-- Version history -->
+  <ng-container *ngIf="drawerMode === 'versions'">
+    <p class="tbl-empty" *ngIf="loadingVersions">Loading…</p>
+    <p class="tbl-empty" *ngIf="!loadingVersions && !versions.length">No versions yet — versions are saved when you edit a quotation.</p>
+    <table class="pos-table" *ngIf="!loadingVersions && versions.length">
+      <thead><tr><th>Version</th><th>Changed By</th><th>Reason</th><th>Date</th><th>Snapshot</th></tr></thead>
+      <tbody>
+        <tr *ngFor="let v of versions">
+          <td><strong>v{{ v.version_number }}</strong></td>
+          <td>{{ v.changedBy?.name || '—' }}</td>
+          <td>{{ v.change_notes || '—' }}</td>
+          <td>{{ formatDate(v.created_at) }}</td>
+          <td style="font-size:.78rem;color:#6b5a60">{{ formatCurrency(parseSnapshot(v).total_amount || 0) }} · {{ parseSnapshot(v).items?.length ?? '?' }} items</td>
+        </tr>
+      </tbody>
+    </table>
+  </ng-container>
+
+  <!-- Create / Edit -->
+  <ng-container *ngIf="drawerMode === 'create' || drawerMode === 'edit'">
+    <div class="form-grid cols-2">
+      <div class="form-group">
+        <label class="form-label">Customer</label>
+        <select class="form-control" [(ngModel)]="fCustomerId">
+          <option [ngValue]="null">Walk-in / No customer</option>
+          <option *ngFor="let c of customers" [ngValue]="c.id">{{ c.name }}</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Valid Until</label>
+        <input type="date" class="form-control" [(ngModel)]="fValidUntil"/>
+      </div>
+      <div class="form-group col-span-2">
+        <label class="form-label">Notes</label>
+        <input type="text" class="form-control" placeholder="Optional notes" [(ngModel)]="fNotes"/>
+      </div>
+      <div class="form-group col-span-2" *ngIf="drawerMode === 'edit'">
+        <label class="form-label">Reason for change</label>
+        <input type="text" class="form-control" placeholder="e.g. Customer requested price revision" [(ngModel)]="fChangeNotes"/>
+      </div>
+    </div>
+
+    <div class="qt-section-title">Items <span class="req">*</span></div>
+    <div *ngFor="let row of itemRows" class="qt-item-row">
+      <select class="form-control" [ngModel]="row.productId" (ngModelChange)="row.productId = $event; onProductChange(row)">
+        <option [ngValue]="null">Select product…</option>
+        <option *ngFor="let p of products" [ngValue]="p.id">{{ p.name }}</option>
+      </select>
+      <input type="number" class="form-control" placeholder="Qty" min="0.001" step="0.001" [(ngModel)]="row.qty"/>
+      <input type="number" class="form-control" placeholder="Unit Price" step="0.01" [(ngModel)]="row.price"/>
+      <input type="text" class="form-control" readonly [value]="rowSubtotal(row) > 0 ? formatCurrency(rowSubtotal(row)) : ''" placeholder="Subtotal" style="background:#f6e7e9;cursor:default"/>
+      <button class="btn btn-outline btn-sm qt-rem-btn" (click)="removeItemRow(row.idx)">✕</button>
+    </div>
+    <button class="btn btn-outline btn-sm" style="margin-top:6px" (click)="addItemRow()">+ Add Item</button>
+    <div style="text-align:right;font-weight:700;margin-top:12px">Total: <span>{{ formatCurrency(grandTotal) }}</span></div>
+  </ng-container>
+</app-drawer>
+
+<app-modal [open]="convertModalOpen" title="Convert to Sale" [showFooter]="false" [small]="true" (closed)="closeConvertModal()">
+  <p style="font-size:.85rem;color:#6b5a60;margin-bottom:16px">Quotation <strong>{{ convertTargetNumber }}</strong> — enter payment details (leave amount as 0 for credit sale)</p>
+  <div class="form-grid cols-2">
+    <div class="form-group">
+      <label class="form-label">Payment Method</label>
+      <select class="form-control" [(ngModel)]="convertMethod">
+        <option value="cash">Cash</option>
+        <option value="card">Card</option>
+        <option value="upi">UPI</option>
+        <option value="bank">Bank Transfer</option>
+        <option value="credit">Credit (pay later)</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Amount Paid (₹)</label>
+      <input type="number" class="form-control" min="0" step="0.01" [(ngModel)]="convertAmount"/>
+    </div>
+  </div>
+  <div style="display:flex;gap:10px;margin-top:8px">
+    <button class="btn btn-outline" style="flex:1" (click)="closeConvertModal()">Cancel</button>
+    <button class="btn btn-primary" style="flex:1" [disabled]="converting" (click)="submitConvert()">{{ converting ? 'Converting…' : 'Convert' }}</button>
+  </div>
+</app-modal>

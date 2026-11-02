@@ -1,0 +1,117 @@
+<div class="page-wrap">
+  <div class="page-header">
+    <div class="page-header-left">
+      <div class="page-title-main">Roles</div>
+      <div class="page-breadcrumb">
+        <a [routerLink]="'/dashboard' | shopUrl">Dashboard</a>
+        <span class="sep">›</span>
+        <span class="current">Roles</span>
+      </div>
+    </div>
+    <div class="page-header-actions">
+      <button class="btn btn-outline" title="Refresh" (click)="load()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <polyline points="23 4 23 10 17 10" /><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10" />
+        </svg>
+      </button>
+      <button class="btn btn-primary" *ngIf="canCreate" (click)="openAdd()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="16" /><line x1="8" y1="12" x2="16" y2="12" />
+        </svg>
+        Add Role
+      </button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="table-wrap">
+      <table class="pos-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Role</th>
+            <th>Description</th>
+            <th>Users</th>
+            <th>Type</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngIf="loading">
+            <td colspan="6" class="tbl-empty"><span class="pos-loader"><span></span><span></span><span></span></span></td>
+          </tr>
+          <tr *ngIf="!loading && errorMessage">
+            <td colspan="6" class="tbl-empty" style="color: #ef4444">{{ errorMessage }}</td>
+          </tr>
+          <tr *ngIf="!loading && !errorMessage && !roles.length">
+            <td colspan="6" class="tbl-empty">No roles found</td>
+          </tr>
+          <tr *ngFor="let r of roles; let i = index" [hidden]="loading">
+            <td>{{ i + 1 }}</td>
+            <td>
+              <div class="cell-with-img">
+                <div class="row-avatar">{{ r.name.charAt(0).toUpperCase() }}</div>
+                <span class="cell-name" style="text-transform: capitalize">{{ r.name }}</span>
+              </div>
+            </td>
+            <td>{{ r.description || '—' }}</td>
+            <td>{{ r.user_count }}</td>
+            <td>
+              <span class="badge" [ngClass]="r.is_system ? 'badge-info' : 'badge-active'">{{ r.is_system ? 'system' : 'custom' }}</span>
+            </td>
+            <td>
+              <div class="row-actions">
+                <button class="btn btn-sm btn-outline" *ngIf="canEdit" (click)="openPermissions(r)">Permissions</button>
+                <app-row-actions
+                  [showEdit]="canEdit && !r.is_system"
+                  [showDelete]="canDelete && !r.is_system"
+                  (edit)="openEdit(r)"
+                  (delete)="remove(r)"
+                ></app-row-actions>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<app-drawer [open]="drawer !== null" [title]="drawerTitle" [saveLabel]="drawer === 'permissions' ? 'Save Permissions' : 'Save Role'"
+            [saving]="saving" (closed)="closeDrawer()" (saveClicked)="save()">
+  <div *ngIf="drawer === 'form'" class="form-grid cols-1">
+    <div class="form-group">
+      <label class="form-label">Role Name <span class="req">*</span></label>
+      <input class="form-control" [(ngModel)]="name" placeholder="e.g. cashier" />
+    </div>
+    <div class="form-group">
+      <label class="form-label">Description</label>
+      <textarea class="form-control" rows="3" [(ngModel)]="description" placeholder="What this role is for"></textarea>
+    </div>
+  </div>
+
+  <ng-container *ngIf="drawer === 'permissions'">
+    <p class="form-hint">Only modules enabled for this shop are listed. Owner and admin roles always have full access.</p>
+    <div *ngIf="permissionsLoading" class="tbl-empty"><span class="pos-loader"><span></span><span></span><span></span></span></div>
+    <table class="mini-table" *ngIf="!permissionsLoading" style="width: 100%">
+      <thead>
+        <tr>
+          <th>Module</th>
+          <th *ngFor="let a of actions" style="text-align: center; text-transform: capitalize">{{ a }}</th>
+          <th style="text-align: center">All</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let g of groups">
+          <td style="text-transform: capitalize">{{ label(g.module) }}</td>
+          <td *ngFor="let a of actions" style="text-align: center">
+            <input *ngIf="rowFor(g, a) as row" type="checkbox" [(ngModel)]="row.granted" />
+          </td>
+          <td style="text-align: center">
+            <input type="checkbox" [checked]="allGranted(g)" (change)="toggleGroup(g, $any($event.target).checked)" />
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </ng-container>
+</app-drawer>

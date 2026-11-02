@@ -1,0 +1,88 @@
+// ============================================================
+// MySkin — Beauty & Skincare · Design Tokens
+// Crimson + blush palette, soft radii, Playfair headings.
+// Variable names are kept stable — every component inherits.
+// ============================================================
+
+:root {
+  // Brand palette
+  // Deep crimson / burgundy, matching the proposal designs
+  --brand-primary: #c8102e; // Crimson red
+  --brand-dark: #8b0a1e; // Burgundy (hover / pressed, gradient end)
+  --brand-deep: #6b0617; // Darkest burgundy (banner edges)
+  --brand-wine: #5a0614; // Wine (luxe band)
+  --brand-light: #f9e4e7; // Soft rose tint (subtle fills)
+  --brand-soft: #fdf4f5; // Lightest rose
+  --brand-bg: #ffffff;
+
+  // One red gradient for banners, deal cards, primary buttons and the bottom nav
+  --brand-gradient: linear-gradient(135deg, #c8102e 0%, #8b0a1e 100%);
+  --brand-gradient-hover: linear-gradient(135deg, #b00d28 0%, #74081a 100%);
+  --brand-gradient-banner: radial-gradient(circle at 72% 38%, #d4162f 0%, #a50d24 48%, #6b0617 100%);
+
+  // Text
+  --text-primary: #2a1a20;
+  --text-secondary: #6b5a60;
+  --text-muted: #9c8b91;
+  --text-on-brand: #ffffff;
+
+  // UI surfaces
+  --bg-page: #ffffff;
+  --bg-card: #ffffff;
+  --bg-alt: #fdf4f5;
+  --header-bg: #ffffff; // Header bar
+  --bg-dark: #1b1d24; // Footer
+  --border: #efd6da;
+  --border-light: #f6e7e9;
+  --hairline: #efd6da;
+  --ink: #2a1a20;
+
+  // Radii
+  --radius-sm: 6px;
+  --radius: 10px;
+  --radius-lg: 16px;
+  --radius-full: 9999px;
+
+  // Shadows
+  --shadow-sm: 0 1px 3px rgba(139, 10, 30, 0.08);
+  --shadow: 0 6px 20px rgba(139, 10, 30, 0.12);
+  --shadow-lg: 0 14px 40px rgba(139, 10, 30, 0.18);
+  --shadow-brand: 0 8px 20px rgba(200, 16, 46, 0.28); // under red buttons
+
+  // Typography
+  --font-body: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-heading: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-accent: 'Playfair Display', Georgia, 'Times New Roman', serif;
+  --font-script: 'Great Vibes', cursive;
+  --font-logo: 'Marcellus', 'Cormorant Garamond', Georgia, serif; // MYSKIN wordmark
+  --font-brand: 'Alta', Optima, Candara, 'Marcellus', sans-serif; // "Myskin" name in the header
+  --logo-ink: #111111;
+  --track-label: 0.18em; // uppercase micro-labels
+  --track-nav: 0.04em; // navigation / buttons
+
+  // Spacing
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+  --space-2xl: 48px;
+  --space-3xl: 96px;
+  --space-4xl: 140px;
+
+  // Page width: generous side space — about 100px each side on a laptop screen
+  --page-width: min(1360px, calc(100% - clamp(32px, 13vw, 260px)));
+
+  // Fixed desktop header height (promo strip 26 + main bar 58)
+  --header-h: 84px;
+
+  // Transitions
+  --transition: 0.25s ease;
+  --transition-slow: 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@media (max-width: 767px) {
+  :root {
+    --page-width: calc(100% - 24px);
+  }
+}

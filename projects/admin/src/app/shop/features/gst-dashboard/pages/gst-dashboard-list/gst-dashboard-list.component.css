@@ -1,0 +1,40 @@
+.gst-date-group { display:flex; align-items:center; gap:8px; background:white; padding:4px 12px; border-radius:10px; border:1px solid var(--border); }
+.gst-date-group input { border:none; font-size:0.85rem; font-weight:600; background:transparent; width:130px; outline:none; }
+.date-sep { font-size:0.75rem; color:var(--text-muted); }
+.period-shortcuts { display:flex; gap:4px; margin-right:8px; }
+.period-btn.active { background:var(--primary-light) !important; color:var(--primary) !important; border-color:var(--primary) !important; }
+.gst-cards { display:grid; grid-template-columns:repeat(4,1fr); gap:20px; margin-bottom:24px; }
+.gst-card { background:white; padding:20px; border-radius:16px; display:flex; gap:16px; align-items:center; box-shadow:var(--shadow-sm); border:1px solid var(--border); }
+.gst-card:hover { transform:translateY(-3px); box-shadow:var(--shadow-md); }
+.gst-card__icon { width:48px; height:48px; border-radius:12px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.gst-card--output .gst-card__icon { background:#fee2e2; color:#ef4444; }
+.gst-card--input .gst-card__icon { background:#dcfce7; color:#10b981; }
+.gst-card--cgst .gst-card__icon { background:#e0f2fe; color:#0ea5e9; }
+.gst-card--net .gst-card__icon { background:#f6e7e9; color:#5a0614; }
+.gst-card--net.is-payable { border-left:4px solid #ef4444; }
+.gst-card--net.is-credit { border-left:4px solid #10b981; }
+.gst-card__label { font-size:0.75rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:4px; }
+.gst-card__value { font-size:1.5rem; font-weight:800; color:var(--text-main); margin-bottom:2px; }
+.gst-card__sub { font-size:0.7rem; color:var(--text-muted); }
+.gst-tabs { display:flex; gap:8px; margin-bottom:20px; border-bottom:1px solid var(--border); padding-bottom:1px; }
+.gst-tab { background:transparent; border:none; padding:10px 20px; font-size:0.9rem; font-weight:600; color:var(--text-muted); cursor:pointer; position:relative; }
+.gst-tab:hover { color:var(--text-main); }
+.gst-tab.active { color:var(--primary); }
+.gst-tab.active::after { content:''; position:absolute; bottom:-1px; left:0; right:0; height:2px; background:var(--primary); }
+.gst-tab-panel { display:none; }
+.gst-tab-panel.active { display:block; }
+@keyframes fadeIn { from { opacity:0; transform:translateY(5px); } to { opacity:1; transform:translateY(0); } }
+.gst-layout { display:flex; gap:24px; }
+.gst-side-panel { width:340px; flex-shrink:0; }
+.gst-calc-body { padding:20px; }
+.gst-calc-row { display:flex; justify-content:space-between; padding:8px 0; font-size:0.85rem; }
+.gst-calc-label { color:var(--text-muted); }
+.gst-calc-val { font-weight:700; }
+.gst-calc-val.gst-credit { color:#10b981; }
+.gst-calc-divider { height:1px; background:var(--border); margin:12px 0; }
+.gst-calc-total { font-weight:700; padding:4px 0; }
+.gst-calc-grand { margin-top:12px; padding:16px; background:#fdf4f5; border-radius:12px; display:flex; justify-content:space-between; align-items:center; font-size:1.1rem; font-weight:800; color:var(--primary); }
+.gst-tip { margin-top:20px; background:#f0fdf4; border:1px solid #dcfce7; padding:16px; border-radius:16px; display:flex; gap:12px; }
+.gst-tip strong { display:block; font-size:0.85rem; color:#166534; margin-bottom:4px; }
+.gst-tip p { margin:0; font-size:0.75rem; color:#166534; line-height:1.5; }
+.status-pill.rate { background:#f6e7e9; color:#6b5a60; font-weight:700; font-size:0.7rem; padding:4px 8px; border-radius:4px; }

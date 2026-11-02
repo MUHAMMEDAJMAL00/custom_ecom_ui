@@ -1,0 +1,126 @@
+<app-shop-shell>
+  <div class="ms-container page-wrap">
+    <div class="auth">
+      <aside class="auth__aside">
+        <span class="auth__eyebrow">Your account</span>
+        <h1>{{ title }}</h1>
+        <p>{{ subtitle }}</p>
+        <ul class="auth__perks">
+          <li><i class="bi bi-bag-check"></i> Checkout faster with saved addresses</li>
+          <li><i class="bi bi-truck"></i> Track every order in one place</li>
+          <li><i class="bi bi-heart"></i> Keep your wishlist across devices</li>
+        </ul>
+      </aside>
+
+      <section class="auth__card">
+        @if (error) {
+          <div class="form-error"><i class="bi bi-exclamation-circle"></i> {{ error }}</div>
+        }
+        @if (success) {
+          <div class="form-success"><i class="bi bi-check-circle"></i> {{ success }}</div>
+        }
+
+        @if (mode === 'login') {
+          <form class="shop-form" (submit)="login(); $event.preventDefault()">
+            <label class="field">
+              <span>Email address</span>
+              <input type="email" name="email" [(ngModel)]="loginForm.email" autocomplete="email" placeholder="you@example.com" />
+            </label>
+            <label class="field">
+              <span>Password</span>
+              <input type="password" name="password" [(ngModel)]="loginForm.password" autocomplete="current-password" placeholder="Your password" />
+            </label>
+            <button class="btn-brand" type="submit" [disabled]="busy">
+              {{ busy ? 'Signing in…' : 'Sign in' }}
+            </button>
+            <div class="auth__links">
+              <a routerLink="/forgot-password">Forgot password?</a>
+              <span>New here? <a routerLink="/signup" [queryParams]="{ returnUrl: returnUrl }">Create an account</a></span>
+            </div>
+          </form>
+        }
+
+        @if (mode === 'signup') {
+          <form class="shop-form" (submit)="signup(); $event.preventDefault()">
+            <label class="field">
+              <span>Full name</span>
+              <input type="text" name="name" [(ngModel)]="signupForm.name" autocomplete="name" placeholder="Your name" />
+            </label>
+            <div class="field-row">
+              <label class="field">
+                <span>Email address</span>
+                <input type="email" name="email" [(ngModel)]="signupForm.email" autocomplete="email" placeholder="you@example.com" />
+              </label>
+              <label class="field">
+                <span>Mobile number <em>(optional)</em></span>
+                <input type="tel" name="phone" [(ngModel)]="signupForm.phone" autocomplete="tel" placeholder="9876543210" />
+              </label>
+            </div>
+            <div class="field-row">
+              <label class="field">
+                <span>Password</span>
+                <input type="password" name="password" [(ngModel)]="signupForm.password" autocomplete="new-password" placeholder="At least 6 characters" />
+              </label>
+              <label class="field">
+                <span>Confirm password</span>
+                <input type="password" name="confirm" [(ngModel)]="signupForm.confirm_password" autocomplete="new-password" placeholder="Repeat password" />
+              </label>
+            </div>
+            <button class="btn-brand" type="submit" [disabled]="busy">
+              {{ busy ? 'Creating account…' : 'Create account' }}
+            </button>
+            <div class="auth__links">
+              <span>Already have an account? <a routerLink="/login" [queryParams]="{ returnUrl: returnUrl }">Sign in</a></span>
+            </div>
+          </form>
+        }
+
+        @if (mode === 'forgot') {
+          <form class="shop-form" (submit)="$event.preventDefault()">
+            @if (resetStep === 1) {
+              <label class="field">
+                <span>Email or mobile number</span>
+                <input type="text" name="identifier" [(ngModel)]="resetIdentifier" autocomplete="username" placeholder="you@example.com" />
+              </label>
+              <button class="btn-brand" type="button" (click)="sendResetCode()" [disabled]="busy">
+                {{ busy ? 'Sending…' : 'Send code' }}
+              </button>
+            }
+
+            @if (resetStep === 2) {
+              <p class="auth__hint">Code sent to <strong>{{ resetIdentifier }}</strong>.</p>
+              <label class="field">
+                <span>6-digit code</span>
+                <input type="text" name="code" [(ngModel)]="resetCode" inputmode="numeric" maxlength="6" placeholder="000000" />
+              </label>
+              <button class="btn-brand" type="button" (click)="verifyCode()" [disabled]="busy">
+                {{ busy ? 'Verifying…' : 'Verify code' }}
+              </button>
+              <button class="btn-plain" type="button" (click)="sendResetCode()" [disabled]="busy">Resend code</button>
+            }
+
+            @if (resetStep === 3) {
+              <div class="field-row">
+                <label class="field">
+                  <span>New password</span>
+                  <input type="password" name="new_password" [(ngModel)]="resetForm.password" autocomplete="new-password" placeholder="At least 6 characters" />
+                </label>
+                <label class="field">
+                  <span>Confirm password</span>
+                  <input type="password" name="confirm_password" [(ngModel)]="resetForm.confirm_password" autocomplete="new-password" placeholder="Repeat password" />
+                </label>
+              </div>
+              <button class="btn-brand" type="button" (click)="resetPassword()" [disabled]="busy">
+                {{ busy ? 'Updating…' : 'Update password' }}
+              </button>
+            }
+
+            <div class="auth__links">
+              <a routerLink="/login">Back to sign in</a>
+            </div>
+          </form>
+        }
+      </section>
+    </div>
+  </div>
+</app-shop-shell>

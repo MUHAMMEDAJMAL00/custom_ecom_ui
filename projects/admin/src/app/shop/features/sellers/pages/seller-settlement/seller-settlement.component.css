@@ -1,0 +1,39 @@
+.report-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.report-bar .form-label {
+  margin: 0;
+}
+
+.report-bar .form-control {
+  max-width: 170px;
+}
+
+.num {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.cell-strong {
+  font-weight: 600;
+}
+
+.cell-sub {
+  font-size: 12px;
+  color: #6b5a60;
+}
+
+.totals-row td {
+  font-weight: 700;
+  background: #fdf4f5;
+}
+
+.report-note {
+  padding: 12px 16px;
+  font-size: 12px;
+  color: #6b5a60;
+}

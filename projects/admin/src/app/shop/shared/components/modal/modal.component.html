@@ -1,0 +1,15 @@
+<div class="modal-overlay" [class.open]="open" (click)="close()">
+  <div class="modal-box" [class.modal-box-sm]="small" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <div class="modal-title">{{ title }}</div>
+      <button class="modal-close" (click)="close()">✕</button>
+    </div>
+    <div class="modal-body">
+      <ng-content></ng-content>
+    </div>
+    <div class="modal-footer" *ngIf="showFooter">
+      <button class="btn btn-outline" (click)="close()" [disabled]="saving">Cancel</button>
+      <button class="btn btn-primary" (click)="triggerSave()" [disabled]="saving">{{ saving ? 'Saving…' : saveLabel }}</button>
+    </div>
+  </div>
+</div>

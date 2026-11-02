@@ -1,0 +1,237 @@
+<div class="page-wrap">
+  <div class="page-header">
+    <div class="page-header-left">
+      <div class="page-title-main">Cash Register</div>
+      <div class="page-breadcrumb">
+        <a [routerLink]="'/dashboard' | shopUrl">Dashboard</a>
+        <span class="sep">›</span>
+        <span class="current">Cash Register</span>
+      </div>
+    </div>
+    <div class="page-header-actions">
+      <button class="btn btn-outline" title="Refresh" (click)="loadStatus()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+          <polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/>
+          <path d="M3.51 9a9 9 0 0114.36-3.36L23 10M1 14l5.13 4.36A9 9 0 0020.49 15"/>
+        </svg>
+        Refresh
+      </button>
+    </div>
+  </div>
+
+  <div class="cash-tabs">
+    <button class="cash-tab" [class.active]="activeTab === 'current'" (click)="switchTab('current')">Current Register</button>
+    <button class="cash-tab" [class.active]="activeTab === 'history'" (click)="switchTab('history')">Register History</button>
+  </div>
+
+  <!-- ═══ TAB: CURRENT ═══ -->
+  <div *ngIf="activeTab === 'current'">
+
+    <!-- OPEN state -->
+    <ng-container *ngIf="activeReg">
+      <div class="stat-cards cash-stat-cards">
+        <div class="stat-card stat-card--teal">
+          <div class="stat-card-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/></svg></div>
+          <div class="stat-card-info"><div class="stat-card-value">{{ formatCurrency(openingBal) }}</div><div class="stat-card-label">Opening Balance</div></div>
+        </div>
+        <div class="stat-card stat-card--blue">
+          <div class="stat-card-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></div>
+          <div class="stat-card-info"><div class="stat-card-value">{{ formatCurrency(expectedBal) }}</div><div class="stat-card-label">Expected Balance</div></div>
+        </div>
+        <div class="stat-card stat-card--green">
+          <div class="stat-card-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></div>
+          <div class="stat-card-info"><div class="stat-card-value">{{ formatCurrency(totalCashIn) }}</div><div class="stat-card-label">Total Cash In</div></div>
+        </div>
+        <div class="stat-card stat-card--orange">
+          <div class="stat-card-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/></svg></div>
+          <div class="stat-card-info"><div class="stat-card-value">{{ formatCurrency(totalCashOut) }}</div><div class="stat-card-label">Total Cash Out</div></div>
+        </div>
+      </div>
+
+      <div class="reg-info-bar">
+        <div class="reg-info-item">
+          <span class="reg-info-label">Status</span>
+          <span class="badge badge-active">OPEN</span>
+        </div>
+        <div class="reg-info-item">
+          <span class="reg-info-label">Session Started</span>
+          <span class="reg-info-val">{{ formatDate(activeReg.opened_at || activeReg.created_at) }}</span>
+        </div>
+        <div class="reg-info-item">
+          <span class="reg-info-label">Register ID</span>
+          <span class="reg-info-val">#{{ activeReg.id }}</span>
+        </div>
+        <div class="reg-info-actions">
+          <button class="btn btn-outline" (click)="openMovementDrawer('cash_in')">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Cash In
+          </button>
+          <button class="btn btn-outline" (click)="openMovementDrawer('cash_out')">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Cash Out
+          </button>
+          <button class="btn btn-danger" (click)="openCloseDrawer()">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="9" y1="9" x2="15" y2="15"/><line x1="15" y1="9" x2="9" y2="15"/></svg>
+            Close Register
+          </button>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:16px">
+        <div class="card-header"><span class="card-title">Cash Movements</span></div>
+        <div class="table-wrap">
+          <table class="pos-table">
+            <thead>
+              <tr><th>#</th><th>Type</th><th>Amount</th><th>Notes</th><th>Time</th></tr>
+            </thead>
+            <tbody>
+              <tr *ngIf="!movements.length"><td colspan="5" class="tbl-empty">No movements yet</td></tr>
+              <tr *ngFor="let m of movements; let i = index">
+                <td>{{ i + 1 }}</td>
+                <td><span class="mov-badge" [ngClass]="movementBadgeClass(m.movement_type)">{{ movementLabel(m.movement_type) }}</span></td>
+                <td><span [style.color]="isCashIn(m.movement_type) ? '#16a34a' : '#dc2626'" style="font-weight:700">{{ isCashIn(m.movement_type) ? '+' : '−' }}{{ formatCurrency(m.amount) }}</span></td>
+                <td style="color:#6b5a60">{{ m.notes || '—' }}</td>
+                <td style="color:#9c8b91;font-size:.8rem">{{ formatTime(m.createdAt || m.created_at) }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </ng-container>
+
+    <!-- CLOSED state -->
+    <ng-container *ngIf="!activeReg && !loadingStatus">
+      <div class="reg-closed-box">
+        <div class="reg-closed-icon">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
+            <path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/>
+          </svg>
+        </div>
+        <div class="reg-closed-title">Register is Closed</div>
+        <div class="reg-closed-sub">Open the cash register to start recording sales and movements.</div>
+        <button class="btn btn-primary" (click)="openOpenDrawer()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Open Register
+        </button>
+      </div>
+    </ng-container>
+  </div>
+
+  <!-- ═══ TAB: HISTORY ═══ -->
+  <div *ngIf="activeTab === 'history'">
+    <div class="card">
+      <div class="card-header"><span class="card-title">Register History</span></div>
+      <div class="table-wrap">
+        <table class="pos-table">
+          <thead>
+            <tr>
+              <th>#</th><th>Opened At</th><th>Closed At</th><th>Opening Bal</th>
+              <th>Expected</th><th>Actual (Closing)</th><th>Difference</th><th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngIf="historyLoading"><td colspan="8" class="tbl-empty"><span class="pos-loader"><span></span><span></span><span></span></span></td></tr>
+            <tr *ngIf="!historyLoading && !history.length"><td colspan="8" class="tbl-empty">No register sessions found</td></tr>
+            <tr *ngFor="let r of history; let i = index">
+              <td>{{ i + 1 }}</td>
+              <td style="font-size:.82rem">{{ formatDate(r.opened_at || r.created_at) }}</td>
+              <td style="font-size:.82rem;color:#6b5a60">{{ r.closed_at ? formatDate(r.closed_at) : '—' }}</td>
+              <td>{{ formatCurrency(r.opening_balance) }}</td>
+              <td>{{ formatCurrency(r.expected_balance) }}</td>
+              <td>{{ r.status === 'closed' ? formatCurrency(r.closing_balance || 0) : '—' }}</td>
+              <td>
+                <span *ngIf="r.status === 'closed' && r.difference !== null"
+                      [style.color]="r.difference > 0 ? '#16a34a' : r.difference < 0 ? '#dc2626' : '#6b5a60'"
+                      style="font-weight:700">
+                  {{ r.difference > 0 ? '+' : '' }}{{ formatCurrency(r.difference) }}
+                </span>
+                <span *ngIf="r.status === 'open'" style="color:#9c8b91">—</span>
+              </td>
+              <td><span class="badge" [ngClass]="r.status === 'open' ? 'badge-active' : 'badge-inactive'">{{ r.status === 'open' ? 'Open' : 'Closed' }}</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<app-drawer [open]="drawerOpen" [title]="drawerTitle"
+            [showFooter]="true" [saving]="saving"
+            [saveLabel]="drawerMode === 'open' ? 'Open Register' : drawerMode === 'close' ? 'Close Register' : 'Add ' + drawerTitle"
+            (closed)="drawerOpen = false" (saveClicked)="handleSave()">
+
+  <!-- Open Register -->
+  <ng-container *ngIf="drawerMode === 'open'">
+    <div class="pf-section">
+      <div class="pf-section-header"><span class="pf-section-title">Session Details</span></div>
+      <div class="pf-section-body">
+        <div class="form-grid cols-1">
+          <div class="form-group">
+            <label class="form-label">Opening Balance <span class="req">*</span></label>
+            <input type="number" class="form-control" min="0" step="0.01" [(ngModel)]="openBal" placeholder="0.00" />
+            <span class="form-hint">{{ suggestedHint }}</span>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Notes</label>
+            <input type="text" class="form-control" [(ngModel)]="openNotes" placeholder="Optional opening notes" />
+          </div>
+        </div>
+      </div>
+    </div>
+  </ng-container>
+
+  <!-- Close Register -->
+  <ng-container *ngIf="drawerMode === 'close' && activeReg">
+    <div class="pf-section">
+      <div class="pf-section-header"><span class="pf-section-title">Session Summary</span></div>
+      <div class="pf-section-body">
+        <div class="cash-summary-row">
+          <div class="cash-summary-item"><div class="cash-summary-label">Opening Balance</div><div class="cash-summary-val">{{ formatCurrency(openingBal) }}</div></div>
+          <div class="cash-summary-item"><div class="cash-summary-label">Total Cash In</div><div class="cash-summary-val" style="color:#16a34a">+{{ formatCurrency(totalCashIn) }}</div></div>
+          <div class="cash-summary-item"><div class="cash-summary-label">Total Cash Out</div><div class="cash-summary-val" style="color:#dc2626">−{{ formatCurrency(totalCashOut) }}</div></div>
+          <div class="cash-summary-item"><div class="cash-summary-label">Expected Balance</div><div class="cash-summary-val" style="font-size:1.1rem;font-weight:800;color:var(--primary)">{{ formatCurrency(expectedBal) }}</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="pf-section">
+      <div class="pf-section-header"><span class="pf-section-title">Closing Details</span></div>
+      <div class="pf-section-body">
+        <div class="form-grid cols-1">
+          <div class="form-group">
+            <label class="form-label">Actual Closing Balance <span class="req">*</span></label>
+            <input type="number" class="form-control" min="0" step="0.01" placeholder="Enter counted cash amount"
+                   [(ngModel)]="closeBal" (ngModelChange)="onCloseBalChange()" />
+            <small *ngIf="closeDiff !== null" [style.color]="closeDiff >= 0 ? '#16a34a' : '#dc2626'" style="font-weight:700;margin-top:4px">
+              Difference: {{ closeDiff >= 0 ? '+' : '' }}{{ formatCurrency(closeDiff) }}
+            </small>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Notes</label>
+            <input type="text" class="form-control" [(ngModel)]="closeNotes" placeholder="Optional closing notes" />
+          </div>
+        </div>
+      </div>
+    </div>
+  </ng-container>
+
+  <!-- Cash In / Cash Out -->
+  <ng-container *ngIf="drawerMode === 'cash_in' || drawerMode === 'cash_out'">
+    <div class="pf-section">
+      <div class="pf-section-header"><span class="pf-section-title">{{ drawerTitle }} Details</span></div>
+      <div class="pf-section-body">
+        <div class="form-grid cols-1">
+          <div class="form-group">
+            <label class="form-label">Amount <span class="req">*</span></label>
+            <input type="number" class="form-control" min="0.01" step="0.01" placeholder="0.00" [(ngModel)]="movAmount" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Notes</label>
+            <input type="text" class="form-control" [(ngModel)]="movNotes" placeholder="Reason for this movement" />
+          </div>
+        </div>
+      </div>
+    </div>
+  </ng-container>
+</app-drawer>

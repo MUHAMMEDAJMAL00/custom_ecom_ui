@@ -1,0 +1,102 @@
+<app-shop-shell>
+  <section class="cat-hero" [class.has-image]="heroImage">
+    <div class="ms-container cat-hero__inner">
+      <nav class="crumbs" aria-label="Breadcrumb">
+        <a routerLink="/">Home</a>
+        <span>›</span>
+        @if (mode === 'category' || mode === 'brand' || mode === 'search') {
+          <a routerLink="/catalog">All products</a>
+          <span>›</span>
+        }
+        @if (parent) {
+          <a [routerLink]="['/catalog', 'category', parent.slug]">{{ parent.name }}</a>
+          <span>›</span>
+        }
+        @if (mode === 'brand' && brandsEnabled) {
+          <a routerLink="/catalog/brands">Brands</a>
+          <span>›</span>
+        }
+        <span class="crumbs__current">{{ title }}</span>
+      </nav>
+      <div class="cat-hero__copy">
+        <h1>{{ title }}</h1>
+        @if (subtitle) {
+          <p>{{ subtitle }}</p>
+        }
+        @if (!loading && !notFound) {
+          <small>{{ total }} {{ total === 1 ? 'product' : 'products' }}</small>
+        }
+      </div>
+      @if (heroImage) {
+        <img class="cat-hero__img" [src]="heroImage" [alt]="title" />
+      }
+    </div>
+  </section>
+
+  <div class="ms-container cat-body">
+    @if (children.length) {
+      <div class="chips">
+        @for (child of children; track child.id) {
+          <a class="chip" [routerLink]="['/catalog', 'category', child.slug]">
+            @if (categoryImage(child)) {
+              <img [src]="categoryImage(child)" alt="" />
+            }
+            {{ child.name }}
+          </a>
+        }
+      </div>
+    }
+
+    @if (notFound) {
+      <div class="empty">
+        <i class="bi bi-search"></i>
+        <h2>This category doesn't exist</h2>
+        <p>It may have been renamed or removed.</p>
+        <a class="ms-pill" routerLink="/catalog">Browse all products</a>
+      </div>
+    } @else {
+      <div class="toolbar">
+        <span>{{ loading ? 'Loading…' : total + ' ' + (total === 1 ? 'product' : 'products') }}</span>
+        <label>
+          Sort by
+          <select [value]="sort" (change)="setSort($any($event.target).value)">
+            @for (s of sorts; track s.value) {
+              <option [value]="s.value" [selected]="s.value === sort">{{ s.label }}</option>
+            }
+          </select>
+        </label>
+      </div>
+
+      @if (loading) {
+        <div class="grid">
+          @for (n of [1, 2, 3, 4, 5, 6, 7, 8]; track n) {
+            <div class="skeleton"></div>
+          }
+        </div>
+      } @else if (!products.length) {
+        <div class="empty">
+          <i class="bi bi-bag"></i>
+          <h2>No products here yet</h2>
+          <p>{{ mode === 'search' ? 'Try another search word.' : 'New products are added regularly — check back soon.' }}</p>
+          <a class="ms-pill" routerLink="/">Back to home</a>
+        </div>
+      } @else {
+        <div class="grid">
+          @for (p of products; track p.id) {
+            <app-product-card [product]="p" [currency]="currency"></app-product-card>
+          }
+        </div>
+
+        @if (totalPages > 1) {
+          <nav class="pager" aria-label="Pages">
+            <button type="button" [disabled]="page === 1" (click)="goToPage(page - 1)"><i class="bi bi-chevron-left"></i></button>
+            @for (n of pages; track n) {
+              <button type="button" [class.on]="n === page" (click)="goToPage(n)">{{ n }}</button>
+            }
+            <button type="button" [disabled]="page === totalPages" (click)="goToPage(page + 1)"><i class="bi bi-chevron-right"></i></button>
+          </nav>
+        }
+      }
+    }
+  </div>
+</app-shop-shell>

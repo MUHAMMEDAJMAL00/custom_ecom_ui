@@ -1,0 +1,187 @@
+<div class="page-wrap">
+  <div class="page-header">
+    <div class="page-header-left">
+      <div class="page-title-main">Debit Notes</div>
+      <div class="page-breadcrumb">
+        <a [routerLink]="'/dashboard' | shopUrl">Dashboard</a>
+        <span class="sep">›</span>
+        <span class="current">Debit Notes</span>
+      </div>
+    </div>
+    <div class="page-header-actions">
+      <button class="btn btn-icon-tool" title="Refresh" (click)="load()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="23 4 23 10 17 10"/>
+          <path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/>
+        </svg>
+      </button>
+      <button class="btn btn-primary" (click)="openCreate()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/>
+        </svg>
+        New Debit Note
+      </button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="toolbar">
+      <div class="toolbar-left">
+        <div class="search-box">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+          <input type="text" placeholder="Search by note # or bill…" autocomplete="off"
+                 [value]="search" (input)="onSearchInput($any($event.target).value)"/>
+        </div>
+      </div>
+      <div class="toolbar-right">
+        <input type="date" class="form-control" style="width:140px" [(ngModel)]="filterFrom" (change)="applyFilter()"/>
+        <input type="date" class="form-control" style="width:140px;margin-left:6px" [(ngModel)]="filterTo" (change)="applyFilter()"/>
+        <select class="filter-select" style="margin-left:6px" [(ngModel)]="filterStatus" (change)="applyFilter()">
+          <option value="">All Status</option>
+          <option value="Outstanding">Outstanding</option>
+          <option value="Settled">Settled</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table class="pos-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Debit Note #</th>
+            <th>Date</th>
+            <th>Supplier</th>
+            <th>Reference Bill</th>
+            <th>Total</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngIf="loading"><td colspan="8" class="tbl-empty"><span class="pos-loader"><span></span><span></span><span></span></span></td></tr>
+          <tr *ngIf="!loading && errorMessage"><td colspan="8" class="tbl-empty" style="color:#ef4444">{{ errorMessage }}</td></tr>
+          <tr *ngIf="!loading && !errorMessage && !notes.length"><td colspan="8" class="tbl-empty">No debit notes found</td></tr>
+          <tr *ngFor="let r of notes; let i = index">
+            <td>{{ (page - 1) * limit + i + 1 }}</td>
+            <td><strong>{{ r.debit_note_number }}</strong></td>
+            <td>{{ r.date }}</td>
+            <td>{{ r.vendor?.name || '—' }}</td>
+            <td>{{ r.reference_bill || '—' }}</td>
+            <td>{{ formatCurrency(r.subtotal) }}</td>
+            <td><span class="badge" [ngClass]="statusBadgeClass(r.payment_status)">{{ r.payment_status }}</span></td>
+            <td>
+              <div class="row-actions">
+                <button class="btn btn-sm btn-success" *ngIf="r.payment_status !== 'Settled'" (click)="settle(r.id)">Settle</button>
+                <app-row-actions [showView]="true" (view)="openView(r)"></app-row-actions>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="pagination-bar">
+      <div class="pagination-info">
+        Row Per Page
+        <select [ngModel]="limit" (ngModelChange)="limit = $event; load(1)">
+          <option [ngValue]="20">20</option>
+          <option [ngValue]="10">10</option>
+          <option [ngValue]="50">50</option>
+        </select>
+        Entries
+      </div>
+      <app-pagination [currentPage]="page" [totalPages]="totalPages" (pageChange)="load($event)"></app-pagination>
+    </div>
+  </div>
+</div>
+
+<app-drawer [open]="drawerMode !== null" [title]="drawerTitle"
+            [showFooter]="drawerMode === 'create'"
+            saveLabel="Save & Post"
+            [saving]="saving" (closed)="closeDrawer()" (saveClicked)="handleSave()">
+
+  <!-- View note -->
+  <ng-container *ngIf="drawerMode === 'view' && viewingNote as n">
+    <div class="detail-grid">
+      <div class="detail-item"><label>Debit Note #</label><span><strong>{{ n.debit_note_number }}</strong></span></div>
+      <div class="detail-item"><label>Date</label><span>{{ n.date }}</span></div>
+      <div class="detail-item"><label>Supplier</label><span>{{ n.vendor?.name || '—' }}</span></div>
+      <div class="detail-item"><label>Reference Bill</label><span>{{ n.reference_bill || '—' }}</span></div>
+      <div class="detail-item"><label>Status</label><span>{{ n.payment_status }}</span></div>
+      <div class="detail-item"><label>Total</label><span><strong>{{ formatCurrency(n.subtotal) }}</strong></span></div>
+    </div>
+
+    <button class="btn btn-success" style="margin-top:12px" *ngIf="n.payment_status !== 'Settled'" (click)="settle(n.id)">Mark as Settled (Receive Payment)</button>
+    <span class="badge badge-success" style="margin-top:12px;display:inline-block" *ngIf="n.payment_status === 'Settled'">✓ Settled</span>
+
+    <div class="note-section-title">Line Items</div>
+    <table class="pos-table">
+      <thead><tr><th>Description</th><th>Qty</th><th>Rate</th><th>Amount</th></tr></thead>
+      <tbody>
+        <tr *ngFor="let l of n.lines">
+          <td>{{ l.description }}</td>
+          <td>{{ formatCurrency(l.qty) }}</td>
+          <td>{{ formatCurrency(l.rate) }}</td>
+          <td><strong>{{ formatCurrency(l.amount) }}</strong></td>
+        </tr>
+      </tbody>
+    </table>
+  </ng-container>
+
+  <!-- Create note -->
+  <ng-container *ngIf="drawerMode === 'create'">
+    <div class="form-grid cols-2">
+      <div class="form-group">
+        <label class="form-label">Date <span class="req">*</span></label>
+        <input type="date" class="form-control" [(ngModel)]="dnDate"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Supplier</label>
+        <select class="form-control" [(ngModel)]="dnVendorId">
+          <option [ngValue]="null">Select supplier…</option>
+          <option *ngFor="let v of vendors" [ngValue]="v.id">{{ v.name }}</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Reference Bill</label>
+        <input type="text" class="form-control" placeholder="BILL-XXXX" autocomplete="off" [(ngModel)]="dnRef"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Status</label>
+        <select class="form-control" [(ngModel)]="dnStatus">
+          <option value="Outstanding">Outstanding</option>
+          <option value="Settled">Settled</option>
+        </select>
+      </div>
+      <div class="form-group col-span-2">
+        <label class="form-label">Notes</label>
+        <textarea class="form-control" rows="2" [(ngModel)]="dnNotes"></textarea>
+      </div>
+    </div>
+
+    <div class="note-section-title">Line Items</div>
+    <table class="pos-table">
+      <thead><tr><th>Description</th><th>Qty</th><th>Rate</th><th>Amount</th><th></th></tr></thead>
+      <tbody>
+        <tr *ngFor="let row of lineRows">
+          <td><input type="text" class="form-control" style="min-width:140px" placeholder="Description" [(ngModel)]="row.description"/></td>
+          <td><input type="number" class="form-control" style="width:80px" min="0.001" step="any" [ngModel]="row.qty" (ngModelChange)="row.qty = $event; calcLine(row)"/></td>
+          <td><input type="number" class="form-control" style="width:100px" min="0" step="0.01" placeholder="0.00" [ngModel]="row.rate" (ngModelChange)="row.rate = $event; calcLine(row)"/></td>
+          <td><input type="number" class="form-control" style="width:100px" min="0" step="0.01" placeholder="0.00" [(ngModel)]="row.amount"/></td>
+          <td><button type="button" class="note-line-rem" (click)="removeLine(row.idx)">✕</button></td>
+        </tr>
+      </tbody>
+      <tfoot>
+        <tr>
+          <td><button type="button" class="btn btn-sm" (click)="addLine()">+ Add Line</button></td>
+          <td colspan="2" style="text-align:right;font-size:0.85rem">Total:</td>
+          <td><strong>{{ formatCurrency(lineTotal) }}</strong></td>
+          <td></td>
+        </tr>
+      </tfoot>
+    </table>
+  </ng-container>
+</app-drawer>

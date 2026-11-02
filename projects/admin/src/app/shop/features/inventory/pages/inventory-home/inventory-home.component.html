@@ -1,0 +1,349 @@
+<div class="page-wrap">
+  <div class="page-header">
+    <div class="page-header-left">
+      <div class="page-title-main">Stock Management</div>
+      <div class="page-breadcrumb">
+        <a [routerLink]="'/dashboard' | shopUrl">Dashboard</a>
+        <span class="sep">›</span>
+        <span class="current">Inventory</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="stat-cards">
+    <div class="stat-card stat-card--teal">
+      <div class="stat-card-icon">📦</div>
+      <div class="stat-card-info">
+        <div class="stat-card-value">{{ statTotal }}</div>
+        <div class="stat-card-label">Total Products</div>
+      </div>
+    </div>
+    <div class="stat-card stat-card--dark">
+      <div class="stat-card-icon">✅</div>
+      <div class="stat-card-info">
+        <div class="stat-card-value">{{ statInStock }}</div>
+        <div class="stat-card-label">In Stock</div>
+      </div>
+    </div>
+    <div class="stat-card stat-card--orange">
+      <div class="stat-card-icon">⚠️</div>
+      <div class="stat-card-info">
+        <div class="stat-card-value">{{ statLowStock }}</div>
+        <div class="stat-card-label">Low Stock</div>
+      </div>
+    </div>
+    <div class="stat-card stat-card--red">
+      <div class="stat-card-icon">⛔</div>
+      <div class="stat-card-info">
+        <div class="stat-card-value">{{ statOutStock }}</div>
+        <div class="stat-card-label">Out of Stock</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="inv-tabs">
+    <button class="inv-tab" [class.active]="activeTab === 'stock'" (click)="switchTab('stock')">Stock Status</button>
+    <button class="inv-tab" [class.active]="activeTab === 'movements'" (click)="switchTab('movements')">Stock Movements</button>
+    <button class="inv-tab" [class.active]="activeTab === 'transfer'" (click)="switchTab('transfer')">Stock Transfer</button>
+  </div>
+
+  <!-- ══════ STOCK STATUS TAB ══════ -->
+  <div *ngIf="activeTab === 'stock'">
+    <div class="quick-add-panel">
+      <div class="qap-label-pill">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="16" /><line x1="8" y1="12" x2="16" y2="12" /></svg>
+        Quick Adjust
+      </div>
+
+      <div class="qap-scan-group">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2" /><line x1="1" y1="10" x2="23" y2="10" /></svg>
+        <input type="text" class="qap-scan-input" placeholder="Scan barcode or search…" autocomplete="off"
+               [value]="qapBarcode" (input)="onQapBarcodeInput($any($event.target).value)" />
+        <div class="qap-suggestions" *ngIf="qapShowSuggestions && qapSuggestions.length">
+          <div class="qap-suggestion-item" *ngFor="let p of qapSuggestions" (mousedown)="$event.preventDefault(); pickQapProduct(p)">
+            <span class="qap-sug-name">{{ p.name }}</span>
+            <span class="qap-sug-meta">{{ p.sku || '' }}<ng-container *ngIf="p.barcode"> · {{ p.barcode }}</ng-container></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qap-sep"></div>
+
+      <div class="qap-product-chip">
+        <span class="qap-chip-name">{{ qapSelectedProduct?.name || 'No product selected' }}</span>
+        <span class="qap-chip-sku">{{ qapSelectedProduct?.sku || '' }}</span>
+        <span class="qap-chip-stock">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" /></svg>
+          <span>{{ qapSelectedProduct ? qapCurrentStock : '—' }}</span>
+        </span>
+      </div>
+
+      <div class="qap-sep"></div>
+
+      <div class="qap-type-wrap">
+        <button type="button" class="qap-type-btn" [class.active]="qapType === 'add'" data-qap-type="add" (click)="setQapType('add')">+ Add</button>
+        <button type="button" class="qap-type-btn" [class.active]="qapType === 'remove'" data-qap-type="remove" (click)="setQapType('remove')">− Out</button>
+        <button type="button" class="qap-type-btn" [class.active]="qapType === 'set'" data-qap-type="set" (click)="setQapType('set')">= Set</button>
+      </div>
+
+      <input type="number" class="qap-num-input" min="0.001" step="any" placeholder="Qty" [(ngModel)]="qapQty" [ngModelOptions]="{ standalone: true }" />
+      <input type="text" class="qap-text-input" placeholder="Notes (optional)" [(ngModel)]="qapNotes" [ngModelOptions]="{ standalone: true }" />
+
+      <button class="qap-apply-btn" [disabled]="!qapSelectedProduct || qapSubmitting" (click)="submitQuickAdjust()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12" /></svg>
+        {{ qapSubmitting ? 'Saving…' : 'Apply' }}
+      </button>
+    </div>
+
+    <div class="card">
+      <div class="toolbar">
+        <div class="toolbar-left">
+          <div class="search-box">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
+            <input type="text" placeholder="Search products…" autocomplete="off" [value]="stockSearch" (input)="onStockSearchInput($any($event.target).value)" />
+          </div>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table class="pos-table">
+          <thead>
+            <tr><th>#</th><th>Product</th><th>SKU</th><th>Qty on Hand</th><th>Min Qty</th><th>Max Qty</th><th>Status</th><th>Actions</th></tr>
+          </thead>
+          <tbody>
+            <tr *ngIf="stockLoading"><td colspan="8" class="tbl-empty"><span class="pos-loader"><span></span><span></span><span></span></span></td></tr>
+            <tr *ngIf="!stockLoading && !stockRows.length"><td colspan="8" class="tbl-empty">No stock data</td></tr>
+            <tr *ngFor="let row of stockRows; let i = index" [hidden]="stockLoading"
+                [style.background]="(+row.quantity) <= 0 ? '#fef2f2' : ((+row.quantity) <= row.Product.alert_quantity ? '#fffbeb' : null)">
+              <td>{{ (stockPage - 1) * stockLimit + i + 1 }}</td>
+              <td>{{ row.Product.name }}</td>
+              <td><code>{{ row.Product.sku || '—' }}</code></td>
+              <td [style.font-weight]="700" [style.color]="(+row.quantity) < 0 ? '#dc2626' : null">{{ row.quantity }}</td>
+              <td>{{ row.Product.alert_quantity }}</td>
+              <td>{{ row.Product.max_quantity ?? '—' }}</td>
+              <td><span class="stk-badge" [ngClass]="stockBadgeClass(row)">{{ stockBadgeLabel(row) }}</span></td>
+              <td>
+                <button type="button" class="btn-icon btn-icon-dark" title="View Details" (click)="openProductDrawer(row.product_id)">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" /></svg>
+                </button>
+                <button type="button" class="btn-select-stock" title="Select for stock adjustment" (click)="selectRowForAdjustment(row)">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="16" /><line x1="8" y1="12" x2="16" y2="12" /></svg>
+                  <span> Select</span>
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="pagination-bar">
+        <div class="pagination-info">
+          Row Per Page
+          <select [ngModel]="stockLimit" (ngModelChange)="onStockLimitChange($event)">
+            <option [ngValue]="20">20</option><option [ngValue]="10">10</option><option [ngValue]="25">25</option><option [ngValue]="50">50</option>
+          </select>
+          Entries
+        </div>
+        <app-pagination [currentPage]="stockPage" [totalPages]="stockTotalPages" (pageChange)="loadStock($event)"></app-pagination>
+      </div>
+    </div>
+
+    <div class="low-stock-banner" *ngIf="lowStockAlertCount > 0">
+      ⚠️ <strong>{{ lowStockAlertCount }}</strong> products are low on stock or out of stock.
+    </div>
+  </div>
+
+  <!-- ══════ STOCK MOVEMENTS TAB ══════ -->
+  <div *ngIf="activeTab === 'movements'">
+    <div class="card">
+      <div class="toolbar">
+        <div class="toolbar-left">
+          <div class="search-box">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
+            <input type="text" placeholder="Search movements…" autocomplete="off" [value]="movSearch" (input)="onMovSearchInput($any($event.target).value)" />
+          </div>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table class="pos-table">
+          <thead>
+            <tr><th>#</th><th>Product</th><th>Type</th><th>Qty Change</th><th>Notes</th><th>Reference</th><th>Date</th></tr>
+          </thead>
+          <tbody>
+            <tr *ngIf="movLoading"><td colspan="7" class="tbl-empty"><span class="pos-loader"><span></span><span></span><span></span></span></td></tr>
+            <tr *ngIf="!movLoading && !movRows.length"><td colspan="7" class="tbl-empty">No movements recorded</td></tr>
+            <tr *ngFor="let m of movRows; let i = index" [hidden]="movLoading">
+              <td>{{ (movPage - 1) * movLimit + i + 1 }}</td>
+              <td>{{ m.Product?.name || '—' }}</td>
+              <td><span class="move-badge" [class.move-backorder]="m.is_backorder">{{ m.is_backorder ? 'Backorder' : (m.movement_type || '—') }}</span></td>
+              <td [style.font-weight]="700" [style.color]="(+m.quantity_change) >= 0 ? '#22c55e' : '#ef4444'">{{ movementQtyDisplay(m) }}</td>
+              <td>{{ m.notes || '—' }}</td>
+              <td><code>{{ movementRefDisplay(m) }}</code></td>
+              <td style="color: #9c8b91; font-size: 0.78rem">{{ (m.createdAt || m.created_at) ? (m.createdAt || m.created_at | date: 'd MMM, h:mm a') : '—' }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="pagination-bar">
+        <div class="pagination-info">
+          Row Per Page
+          <select [ngModel]="movLimit" (ngModelChange)="onMovLimitChange($event)">
+            <option [ngValue]="20">20</option><option [ngValue]="10">10</option><option [ngValue]="25">25</option><option [ngValue]="50">50</option>
+          </select>
+          Entries
+        </div>
+        <app-pagination [currentPage]="movPage" [totalPages]="movTotalPages" (pageChange)="loadMovements($event)"></app-pagination>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════ STOCK TRANSFER TAB ══════ -->
+  <div *ngIf="activeTab === 'transfer'">
+    <div class="card" style="margin-bottom: 20px">
+      <div class="card-body">
+        <div style="display: flex; align-items: flex-end; gap: 16px; flex-wrap: wrap">
+          <div class="form-group" style="flex: 1; min-width: 140px">
+            <label class="form-label">From Store <span class="req">*</span></label>
+            <select class="form-control" [(ngModel)]="trFromStore">
+              <option value="">Select store…</option>
+              <option *ngFor="let s of stores" [value]="s.id">{{ s.name }} ({{ s.code }})</option>
+            </select>
+          </div>
+          <div class="form-group" style="flex: 1; min-width: 140px">
+            <label class="form-label">To Store <span class="req">*</span></label>
+            <select class="form-control" [(ngModel)]="trToStore">
+              <option value="">Select store…</option>
+              <option *ngFor="let s of stores" [value]="s.id">{{ s.name }} ({{ s.code }})</option>
+            </select>
+          </div>
+          <div class="form-group" style="flex: 2; min-width: 200px">
+            <label class="form-label">Product <span class="req">*</span></label>
+            <select class="form-control" [(ngModel)]="trProduct">
+              <option value="">Select product…</option>
+              <option *ngFor="let p of transferProducts" [value]="p.id">{{ p.name }}<ng-container *ngIf="p.sku"> ({{ p.sku }})</ng-container></option>
+            </select>
+          </div>
+          <div class="form-group" style="flex: 1; min-width: 100px">
+            <label class="form-label">Qty <span class="req">*</span></label>
+            <input type="number" class="form-control" min="0.001" step="any" placeholder="0" [(ngModel)]="trQty" />
+          </div>
+          <div class="form-group" style="flex: 2; min-width: 180px">
+            <label class="form-label">Notes</label>
+            <input type="text" class="form-control" placeholder="e.g. Rebalancing" [(ngModel)]="trNotes" />
+          </div>
+          <div class="form-group" style="flex: 0 0 auto">
+            <button class="btn btn-primary" style="height: 36px; padding: 0 20px" [disabled]="trSubmitting" (click)="applyTransfer()">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7" /></svg>
+              {{ trSubmitting ? 'Transferring…' : 'Transfer' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><span class="card-title">Recent Transfers (This Store)</span></div>
+      <div class="table-wrap">
+        <table class="pos-table">
+          <thead>
+            <tr><th>#</th><th>Product</th><th>From Store</th><th>To Store</th><th>Qty</th><th>Notes</th><th>Date</th></tr>
+          </thead>
+          <tbody>
+            <tr *ngIf="transfersLoading"><td colspan="7" class="tbl-empty"><span class="pos-loader"><span></span><span></span><span></span></span></td></tr>
+            <tr *ngIf="!transfersLoading && !transfers.length"><td colspan="7" class="tbl-empty">No transfers yet</td></tr>
+            <tr *ngFor="let m of transfers; let i = index" [hidden]="transfersLoading">
+              <td>{{ (trPage - 1) * trLimit + i + 1 }}</td>
+              <td><strong>{{ m.Product?.name || '—' }}</strong></td>
+              <td>{{ transferFromName(m) }}</td>
+              <td>{{ transferToName(m) }}</td>
+              <td [style.font-weight]="700" [style.color]="transferIsOut(m) ? '#ef4444' : '#22c55e'">{{ transferQtyAbs(m) }}</td>
+              <td>{{ transferNote(m) }}</td>
+              <td style="color: #9c8b91; font-size: 0.78rem">{{ (m.createdAt || m.created_at) ? (m.createdAt || m.created_at | date: 'd MMM, h:mm a') : '—' }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="pagination-bar">
+        <div class="pagination-info">
+          Row Per Page
+          <select [(ngModel)]="trLimit" (ngModelChange)="loadRecentTransfers(1)">
+            <option [ngValue]="10">10</option><option [ngValue]="20">20</option><option [ngValue]="25">25</option><option [ngValue]="50">50</option>
+          </select>
+          Entries
+        </div>
+        <app-pagination [currentPage]="trPage" [totalPages]="trTotalPages" (pageChange)="loadRecentTransfers($event)"></app-pagination>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════ PRODUCT DETAILS DRAWER ══════ -->
+<app-drawer [open]="viewOpen" title="Product Details & Batch History" [showFooter]="false" (closed)="closeViewDrawer()">
+  <div *ngIf="viewLoading" class="tbl-empty">Loading…</div>
+
+  <ng-container *ngIf="!viewLoading && viewData as d">
+    <div class="detail-grid">
+      <div class="detail-item"><label>Product</label><span>{{ d.product.name || '—' }}</span></div>
+      <div class="detail-item"><label>Total Stock</label><span>{{ totalStock() }}</span></div>
+      <div class="detail-item"><label>Inventory locations</label><span>{{ d.inventories.length }}</span></div>
+    </div>
+
+    <div class="card" style="margin-top: 16px">
+      <div class="card-header"><span class="card-title">Batch Wise Details (FIFO)</span></div>
+      <div class="table-wrap">
+        <p class="tbl-empty" *ngIf="!d.batches.length">No active batches found</p>
+        <table class="pos-table compact" *ngIf="d.batches.length">
+          <thead><tr><th>Batch #</th><th>Store</th><th>Expiry</th><th>Rate</th><th>Available Qty</th></tr></thead>
+          <tbody>
+            <tr *ngFor="let b of d.batches" [style.background]="isExpired(b.expiry_date) ? '#fef2f2' : null" [style.color]="isExpired(b.expiry_date) ? '#dc2626' : null">
+              <td><code>{{ b.batch_number }}</code></td>
+              <td>{{ b.Store?.name || '—' }}</td>
+              <td>{{ b.expiry_date ? (b.expiry_date | date: 'd MMM y') : '—' }}</td>
+              <td style="font-weight: 600">₹{{ (+b.purchase_rate).toFixed(2) }}</td>
+              <td style="font-weight: 700">{{ +b.current_quantity }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top: 16px">
+      <div class="card-header"><span class="card-title">Stock by location</span></div>
+      <div class="table-wrap">
+        <p class="tbl-empty" *ngIf="!d.inventories.length">No inventory records available</p>
+        <table class="pos-table compact" *ngIf="d.inventories.length">
+          <thead><tr><th>Store</th><th>Code</th><th>Qty</th><th>Reserved</th></tr></thead>
+          <tbody>
+            <tr *ngFor="let inv of d.inventories">
+              <td>{{ inv.Store?.name || '—' }}</td>
+              <td>{{ inv.Store?.code || '—' }}</td>
+              <td [style.color]="(+inv.quantity) < 0 ? '#dc2626' : null" [style.font-weight]="(+inv.quantity) < 0 ? 700 : null">{{ inv.quantity || '0' }}</td>
+              <td>{{ inv.reserved_quantity || '0' }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top: 16px">
+      <div class="card-header"><span class="card-title">Recent Purchase History</span></div>
+      <div class="table-wrap">
+        <p class="tbl-empty" *ngIf="!d.purchase_history.length">No purchase history available</p>
+        <table class="pos-table compact" *ngIf="d.purchase_history.length">
+          <thead><tr><th>Purchase #</th><th>Date</th><th>Vendor</th><th>Qty</th><th>Rate</th></tr></thead>
+          <tbody>
+            <tr *ngFor="let item of d.purchase_history">
+              <td><code>{{ item.Purchase?.purchase_number || item.Purchase?.id || '—' }}</code></td>
+              <td>{{ item.Purchase?.purchase_date ? (item.Purchase!.purchase_date | date: 'd MMM y') : '—' }}</td>
+              <td>{{ item.Purchase?.Vendor?.name || '—' }}</td>
+              <td [style.color]="(+item.quantity) < 0 ? '#dc2626' : null" [style.font-weight]="(+item.quantity) < 0 ? 700 : null">{{ item.quantity || '—' }}</td>
+              <td>₹{{ (+item.unit_cost).toFixed(2) }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </ng-container>
+</app-drawer>

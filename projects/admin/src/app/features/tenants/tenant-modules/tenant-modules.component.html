@@ -1,0 +1,69 @@
+<div class="modules-page">
+  <div class="page-head">
+    <div>
+      <p class="eyebrow">Shop modules</p>
+      <h2>{{ tenant ? 'Modules for ' + tenant.name : 'Shop modules' }}</h2>
+      <p *ngIf="tenant">{{ tenant.slug }} · core modules are always included</p>
+    </div>
+    <div class="head-actions">
+      <a class="btn-back" routerLink="/platform/tenants" title="Back to shops">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M19 12H5m0 0 6-6m-6 6 6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+        Back
+      </a>
+      <button class="btn-save" type="button" (click)="save()" [disabled]="loading || saving">
+        <span class="spinner" *ngIf="saving" aria-hidden="true"></span>
+        {{ saving ? 'Saving…' : 'Save modules' }}
+      </button>
+    </div>
+  </div>
+
+  <div class="summary-strip" *ngIf="!loading">
+    <div>
+      <strong>{{ selectedCount }}</strong>
+      <span>optional modules selected</span>
+    </div>
+    <p>Dependencies are added automatically. Disabling a module keeps its data.</p>
+  </div>
+
+  <div class="empty-state" *ngIf="loading">
+    <span class="pos-loader"><span></span><span></span><span></span></span>
+  </div>
+
+  <div class="error-box" *ngIf="!loading && errorMessage">{{ errorMessage }}</div>
+
+  <div class="module-groups" *ngIf="!loading && !errorMessage">
+    <section class="module-card" *ngFor="let group of groups">
+      <div class="card-head">
+        <h3>{{ group.name }}</h3>
+        <span>{{ group.modules.length }}</span>
+      </div>
+
+      <button
+        type="button"
+        class="module-row"
+        *ngFor="let module of group.modules"
+        [class.is-on]="isSelected(module)"
+        [class.is-locked]="module.is_core"
+        [class.is-planned]="!module.is_built"
+        [attr.aria-pressed]="isSelected(module)"
+        (click)="toggle(module)"
+      >
+        <span class="module-check">{{ isSelected(module) ? '✓' : '' }}</span>
+        <span class="module-copy">
+          <span class="module-title">
+            {{ module.label }}
+            <span class="tag" *ngIf="module.is_core">Core</span>
+            <span class="tag is-planned" *ngIf="!module.is_built">Planned</span>
+          </span>
+          <small>{{ module.description }}</small>
+          <em *ngIf="module.depends_on.length">Requires {{ requiresLabel(module) }}</em>
+        </span>
+      </button>
+    </section>
+  </div>
+
+  <div class="success-box" *ngIf="successMessage">{{ successMessage }}</div>
+  <div class="error-box" *ngIf="errorMessage">{{ errorMessage }}</div>
+</div>

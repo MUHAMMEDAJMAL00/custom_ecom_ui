@@ -1,0 +1,88 @@
+<div class="page-wrap">
+  <div class="page-header">
+    <div class="page-header-left">
+      <div class="page-title-main">Recurring Journal Entries</div>
+      <div class="page-breadcrumb"><a [routerLink]="'/dashboard' | shopUrl">Dashboard</a><span class="sep">›</span><span class="current">Recurring JEs</span></div>
+    </div>
+    <div class="page-header-actions">
+      <button class="btn btn-icon-tool" title="Refresh" (click)="load()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg></button>
+      <button class="btn btn-success" style="background:#22c55e;color:#fff" (click)="generateDue()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+        Generate Due
+      </button>
+      <button class="btn btn-primary" (click)="openAdd()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+        New Template
+      </button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="toolbar">
+      <div class="toolbar-left">
+        <div class="search-box"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input type="text" placeholder="Search templates…" autocomplete="off" [(ngModel)]="search" (ngModelChange)="load()" /></div>
+      </div>
+      <div class="toolbar-right">
+        <select class="form-control" style="width:140px" [(ngModel)]="filterFreq" (change)="load()"><option value="">All Frequencies</option><option value="daily">Daily</option><option value="weekly">Weekly</option><option value="monthly">Monthly</option><option value="yearly">Yearly</option></select>
+        <select class="form-control" style="width:120px;margin-left:6px" [(ngModel)]="filterActive" (change)="load()"><option value="">All Status</option><option value="1">Active</option><option value="0">Inactive</option></select>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table class="pos-table">
+        <thead><tr><th>#</th><th>Name</th><th>Frequency</th><th>Next Run</th><th>Last Run</th><th>Lines</th><th>Status</th><th>Actions</th></tr></thead>
+        <tbody>
+          <tr *ngIf="loading"><td colspan="8" class="tbl-empty"><span class="pos-loader"><span></span><span></span><span></span></span></td></tr>
+          <tr *ngIf="!loading && !templates.length"><td colspan="8" class="tbl-empty">No templates found</td></tr>
+          <tr *ngFor="let t of templates; let i = index">
+            <td>{{ (page - 1) * limit + i + 1 }}</td>
+            <td><strong>{{ t.name }}</strong><br *ngIf="t.description"><small *ngIf="t.description" style="color:#9c8b91">{{ t.description }}</small></td>
+            <td>{{ freqLabel(t) }}</td>
+            <td>{{ t.next_run_date || '—' }}</td>
+            <td>{{ t.last_run_date || '—' }}</td>
+            <td>{{ t.lines?.length || 0 }}</td>
+            <td><span class="badge" [ngClass]="t.is_active ? 'badge-success' : 'badge-inactive'">{{ t.is_active ? 'Active' : 'Inactive' }}</span></td>
+            <td><app-row-actions [showEdit]="true" [showDelete]="true" (edit)="openEdit(t)" (delete)="deleteTemplate(t)"></app-row-actions></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="pagination-bar">
+      <div class="pagination-info">Row Per Page <select [ngModel]="limit" (ngModelChange)="limit = $event; load(1)"><option [ngValue]="10">10</option><option [ngValue]="20">20</option><option [ngValue]="50">50</option></select> Entries</div>
+      <app-pagination [currentPage]="page" [totalPages]="total" (pageChange)="load($event)"></app-pagination>
+    </div>
+  </div>
+</div>
+
+<app-drawer [open]="drawerOpen" [title]="editId ? 'Edit: ' + formName : 'New Recurring Template'"
+            [saveLabel]="editId ? 'Update' : 'Save Template'" [saving]="saving"
+            (closed)="drawerOpen = false" (saveClicked)="save()">
+
+  <div class="form-grid">
+    <div class="form-group col-span-2"><label class="form-label">Template Name <span class="req">*</span></label><input type="text" class="form-control" [(ngModel)]="formName" placeholder="e.g. Monthly Shop Rent" /></div>
+    <div class="form-group col-span-2"><label class="form-label">Description</label><textarea class="form-control" rows="2" [(ngModel)]="formDesc" placeholder="Optional"></textarea></div>
+    <div class="form-group"><label class="form-label">Frequency <span class="req">*</span></label><select class="form-control" [(ngModel)]="formFreq"><option value="monthly">Monthly</option><option value="daily">Daily</option><option value="weekly">Weekly</option><option value="yearly">Yearly</option></select></div>
+    <div class="form-group" *ngIf="formFreq === 'monthly'"><label class="form-label">Day of Month <span class="req">*</span></label><input type="number" class="form-control" min="1" max="28" [(ngModel)]="formDom" /></div>
+    <div class="form-group" *ngIf="formFreq === 'weekly'"><label class="form-label">Day of Week</label><select class="form-control" [(ngModel)]="formDow"><option [ngValue]="1">Monday</option><option [ngValue]="2">Tuesday</option><option [ngValue]="3">Wednesday</option><option [ngValue]="4">Thursday</option><option [ngValue]="5">Friday</option><option [ngValue]="6">Saturday</option><option [ngValue]="0">Sunday</option></select></div>
+    <div class="form-group"><label class="form-label">Start Date <span class="req">*</span></label><input type="date" class="form-control" [(ngModel)]="formStart" /></div>
+    <div class="form-group"><label class="form-label">End Date</label><input type="date" class="form-control" [(ngModel)]="formEnd" /></div>
+    <div class="form-group col-span-2"><label class="form-label">Notes</label><textarea class="form-control" rows="2" [(ngModel)]="formNotes" placeholder="Internal notes"></textarea></div>
+  </div>
+
+  <div style="margin-top:16px;padding-top:12px;border-top:1px solid var(--border)">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <strong style="font-size:13px">Line Items (min 2, debit = credit)</strong>
+      <button class="btn btn-sm" type="button" (click)="addLine()">+ Add Line</button>
+    </div>
+    <div *ngFor="let l of formLines; let i = index" style="display:flex;gap:6px;align-items:center;margin-bottom:6px">
+      <select class="form-control" style="flex:3" [(ngModel)]="l.accountId"><option [ngValue]="null">-- Select Account --</option><option *ngFor="let a of accounts" [ngValue]="a.id">{{ a.name }}</option></select>
+      <input type="number" class="form-control" style="flex:1" placeholder="Debit" step="0.01" min="0" [(ngModel)]="l.debit" />
+      <input type="number" class="form-control" style="flex:1" placeholder="Credit" step="0.01" min="0" [(ngModel)]="l.credit" />
+      <input type="text" class="form-control" style="flex:2" placeholder="Description" [(ngModel)]="l.desc" />
+      <button type="button" style="background:none;border:none;color:#dc2626;cursor:pointer;font-size:16px" (click)="removeLine(i)">✕</button>
+    </div>
+    <div style="margin-top:8px;padding:8px 12px;background:#fdf4f5;border-radius:6px;font-size:.85rem">
+      <strong>Debit:</strong> {{ formatCurrency(totalDebit) }} &nbsp;|&nbsp; <strong>Credit:</strong> {{ formatCurrency(totalCredit) }} &nbsp;|&nbsp;
+      <strong [style.color]="balanced ? '#16a34a' : '#dc2626'">{{ balanced ? 'Balanced ✓' : 'Difference: ' + formatCurrency(totalDebit - totalCredit) }}</strong>
+    </div>
+  </div>
+</app-drawer>

@@ -1,0 +1,148 @@
+<div class="page-wrap">
+  <div class="page-header">
+    <div class="page-header-left">
+      <div class="page-title-main">Salary</div>
+      <div class="page-breadcrumb">
+        <a [routerLink]="'/dashboard' | shopUrl">Dashboard</a>
+        <span class="sep">›</span>
+        <span class="current">Salary</span>
+      </div>
+    </div>
+    <div class="page-header-actions">
+      <button class="btn btn-icon-tool" title="Refresh" (click)="reload()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>
+      </button>
+      <button class="btn btn-primary" (click)="openPayDrawer()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Pay Salary
+      </button>
+    </div>
+  </div>
+
+  <!-- Stat cards -->
+  <div class="stat-cards">
+    <div class="stat-card stat-card--blue"><div class="stat-card-info"><div class="stat-card-label">Total Payroll</div><div class="stat-card-value">{{ formatCurrency(totalPayroll) }}</div></div></div>
+    <div class="stat-card stat-card--teal"><div class="stat-card-info"><div class="stat-card-label">Paid</div><div class="stat-card-value" style="color:#16a34a">{{ formatCurrency(totalPaid) }}</div></div></div>
+    <div class="stat-card stat-card--orange"><div class="stat-card-info"><div class="stat-card-label">Pending</div><div class="stat-card-value" style="color:#d97706">{{ formatCurrency(totalPending) }}</div></div></div>
+    <div class="stat-card stat-card--dark"><div class="stat-card-info"><div class="stat-card-label">Fully Paid</div><div class="stat-card-value">{{ fullyPaidCount }} / {{ employees.length }} employees</div></div></div>
+  </div>
+
+  <div class="card" style="margin-bottom:0">
+    <div class="toolbar">
+      <div class="toolbar-left" style="gap:10px">
+        <div>
+          <label style="font-size:.78rem;color:#6b5a60;display:block;margin-bottom:3px">Month</label>
+          <input type="month" class="filter-select" style="min-width:140px" [(ngModel)]="filterMonth" (change)="reload()" />
+        </div>
+        <div style="display:flex;gap:6px;align-items:flex-end">
+          <button class="btn btn-sm" [style.background]="tab === 'status' ? '#c8102e' : '#fff'" [style.color]="tab === 'status' ? '#fff' : '#2a1a20'" (click)="switchTab('status')">Status</button>
+          <button class="btn btn-sm" [style.background]="tab === 'history' ? '#c8102e' : '#fff'" [style.color]="tab === 'history' ? '#fff' : '#2a1a20'" (click)="switchTab('history')">History</button>
+        </div>
+      </div>
+      <div class="toolbar-right">
+        <div class="search-box">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" placeholder="Search employee…" autocomplete="off" [(ngModel)]="search" (ngModelChange)="reload()" *ngIf="tab === 'status'" />
+          <input type="text" placeholder="Search employee…" autocomplete="off" *ngIf="tab === 'history'" />
+        </div>
+      </div>
+    </div>
+
+    <!-- Status tab -->
+    <div *ngIf="tab === 'status'">
+      <div class="table-wrap">
+        <table class="pos-table">
+          <thead>
+            <tr><th>#</th><th>Employee</th><th>Role</th><th>Monthly Salary</th><th>Paid</th><th>Pending</th><th>Status</th><th></th></tr>
+          </thead>
+          <tbody>
+            <tr *ngIf="statusLoading"><td colspan="8" class="tbl-empty"><span class="pos-loader"><span></span><span></span><span></span></span></td></tr>
+            <tr *ngIf="!statusLoading && !filteredEmployees.length"><td colspan="8" class="tbl-empty">No employees found</td></tr>
+            <tr *ngFor="let e of filteredEmployees; let i = index">
+              <td>{{ i + 1 }}</td>
+              <td><strong>{{ e.name }}</strong></td>
+              <td>{{ e.role || '—' }}</td>
+              <td style="font-weight:700">{{ formatCurrency(e.monthly_salary) }}</td>
+              <td style="color:#22c55e;font-weight:700">{{ formatCurrency(e.paid_amount) }}</td>
+              <td [style.color]="(e.pending_salary || 0) > 0 ? '#ef4444' : '#22c55e'" style="font-weight:700">{{ formatCurrency(e.pending_salary) }}</td>
+              <td>
+                <span class="badge" [ngClass]="(e.pending_salary || 0) <= 0 ? 'badge-success' : (e.paid_amount || 0) > 0 ? 'badge-pending' : 'badge-cancelled'">
+                  {{ (e.pending_salary || 0) <= 0 ? 'Paid' : (e.paid_amount || 0) > 0 ? 'Partial' : 'Pending' }}
+                </span>
+              </td>
+              <td>
+                <button *ngIf="(e.pending_salary || 0) > 0" class="btn btn-outline btn-sm" style="font-size:.72rem;padding:3px 8px" (click)="openPayDrawer(e)">Pay Now</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- History tab -->
+    <div *ngIf="tab === 'history'">
+      <div class="table-wrap">
+        <table class="pos-table">
+          <thead>
+            <tr><th>#</th><th>Employee</th><th>Month</th><th>Amount</th><th>Method</th><th>Date</th><th>Notes</th></tr>
+          </thead>
+          <tbody>
+            <tr *ngIf="histLoading"><td colspan="7" class="tbl-empty"><span class="pos-loader"><span></span><span></span><span></span></span></td></tr>
+            <tr *ngIf="!histLoading && !payments.length"><td colspan="7" class="tbl-empty">No payments found</td></tr>
+            <tr *ngFor="let p of payments; let i = index">
+              <td>{{ (histPage - 1) * histLimit + i + 1 }}</td>
+              <td><strong>{{ p.Employee?.name || '—' }}</strong><br><small *ngIf="p.Employee?.role" style="color:#9c8b91">{{ p.Employee?.role }}</small></td>
+              <td>{{ p.salary_month }}</td>
+              <td style="font-weight:700">{{ formatCurrency(p.amount) }}</td>
+              <td style="text-transform:capitalize">{{ p.payment_method || 'cash' }}</td>
+              <td style="color:#9c8b91;font-size:.8rem">{{ formatDate(p.payment_date) }}</td>
+              <td style="color:#6b5a60;font-size:.78rem">{{ p.notes || '—' }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="pagination-bar">
+        <div class="pagination-info">Show <select [ngModel]="histLimit" (ngModelChange)="histLimit = $event; loadHistory(1)"><option [ngValue]="20">20</option><option [ngValue]="50">50</option></select> entries</div>
+        <app-pagination [currentPage]="histPage" [totalPages]="histTotal" (pageChange)="loadHistory($event)"></app-pagination>
+      </div>
+    </div>
+  </div>
+</div>
+
+<app-drawer [open]="drawerOpen" title="Pay Salary" [saveLabel]="'Record Payment'" [saving]="saving"
+            (closed)="drawerOpen = false" (saveClicked)="submitPay()">
+  <div class="form-grid cols-2">
+    <div class="form-group col-span-2">
+      <label class="form-label">Employee <span class="req">*</span></label>
+      <select class="form-control" [(ngModel)]="payEmpId" (ngModelChange)="onPayEmpChange()">
+        <option [ngValue]="null">Select employee…</option>
+        <option *ngFor="let e of payEmpList" [ngValue]="e.id">{{ e.name }}{{ e.role ? ' — ' + e.role : '' }}</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Salary Month <span class="req">*</span></label>
+      <input type="month" class="form-control" [(ngModel)]="payMonth" />
+    </div>
+    <div class="form-group">
+      <label class="form-label">Amount <span class="req">*</span></label>
+      <input type="number" class="form-control" min="0.01" step="0.01" [(ngModel)]="payAmount" placeholder="0.00" />
+    </div>
+    <div class="form-group">
+      <label class="form-label">Payment Method</label>
+      <select class="form-control" [(ngModel)]="payMethod">
+        <option value="cash">Cash</option>
+        <option value="bank">Bank Transfer</option>
+        <option value="upi">UPI</option>
+        <option value="card">Card</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Payment Date</label>
+      <input type="date" class="form-control" [(ngModel)]="payDate" />
+    </div>
+    <div class="form-group col-span-2">
+      <label class="form-label">Notes</label>
+      <input type="text" class="form-control" [(ngModel)]="payNotes" placeholder="Optional remarks" />
+    </div>
+  </div>
+</app-drawer>

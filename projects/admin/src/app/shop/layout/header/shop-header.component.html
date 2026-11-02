@@ -1,0 +1,60 @@
+<header class="topbar">
+  <div class="topbar-left">
+    <button class="topbar-icon-btn mobile-sidebar-toggle" title="Toggle sidebar" (click)="toggleMobileSidebar.emit()">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <line x1="3" y1="6" x2="21" y2="6" />
+        <line x1="3" y1="12" x2="21" y2="12" />
+        <line x1="3" y1="18" x2="21" y2="18" />
+      </svg>
+    </button>
+    <label class="store-switcher" *ngIf="stores.length > 1" title="Branch you are working in">
+      <span>Branch</span>
+      <select [value]="activeStoreId" (change)="switchStore($any($event.target).value)">
+        <option *ngFor="let s of stores" [value]="s.id" [selected]="s.id === activeStoreId">{{ s.name }}</option>
+      </select>
+    </label>
+    <span class="store-name" *ngIf="stores.length === 1">{{ stores[0].name }}</span>
+  </div>
+
+  <div class="topbar-right">
+    <button class="topbar-icon-btn" title="Fullscreen" (click)="toggleFullscreen()">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M8 3H5a2 2 0 00-2 2v3m18 0V5a2 2 0 00-2-2h-3m0 18h3a2 2 0 002-2v-3M3 16v3a2 2 0 002 2h3" />
+      </svg>
+    </button>
+
+    <button class="topbar-icon-btn" title="Settings" (click)="goToSettings()">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path
+          d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+        <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+      </svg>
+    </button>
+
+    <div class="user-dropdown" [class.open]="userMenuOpen">
+      <button class="topbar-icon-btn" style="gap: 6px; padding: 4px 6px" (click)="toggleUserMenu()">
+        <div class="user-avatar">{{ initial }}</div>
+      </button>
+      <div class="user-dd-menu" *ngIf="userMenuOpen">
+        <div style="padding: 10px 14px 8px; border-bottom: 1px solid var(--border); margin-bottom: 4px">
+          <div class="user-name">{{ user?.name || user?.username }}</div>
+          <div style="font-size: 0.75rem; color: var(--text-secondary)">{{ user?.role }}</div>
+        </div>
+        <a class="dd-item" (click)="goToSettings()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path
+              d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+            <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+          Settings
+        </a>
+        <a class="dd-item dd-item--danger" (click)="logout()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+          </svg>
+          Logout
+        </a>
+      </div>
+    </div>
+  </div>
+</header>

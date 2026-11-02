@@ -1,0 +1,48 @@
+.uom-values-section { margin-top: 4px; }
+
+.uom-values-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-height: 36px;
+  padding: 8px 10px;
+  background: #fdf4f5;
+  border: 1px solid var(--border, #efd6da);
+  border-radius: 8px;
+  margin-bottom: 8px;
+}
+.uom-values-list.view-mode { background: #fdf4f5; cursor: default; }
+
+.uom-no-values { font-size: 0.8rem; color: var(--text-muted, #9c8b91); align-self: center; }
+
+.uom-value-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px 3px 10px;
+  background: #fff;
+  border: 1px solid var(--border, #efd6da);
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-primary, #2a1a20);
+}
+.uom-value-tag.view-only { padding: 3px 12px; }
+
+.uom-tag-remove {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-muted, #9c8b91);
+  font-size: 14px;
+  line-height: 1;
+  padding: 0 2px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  transition: color 0.1s, background 0.1s;
+}
+.uom-tag-remove:hover { color: #ef4444; background: #fee2e2; }
+
+.uom-add-row { display: flex; gap: 8px; align-items: center; }
+.uom-add-row .form-control { flex: 1; max-width: 140px; }

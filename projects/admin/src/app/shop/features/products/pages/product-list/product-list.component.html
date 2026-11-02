@@ -1,0 +1,449 @@
+<div class="page-wrap">
+  <div class="page-header">
+    <div class="page-header-left">
+      <div class="page-title-main">Products</div>
+      <div class="page-breadcrumb">
+        <a [routerLink]="'/dashboard' | shopUrl">Dashboard</a>
+        <span class="sep">›</span>
+        <span class="current">Products</span>
+      </div>
+    </div>
+    <div class="page-header-actions">
+      <button class="btn btn-outline" (click)="load()" title="Refresh">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="23 4 23 10 17 10" /><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10" />
+        </svg>
+      </button>
+      <button class="btn btn-primary" (click)="openAdd()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="16" /><line x1="8" y1="12" x2="16" y2="12" />
+        </svg>
+        Add Product
+      </button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="toolbar">
+      <div class="toolbar-left">
+        <div class="search-box">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+          </svg>
+          <input type="text" placeholder="Search by name, SKU or barcode…" autocomplete="off" [value]="search"
+                 (input)="onSearchInput($any($event.target).value)" />
+        </div>
+      </div>
+      <div class="toolbar-right">
+        <select class="filter-select" [(ngModel)]="categoryFilter" (change)="onFilterChange()">
+          <option value="">Category ▾</option>
+          <option *ngFor="let c of categories" [value]="c.id">{{ c.name }}</option>
+        </select>
+        <select class="filter-select" [(ngModel)]="statusFilter" (change)="onFilterChange()">
+          <option value="">All Statuses</option>
+          <option value="1">Active</option>
+          <option value="0">Inactive</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table class="pos-table">
+        <thead>
+          <tr>
+            <th>SKU / Barcode</th>
+            <th>Product Name</th>
+            <th>Category</th>
+            <th>Price</th>
+            <th>Tax</th>
+            <th>Unit</th>
+            <th>Qty</th>
+            <th>Status</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngIf="loading">
+            <td colspan="9" class="tbl-empty">
+              <span class="pos-loader"><span></span><span></span><span></span></span>
+            </td>
+          </tr>
+          <tr *ngIf="!loading && errorMessage">
+            <td colspan="9" class="tbl-empty" style="color: #ef4444">{{ errorMessage }}</td>
+          </tr>
+          <tr *ngIf="!loading && !errorMessage && !products.length">
+            <td colspan="9" class="tbl-empty">No products found. Add your first product.</td>
+          </tr>
+          <tr *ngFor="let p of products" [hidden]="loading">
+            <td>
+              <span class="cell-code">{{ p.sku || '—' }}</span>
+              <br *ngIf="p.barcode" />
+              <small class="cell-code" style="opacity: 0.6" *ngIf="p.barcode">{{ p.barcode }}</small>
+            </td>
+            <td>
+              <div class="cell-product">
+                <img *ngIf="p.image_url" [src]="img(p.image_url)" style="width:42px;height:42px;object-fit:cover;border-radius:6px;flex-shrink:0;" onerror="this.style.display='none'" />
+                <div class="prod-thumb-placeholder" *ngIf="!p.image_url">📦</div>
+                <div>
+                  <span class="cell-product-name">{{ p.name || '—' }}</span>
+                  <br *ngIf="p.is_service" />
+                  <small *ngIf="p.is_service" style="color: #6366f1">Service</small>
+                  <div *ngIf="p.Variants && p.Variants.length" style="margin-top:6px;padding-top:6px;border-top:1px dashed #efd6da">
+                    <div *ngFor="let v of p.Variants | slice:0:5" style="display:flex;align-items:center;gap:4px;padding:2px 0;font-size:12px;color:#6366f1">
+                      <img *ngIf="v.image_url" [src]="img(v.image_url)" style="width:20px;height:20px;object-fit:cover;border-radius:3px;" />
+                      <span>{{ v.variant_name }}</span>
+                      <span style="margin-left:auto;color:#2a1a20;font-weight:500">₹{{ formatCurrency(v.selling_price) }}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </td>
+            <td>{{ p.Category?.name || '—' }}</td>
+            <td>
+              {{ formatCurrency(p.selling_price) }}
+              <br *ngIf="p.mrp && +p.mrp > 0" />
+              <small *ngIf="p.mrp && +p.mrp > 0" style="color: #9c8b91; text-decoration: line-through">MRP {{ formatCurrency(p.mrp) }}</small>
+              <br *ngIf="p.tax_included" />
+              <small *ngIf="p.tax_included" style="color: #6366f1">Incl. Tax</small>
+            </td>
+            <td>
+              <span *ngIf="p.TaxGroup" style="font-weight: 500">{{ p.TaxGroup.name }}</span>
+              <span *ngIf="!p.TaxGroup">{{ +p.tax_rate > 0 ? (+p.tax_rate).toFixed(2) + '%' : '—' }}</span>
+            </td>
+            <td style="text-transform: capitalize">
+              {{ p.unit_value ? p.unit_value + ' ' : '' }}{{ p.UnitRef?.name || '—' }}
+            </td>
+            <td><span class="qty-pill" [ngClass]="stockClass(p)">{{ computeStock(p) }}</span></td>
+            <td><span class="badge" [ngClass]="p.is_active ? 'badge-active' : 'badge-inactive'">{{ p.is_active ? 'active' : 'inactive' }}</span></td>
+            <td>
+              <app-row-actions [showView]="true" [showEdit]="true" [showDelete]="true"
+                (view)="openView(p)" (edit)="openEdit(p)" (delete)="confirmDelete(p)"></app-row-actions>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="pagination-bar">
+      <div class="pagination-info">
+        Row Per Page
+        <select [ngModel]="limit" (ngModelChange)="onLimitChange($event)">
+          <option [ngValue]="20">20</option>
+          <option [ngValue]="10">10</option>
+          <option [ngValue]="25">25</option>
+          <option [ngValue]="50">50</option>
+        </select>
+        Entries
+      </div>
+      <app-pagination [currentPage]="page" [totalPages]="totalPages" (pageChange)="load($event)"></app-pagination>
+    </div>
+  </div>
+</div>
+
+<app-drawer [open]="drawerMode !== null" [title]="drawerTitle" [saveLabel]="editId ? 'Update Product' : 'Save Product'"
+            [saving]="saving" [showFooter]="drawerMode === 'form'" (closed)="closeDrawer()" (saveClicked)="handleSave()">
+
+  <form *ngIf="drawerMode === 'form'" [formGroup]="form" class="pf-form">
+    <!-- Basic Info -->
+    <div class="pf-section">
+      <div class="pf-section-header"><span class="pf-section-title">Basic Information</span></div>
+      <div class="pf-section-body">
+        <div class="form-grid">
+          <div class="form-group col-span-2">
+            <label class="form-label">Product Name <span class="req">*</span></label>
+            <input type="text" class="form-control" formControlName="name" placeholder="Enter product name" autocomplete="off" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Category</label>
+            <select class="form-control" formControlName="category_id">
+              <option value="">— None —</option>
+              <option *ngFor="let c of categories" [value]="c.id">{{ c.name }}</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Product Type</label>
+            <select class="form-control" formControlName="is_service">
+              <option [ngValue]="0">Physical Product</option>
+              <option [ngValue]="1">Service</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">SKU <span class="req">*</span></label>
+            <input type="text" class="form-control" formControlName="sku" placeholder="e.g. SKU-001" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Barcode</label>
+            <input type="text" class="form-control" formControlName="barcode" placeholder="Optional" style="font-family: monospace" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Brand</label>
+            <select class="form-control" formControlName="brand_id">
+              <option value="">— No brand —</option>
+              <option *ngFor="let b of brands" [value]="b.id">{{ b.name }}</option>
+            </select>
+          </div>
+          <div class="form-group" *ngIf="sellers.length">
+            <label class="form-label">Sold By</label>
+            <select class="form-control" formControlName="seller_id">
+              <option value="">This shop (own stock)</option>
+              <option *ngFor="let s of sellers" [value]="s.id">{{ s.business_name }}</option>
+            </select>
+          </div>
+          <div class="form-group" *ngIf="editId">
+            <label class="form-label">Status</label>
+            <select class="form-control" formControlName="is_active">
+              <option [ngValue]="1">Active</option>
+              <option [ngValue]="0">Inactive</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Unit</label>
+            <select class="form-control" formControlName="unit_id">
+              <option value="">— None —</option>
+              <option *ngFor="let u of units" [value]="u.id">{{ u.name }}</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Pack Value</label>
+            <input type="text" class="form-control" formControlName="unit_value" placeholder="e.g. 1, 500, 5" />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pricing & Tax -->
+    <div class="pf-section">
+      <div class="pf-section-header"><span class="pf-section-title">Pricing &amp; Tax</span></div>
+      <div class="pf-section-body">
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label">Purchase Price (₹)</label>
+            <input type="number" class="form-control" formControlName="purchase_price" min="0" step="0.01" placeholder="0.00" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Selling Price (₹) <span class="req">*</span></label>
+            <input type="number" class="form-control" formControlName="selling_price" min="0" step="0.01" placeholder="0.00" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">MRP (₹)</label>
+            <input type="number" class="form-control" formControlName="mrp" min="0" step="0.01" placeholder="0.00" />
+            <small class="form-hint">Maximum Retail Price</small>
+          </div>
+          <div class="form-group">
+            <label class="form-label">HSN / SAC Code</label>
+            <input type="text" class="form-control" formControlName="hsn_code" placeholder="e.g. 0901, 9984" maxlength="20" />
+          </div>
+        </div>
+        <div class="form-group" style="margin-top: 10px">
+          <label class="form-label">Tax Group</label>
+          <select class="form-control" formControlName="tax_group_id">
+            <option value="">No Tax (Tax Free)</option>
+            <option *ngFor="let g of taxGroups" [value]="g.id">
+              {{ g.name }} ({{ g.tax_type === 'inclusive' ? 'Incl.' : 'Excl.' }} {{ g.rate }}%)
+            </option>
+          </select>
+          <small class="form-hint">Manage tax groups under Inventory › Tax Groups</small>
+        </div>
+        <div class="form-group" style="margin-top: 8px">
+          <label class="form-label">Tax Treatment</label>
+          <div style="display: flex; gap: 16px; margin-top: 4px">
+            <label style="display: flex; align-items: center; gap: 4px; cursor: pointer; font-size: 13px">
+              <input type="radio" [value]="0" formControlName="tax_included" /> Exclusive (Tax added on top)
+            </label>
+            <label style="display: flex; align-items: center; gap: 4px; cursor: pointer; font-size: 13px">
+              <input type="radio" [value]="1" formControlName="tax_included" /> Inclusive (Tax in price)
+            </label>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Inventory -->
+    <div class="pf-section">
+      <div class="pf-section-header"><span class="pf-section-title">Inventory</span></div>
+      <div class="pf-section-body">
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label">Low Stock Alert</label>
+            <input type="number" class="form-control" formControlName="alert_quantity" min="0" placeholder="5" />
+            <small class="form-hint">Warn when stock falls to or below this number</small>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Max Quantity</label>
+            <input type="number" class="form-control" formControlName="max_quantity" min="0" placeholder="Optional" />
+            <small class="form-hint">Maximum desired stock level</small>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Notes -->
+    <div class="pf-section">
+      <div class="pf-section-header"><span class="pf-section-title">Notes</span></div>
+      <div class="pf-section-body">
+        <div class="form-grid cols-1">
+          <div class="form-group">
+            <label class="form-label">Description</label>
+            <textarea class="form-control" formControlName="description" rows="3" placeholder="Optional description"></textarea>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Variants -->
+    <div class="pf-section">
+      <div class="pf-section-header">
+        <span class="pf-section-title">Variants (Size / Weight / Pack)</span>
+        <button type="button" class="btn btn-sm btn-outline" (click)="openAddVariant()">+ Add Variant</button>
+      </div>
+      <div class="pf-section-body">
+        <div *ngIf="variants.length === 0" class="tbl-empty" style="padding: 16px 0;">No variants added yet.</div>
+        <div *ngFor="let v of variants; let i = index" style="display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid #f6e7e9;">
+          <img *ngIf="v.image_url" [src]="img(v.image_url)" style="width:40px;height:40px;object-fit:cover;border-radius:6px;background:#f5f5f5;" />
+          <div style="flex:1;min-width:0;">
+            <div style="font-weight:600;font-size:13px;">{{ v.variant_name }}</div>
+            <div style="font-size:12px;color:#6b5a60;">SKU: {{ v.sku || '—' }} | ₹{{ v.selling_price }} | Qty: {{ v.quantity ?? '—' }} {{ v.unit || '' }}</div>
+          </div>
+          <span class="badge" [ngClass]="v.is_active ? 'badge-active' : 'badge-inactive'" style="font-size:10px;">{{ v.is_active ? 'active' : 'inactive' }}</span>
+          <button class="btn btn-sm btn-outline" (click)="openEditVariant(i)" title="Edit">✎</button>
+          <button class="btn btn-sm btn-outline" style="color:#ef4444;" (click)="removeVariant(i)" title="Remove">✕</button>
+        </div>
+
+        <!-- Inline variant form -->
+        <div *ngIf="variantFormOpen" style="margin-top:12px;padding:14px;background:#fdf4f5;border-radius:8px;border:1px solid #efd6da;">
+          <div [formGroup]="variantForm" class="form-grid">
+            <div class="form-group">
+              <label class="form-label">Variant Name <span class="req">*</span></label>
+              <input type="text" class="form-control" formControlName="variant_name" placeholder="e.g. 1kg, 500ml, Large" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">SKU</label>
+              <input type="text" class="form-control" formControlName="sku" placeholder="Optional" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Barcode</label>
+              <input type="text" class="form-control" formControlName="barcode" placeholder="Optional" style="font-family:monospace" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Purchase Price ₹</label>
+              <input type="number" class="form-control" formControlName="purchase_price" min="0" step="0.01" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Selling Price ₹ <span class="req">*</span></label>
+              <input type="number" class="form-control" formControlName="selling_price" min="0" step="0.01" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">MRP ₹</label>
+              <input type="number" class="form-control" formControlName="mrp" min="0" step="0.01" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Quantity</label>
+              <input type="number" class="form-control" formControlName="quantity" min="0" step="0.001" placeholder="Optional" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Unit</label>
+              <input type="text" class="form-control" formControlName="unit" placeholder="e.g. kg, L, ml" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Status</label>
+              <select class="form-control" formControlName="is_active">
+                <option [ngValue]="1">Active</option>
+                <option [ngValue]="0">Inactive</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Image</label>
+              <div style="display:flex;align-items:center;gap:10px;">
+                <img *ngIf="variantForm.get('image_url')?.value" [src]="variantForm.get('image_url')?.value" style="width:48px;height:48px;object-fit:cover;border-radius:6px;background:#f5f5f5;border:1px solid #efd6da;" />
+                <input type="file" accept="image/*" (change)="onVariantImageSelected($event)" style="font-size:12px;" />
+              </div>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:10px;">
+            <button type="button" class="btn btn-sm btn-primary" (click)="saveVariant()" [disabled]="variantForm.invalid || variantSaving">
+              {{ variantSaving ? 'Uploading...' : 'Save Variant' }}
+            </button>
+            <button type="button" class="btn btn-sm btn-outline" (click)="closeVariantForm()">Cancel</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </form>
+
+  <div *ngIf="drawerMode === 'view' && viewingProduct as p" class="pf-form">
+    <div class="pf-section">
+      <div class="pf-section-header"><span class="pf-section-title">Product Information</span></div>
+      <div class="pf-section-body">
+        <div class="detail-grid">
+          <div class="detail-item"><label>Product Name</label><span><strong>{{ p.name || '—' }}</strong></span></div>
+          <div class="detail-item"><label>Brand</label><span>{{ p.brand || '—' }}</span></div>
+          <div class="detail-item"><label>Category</label><span>{{ p.Category?.name || '—' }}</span></div>
+          <div class="detail-item"><label>Type</label><span>{{ p.is_service ? 'Service' : 'Physical Product' }}</span></div>
+          <div class="detail-item"><label>HSN / SAC Code</label><span>{{ p.hsn_code || '—' }}</span></div>
+          <div class="detail-item"><label>Status</label><span class="badge" [ngClass]="p.is_active ? 'badge-active' : 'badge-inactive'">{{ p.is_active ? 'active' : 'inactive' }}</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="pf-section">
+      <div class="pf-section-header"><span class="pf-section-title">Identification</span></div>
+      <div class="pf-section-body">
+        <div class="detail-grid">
+          <div class="detail-item"><label>SKU</label><span class="cell-code">{{ p.sku || '—' }}</span></div>
+          <div class="detail-item"><label>Primary Barcode</label><span class="cell-code">{{ p.barcode || '—' }}</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="pf-section">
+      <div class="pf-section-header"><span class="pf-section-title">Pricing &amp; Tax</span></div>
+      <div class="pf-section-body">
+        <div class="detail-grid">
+          <div class="detail-item"><label>Selling Price</label><span><strong>{{ formatCurrency(p.selling_price) }}</strong></span></div>
+          <div class="detail-item"><label>MRP</label><span>{{ p.mrp && +p.mrp > 0 ? formatCurrency(p.mrp) : '—' }}</span></div>
+          <div class="detail-item"><label>Cost Price</label><span>{{ formatCurrency(p.purchase_price) }}</span></div>
+          <div class="detail-item"><label>Tax Group</label><span>{{ p.TaxGroup?.name || '—' }}</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="pf-section">
+      <div class="pf-section-header"><span class="pf-section-title">Inventory</span></div>
+      <div class="pf-section-body">
+        <div class="detail-grid">
+          <div class="detail-item">
+            <label>Unit</label>
+            <span style="text-transform: capitalize">{{ p.unit_value ? p.unit_value + ' ' : '' }}{{ p.UnitRef?.name || '—' }}</span>
+          </div>
+          <div class="detail-item"><label>Stock Quantity</label><span><strong>{{ computeStock(p) }}</strong></span></div>
+          <div class="detail-item"><label>Alert Quantity</label><span>{{ p.alert_quantity || 5 }}</span></div>
+          <div class="detail-item"><label>Max Quantity</label><span>{{ p.max_quantity ?? '—' }}</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="pf-section" *ngIf="p.description">
+      <div class="pf-section-header"><span class="pf-section-title">Notes</span></div>
+      <div class="pf-section-body">
+        <p style="font-size: 0.88rem; color: var(--text-primary); margin: 0">{{ p.description }}</p>
+      </div>
+    </div>
+
+    <div class="pf-section" *ngIf="variants.length">
+      <div class="pf-section-header"><span class="pf-section-title">Variants ({{ variants.length }})</span></div>
+      <div class="pf-section-body">
+        <div *ngFor="let v of variants" style="display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid #f6e7e9;">
+          <img *ngIf="v.image_url" [src]="img(v.image_url)" style="width:48px;height:48px;object-fit:cover;border-radius:6px;background:#f5f5f5;border:1px solid #efd6da;" />
+          <div class="detail-grid" style="flex:1;border:none;padding:0;">
+            <div class="detail-item"><label>Name</label><span>{{ v.variant_name }}</span></div>
+            <div class="detail-item"><label>SKU</label><span>{{ v.sku || '—' }}</span></div>
+            <div class="detail-item"><label>Price</label><span>{{ formatCurrency(v.selling_price) }}</span></div>
+            <div class="detail-item"><label>MRP</label><span>{{ v.mrp ? formatCurrency(v.mrp) : '—' }}</span></div>
+            <div class="detail-item"><label>Qty</label><span>{{ v.quantity ?? '—' }} {{ v.unit || '' }}</span></div>
+            <div class="detail-item"><label>Status</label><span class="badge" [ngClass]="v.is_active ? 'badge-active' : 'badge-inactive'">{{ v.is_active ? 'active' : 'inactive' }}</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</app-drawer>

@@ -1,0 +1,188 @@
+.pay-tabs {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 24px;
+  border-bottom: 1px solid var(--border, #efd6da);
+  padding-bottom: 2px;
+}
+
+.pay-tab {
+  padding: 10px 20px;
+  border: none;
+  background: transparent;
+  color: #6b5a60;
+  font-weight: 600;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.2s;
+}
+
+.pay-tab:hover { color: var(--primary); }
+
+.pay-tab.active { color: var(--primary); }
+
+.pay-tab.active::after {
+  content: "";
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--primary);
+  border-radius: 3px 3px 0 0;
+}
+
+/* Ledger Split Layout */
+.ledger-layout {
+  display: flex;
+  gap: 24px;
+  align-items: flex-start;
+}
+
+.ledger-statement-area {
+  flex: 1;
+  min-width: 0;
+}
+
+.ledger-payment-form {
+  width: 400px;
+  flex-shrink: 0;
+  position: sticky;
+  top: 24px;
+}
+
+.ledger-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #fdfdfd;
+}
+
+.v-info h3 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #5a0614;
+}
+
+.v-info span {
+  font-size: 0.85rem;
+  color: #6b5a60;
+}
+
+.stat-item { text-align: right; }
+
+.stat-item label {
+  display: block;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: #9c8b91;
+  margin-bottom: 4px;
+}
+
+.stat-item span {
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.ledger-table td { padding: 12px 16px; }
+
+.debit { color: #5a0614; font-weight: 600; }
+.credit { color: #10b981; font-weight: 600; }
+.balance-cell { background: #fdf4f5; font-weight: 700; color: #5a0614; }
+
+.input-lg {
+  font-size: 1.5rem;
+  font-weight: 700;
+  padding: 14px;
+  height: auto;
+  text-align: center;
+  color: var(--primary);
+}
+
+.mode-selector {
+  display: flex;
+  background: #f6e7e9;
+  padding: 4px;
+  border-radius: 8px;
+  gap: 4px;
+  margin-bottom: 4px;
+}
+
+.mode-btn {
+  flex: 1;
+  padding: 8px;
+  border: none;
+  background: transparent;
+  color: #6b5a60;
+  font-weight: 600;
+  font-size: 0.8rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.mode-btn.active {
+  background: #ffffff;
+  color: #5a0614;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.btn-save {
+  width: 100%;
+  margin-top: 20px;
+  padding: 14px;
+  background: var(--primary);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  cursor: pointer;
+  transition: transform 0.1s, background 0.2s;
+}
+
+.btn-save:hover { background: var(--primary-dark, #3a7e67); }
+.btn-save:active { transform: scale(0.98); }
+
+.tip-box {
+  background: #f0fdf4;
+  border: 1px solid #dcfce7;
+  padding: 12px;
+  border-radius: 8px;
+  display: flex;
+  gap: 10px;
+}
+
+.tip-box p {
+  margin: 0;
+  font-size: 0.75rem;
+  color: #166534;
+  line-height: 1.4;
+}
+
+.hidden { display: none !important; }
+.text-danger { color: #e11d48; }
+.text-success { color: #10b981; }
+
+@media (max-width: 991px) {
+  .ledger-layout { flex-direction: column; }
+  .ledger-payment-form { width: 100%; position: static; }
+  .ledger-header { flex-direction: column; align-items: flex-start; gap: 12px; }
+  .stat-item { text-align: left; width: 100%; }
+  .stat-item span { font-size: 1.2rem; }
+  .pay-tabs { overflow-x: auto; white-space: nowrap; gap: 0; margin-bottom: 16px; }
+  .pay-tab { padding: 8px 14px; font-size: 0.82rem; }
+}
+
+@media (max-width: 480px) {
+  .v-info h3 { font-size: 1rem; }
+  .input-lg { font-size: 1.2rem; padding: 10px; }
+  .mode-btn { font-size: 0.72rem; padding: 6px; }
+  .ledger-table td { padding: 8px 10px; font-size: 0.78rem; }
+}

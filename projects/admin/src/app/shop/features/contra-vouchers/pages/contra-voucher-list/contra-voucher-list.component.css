@@ -1,0 +1,134 @@
+.cv-summary-box {
+  background: linear-gradient(135deg, #f0fdf4, #ecfdf5);
+  border-radius: 12px;
+  padding: 16px 18px;
+  margin-bottom: 16px;
+  border: 1px solid #bbf7d0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.cv-summary-icon {
+  width: 42px;
+  height: 42px;
+  background: #c8102e;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.cv-summary-number {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #2a1a20;
+}
+
+.cv-summary-sub {
+  font-size: 0.72rem;
+  color: #6b5a60;
+  margin-top: 2px;
+}
+
+.cv-transfer-card {
+  background: #fff;
+  border: 1px solid #efd6da;
+  border-radius: 10px;
+  padding: 16px;
+  margin-bottom: 12px;
+}
+
+.cv-transfer-title {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: #9c8b91;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 10px;
+}
+
+.cv-transfer-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.cv-acc-box {
+  flex: 1;
+  background: #fdf4f5;
+  border-radius: 8px;
+  padding: 10px 12px;
+  border: 1px solid #f6e7e9;
+  text-align: center;
+}
+
+.cv-acc-label {
+  font-size: 0.62rem;
+  font-weight: 600;
+  color: #9c8b91;
+  text-transform: uppercase;
+  margin-bottom: 3px;
+}
+
+.cv-acc-name {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #2a1a20;
+}
+
+.cv-arrow {
+  color: #c8102e;
+  flex-shrink: 0;
+  display: flex;
+}
+
+.cv-amount-card {
+  background: #fff;
+  border: 1px solid #efd6da;
+  border-radius: 10px;
+  padding: 14px 16px;
+}
+
+.cv-amount-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.cv-amount-row span:first-child {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #6b5a60;
+}
+
+.cv-amount-value {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #c8102e;
+}
+
+.cv-notes {
+  border-top: 1px solid #f6e7e9;
+  margin-top: 10px;
+  padding-top: 10px;
+  font-size: 0.72rem;
+  color: #9c8b91;
+}
+
+.cv-hint-box {
+  background: linear-gradient(135deg, #f0fdf4, #ecfdf5);
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-bottom: 14px;
+  border: 1px solid #bbf7d0;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.cv-hint-box span {
+  font-size: 0.78rem;
+  color: #166534;
+}

@@ -1,0 +1,124 @@
+<app-shop-shell>
+  <div class="ms-container page-wrap">
+    @if (auth.user$ | async; as user) {
+      <div class="page-head">
+        <div class="account-hello">
+          <span class="account-avatar">{{ initial }}</span>
+          <div>
+            <h1>Hello, {{ user.name }}</h1>
+            <p>{{ user.email }}</p>
+          </div>
+        </div>
+        <button class="btn-outline-brand" type="button" (click)="logout()"><i class="bi bi-box-arrow-right"></i> Sign out</button>
+      </div>
+
+      <div class="account-grid">
+        <aside class="account-nav panel">
+          <a routerLink="/account" class="account-nav__item is-active"><i class="bi bi-person"></i> Profile</a>
+          <a routerLink="/my-orders" class="account-nav__item"><i class="bi bi-box-seam"></i> My orders</a>
+          <a routerLink="/addresses" class="account-nav__item"><i class="bi bi-geo-alt"></i> Addresses</a>
+          @if (wishlistEnabled) {
+            <a routerLink="/wishlist" class="account-nav__item"><i class="bi bi-heart"></i> Wishlist</a>
+          }
+          <a routerLink="/cart" class="account-nav__item"><i class="bi bi-bag"></i> Cart</a>
+        </aside>
+
+        <div class="account-main">
+          <section class="panel">
+            <div class="panel__head">
+              <h2 class="panel__title">Profile details</h2>
+              <span class="panel__muted">Used on invoices and delivery updates</span>
+            </div>
+            @if (profileError) {
+              <div class="form-error"><i class="bi bi-exclamation-circle"></i> {{ profileError }}</div>
+            }
+            @if (profileSuccess) {
+              <div class="form-success"><i class="bi bi-check-circle"></i> {{ profileSuccess }}</div>
+            }
+            <form class="shop-form" (submit)="saveProfile(); $event.preventDefault()">
+              <div class="field-row">
+                <label class="field">
+                  <span>Full name</span>
+                  <input type="text" name="profile_name" [(ngModel)]="profile.name" autocomplete="name" />
+                </label>
+                <label class="field">
+                  <span>Email address</span>
+                  <input type="email" [value]="user.email || ''" disabled />
+                </label>
+              </div>
+              <div class="field-row">
+                <label class="field">
+                  <span>Mobile number</span>
+                  <input type="tel" name="profile_phone" [(ngModel)]="profile.phone" autocomplete="tel" />
+                </label>
+                <label class="field">
+                  <span>PIN code</span>
+                  <input type="text" name="profile_pin" [(ngModel)]="profile.postal_code" maxlength="6" inputmode="numeric" autocomplete="postal-code" />
+                </label>
+              </div>
+              <label class="field">
+                <span>Address</span>
+                <textarea name="profile_address" [(ngModel)]="profile.address" autocomplete="street-address"></textarea>
+              </label>
+              <div class="field-row field-row--three">
+                <label class="field">
+                  <span>City</span>
+                  <input type="text" name="profile_city" [(ngModel)]="profile.city" autocomplete="address-level2" />
+                </label>
+                <label class="field">
+                  <span>State</span>
+                  <input type="text" name="profile_state" [(ngModel)]="profile.state" autocomplete="address-level1" />
+                </label>
+                <label class="field">
+                  <span>Country</span>
+                  <input type="text" name="profile_country" [(ngModel)]="profile.country" autocomplete="country-name" />
+                </label>
+              </div>
+              <div class="account-actions">
+                <button class="btn-brand" type="submit" [disabled]="savingProfile">
+                  {{ savingProfile ? 'Saving…' : 'Save changes' }}
+                </button>
+              </div>
+            </form>
+          </section>
+
+          <section class="panel">
+            <div class="panel__head">
+              <h2 class="panel__title">Password</h2>
+              <span class="panel__muted">Changing it signs out your other devices</span>
+            </div>
+            @if (passwordError) {
+              <div class="form-error"><i class="bi bi-exclamation-circle"></i> {{ passwordError }}</div>
+            }
+            @if (passwordSuccess) {
+              <div class="form-success"><i class="bi bi-check-circle"></i> {{ passwordSuccess }}</div>
+            }
+            <form class="shop-form" (submit)="changePassword(); $event.preventDefault()">
+              <label class="field">
+                <span>Current password</span>
+                <input type="password" name="current_password" [(ngModel)]="password.current_password" autocomplete="current-password" />
+              </label>
+              <div class="field-row">
+                <label class="field">
+                  <span>New password</span>
+                  <input type="password" name="new_password" [(ngModel)]="password.new_password" autocomplete="new-password" />
+                </label>
+                <label class="field">
+                  <span>Confirm new password</span>
+                  <input type="password" name="confirm_password" [(ngModel)]="password.confirm_password" autocomplete="new-password" />
+                </label>
+              </div>
+              <div class="account-actions">
+                <button class="btn-outline-brand" type="submit" [disabled]="savingPassword">
+                  {{ savingPassword ? 'Updating…' : 'Change password' }}
+                </button>
+              </div>
+            </form>
+          </section>
+        </div>
+      </div>
+    } @else {
+      <div class="loading-row"><span class="shop-loader"></span></div>
+    }
+  </div>
+</app-shop-shell>

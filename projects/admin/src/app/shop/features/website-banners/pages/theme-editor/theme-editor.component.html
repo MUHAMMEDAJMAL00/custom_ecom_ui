@@ -1,0 +1,146 @@
+<div class="page-wrap">
+  <div class="page-header">
+    <div class="page-header-left">
+      <div class="page-title-main">Website Theme</div>
+      <div class="page-breadcrumb">
+        <a [routerLink]="'/dashboard' | shopUrl">Dashboard</a>
+        <span class="sep">›</span>
+        <span>Website</span>
+        <span class="sep">›</span>
+        <span class="current">Theme</span>
+      </div>
+    </div>
+    <div class="page-header-actions">
+      <a class="btn btn-outline" [href]="storefrontUrl" target="_blank" rel="noopener"><i class="bi bi-box-arrow-up-right"></i> View website</a>
+    </div>
+  </div>
+
+  <div class="hint-bar">
+    <i class="bi bi-palette"></i>
+    <span>Colours, background and buttons of the whole website — every button, price, badge, banner and menu uses these. Changes show on the website after saving (visitors see them on their next page load).</span>
+  </div>
+
+  <div *ngIf="loading" class="card te-empty"><span class="pos-loader"><span></span><span></span><span></span></span></div>
+  <div *ngIf="!loading && errorMessage" class="card te-empty" style="color: #ef4444">{{ errorMessage }}</div>
+
+  <div class="te-layout" *ngIf="!loading && theme as t">
+    <div class="te-controls">
+      <!-- Presets -->
+      <div class="card te-card">
+        <div class="te-card-title">Ready-made palettes</div>
+        <div class="te-presets">
+          <button type="button" *ngFor="let p of presets" class="te-preset" [class.on]="isPreset(p)" (click)="applyPreset(p)">
+            <span class="te-preset-swatch">
+              <span [style.background]="p.colors.background"></span>
+              <span [style.background]="p.colors.primary"></span>
+              <span [style.background]="p.colors.primary_dark"></span>
+              <span [style.background]="p.colors.tint"></span>
+            </span>
+            {{ p.name }}
+            <i class="bi bi-check-circle-fill" *ngIf="isPreset(p)"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Colours -->
+      <div class="card te-card">
+        <div class="te-card-title">Colours</div>
+        <div class="te-colors">
+          <div class="te-color" *ngFor="let f of colorFields" [class.invalid]="!isValid(t[f.key])">
+            <label class="te-color-chip" [style.background]="isValid(t[f.key]) ? t[f.key] : '#fff'">
+              <input type="color" [value]="isValid(t[f.key]) ? t[f.key] : '#000000'"
+                     (input)="f.key === 'primary' ? setMain($any($event.target).value) : setColor(f.key, $any($event.target).value)" />
+            </label>
+            <div class="te-color-text">
+              <span class="te-color-label">{{ f.label }}</span>
+              <span class="te-color-hint">{{ f.hint }}</span>
+            </div>
+            <input class="form-control te-hex" [value]="t[f.key]" maxlength="7"
+                   (change)="f.key === 'primary' ? setMain($any($event.target).value) : setColor(f.key, $any($event.target).value)" />
+          </div>
+        </div>
+        <small class="form-hint">Changing the main colour suggests matching dark, tint and soft-background shades — you can still adjust each one.</small>
+      </div>
+
+      <!-- Buttons -->
+      <div class="card te-card">
+        <div class="te-card-title">Buttons</div>
+        <div class="te-option-label">Shape</div>
+        <div class="te-options">
+          <button type="button" class="te-option" [class.on]="t.button_shape === 'pill'" (click)="setShape('pill')">
+            <span class="te-demo" style="border-radius: 999px">Shop</span> Pill
+          </button>
+          <button type="button" class="te-option" [class.on]="t.button_shape === 'rounded'" (click)="setShape('rounded')">
+            <span class="te-demo" style="border-radius: 8px">Shop</span> Rounded
+          </button>
+          <button type="button" class="te-option" [class.on]="t.button_shape === 'square'" (click)="setShape('square')">
+            <span class="te-demo" style="border-radius: 2px">Shop</span> Square
+          </button>
+        </div>
+        <div class="te-option-label">Style</div>
+        <div class="te-options">
+          <button type="button" class="te-option" [class.on]="t.button_style === 'gradient'" (click)="setStyle('gradient')">
+            <span class="te-demo" [style.background]="'linear-gradient(135deg,' + t.primary + ',' + t.primary_dark + ')'">Shop</span> Gradient
+          </button>
+          <button type="button" class="te-option" [class.on]="t.button_style === 'solid'" (click)="setStyle('solid')">
+            <span class="te-demo" [style.background]="t.primary">Shop</span> Solid
+          </button>
+          <button type="button" class="te-option" [class.on]="t.button_style === 'outline'" (click)="setStyle('outline')">
+            <span class="te-demo te-demo--outline" [style.color]="t.primary" [style.border-color]="t.primary">Shop</span> Outline
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Live preview -->
+    <div class="te-preview-col">
+      <div class="te-preview-label"><i class="bi bi-eye"></i> Live preview</div>
+      <div class="te-preview" [ngStyle]="previewVars" [class.outline]="t.button_style === 'outline'">
+        <div class="pv-topbar"><i class="bi bi-truck"></i> Free Shipping on orders above ₹999</div>
+        <div class="pv-header">
+          <div class="pv-logo"><strong>{{ shopName }}</strong><small>Online store</small></div>
+          <div class="pv-nav"><span class="on">Home</span><span>New In</span><span>Best Sellers</span></div>
+          <span class="pv-btn pv-btn--sm">Login</span>
+        </div>
+        <div class="pv-banner">
+          <div>
+            <div class="pv-eyebrow">Season's</div>
+            <div class="pv-title">Hottest Offers</div>
+            <div class="pv-sub">Up to 60% OFF</div>
+            <span class="pv-btn pv-btn--light">Shop Now</span>
+          </div>
+        </div>
+        <div class="pv-body">
+          <div class="pv-side">
+            <div class="pv-side-head">Shop By Category</div>
+            <div class="pv-side-item on">• New In</div>
+            <div class="pv-side-item">• Best Sellers</div>
+            <div class="pv-side-item">• Offers</div>
+          </div>
+          <div class="pv-cards">
+            <div class="pv-card" *ngFor="let n of ['Bestseller', 'New Arrival']">
+              <div class="pv-card-img"><span class="pv-badge">15% OFF</span></div>
+              <div class="pv-card-brand">YOUR BRAND</div>
+              <div class="pv-card-name">{{ n }}</div>
+              <div class="pv-price">₹549 <s>₹649</s></div>
+              <span class="pv-btn pv-btn--block">Add to Cart</span>
+            </div>
+          </div>
+        </div>
+        <div class="pv-footer"><strong>{{ shopName }}</strong><span>Help · Explore · Quick Links</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="te-savebar" *ngIf="!loading && theme" [class.dirty]="dirty">
+    <span class="te-savebar-msg">
+      <ng-container *ngIf="dirty"><i class="bi bi-circle-fill"></i> Unsaved changes</ng-container>
+      <ng-container *ngIf="!dirty"><i class="bi bi-check2-circle"></i> Saved</ng-container>
+    </span>
+    <div class="te-savebar-actions">
+      <button class="btn btn-outline" (click)="resetToDefault()" [disabled]="saving">Reset to default</button>
+      <button class="btn btn-outline" *ngIf="dirty" (click)="discard()" [disabled]="saving">Discard</button>
+      <button class="btn btn-primary" (click)="save()" [disabled]="!dirty || !allValid || saving">{{ saving ? 'Saving…' : 'Save theme' }}</button>
+    </div>
+  </div>
+</div>

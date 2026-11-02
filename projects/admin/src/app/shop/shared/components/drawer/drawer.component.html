@@ -1,0 +1,21 @@
+<div class="drawer-overlay" [class.open]="open" (click)="close()"></div>
+<div class="drawer-panel" [class.open]="open">
+  <div class="drawer-header">
+    <div class="drawer-title">{{ title }}</div>
+    <button class="drawer-close" (click)="close()">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <line x1="18" y1="6" x2="6" y2="18" />
+        <line x1="6" y1="6" x2="18" y2="18" />
+      </svg>
+    </button>
+  </div>
+  <div class="drawer-body">
+    <ng-content></ng-content>
+  </div>
+  <div class="drawer-footer" *ngIf="showFooter">
+    <button class="btn btn-outline" (click)="close()" [disabled]="saving">Cancel</button>
+    <button class="btn btn-primary" (click)="triggerSave()" [disabled]="saving">
+      {{ saving ? 'Saving…' : saveLabel }}
+    </button>
+  </div>
+</div>

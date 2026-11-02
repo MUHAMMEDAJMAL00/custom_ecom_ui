@@ -1,0 +1,187 @@
+<!-- Mobile app bar (≤767px) -->
+<div class="mh">
+  <div class="mh__bar">
+    <button type="button" class="mh__icon" aria-label="Open menu" (click)="menuOpen = true"><i class="bi bi-list"></i></button>
+    <a class="mh__logo" (click)="navigate(navItems[0])" [attr.aria-label]="shopName + ' home'">
+      <ng-container *ngTemplateOutlet="wordmark"></ng-container>
+    </a>
+    <div class="mh__actions">
+      @if (wishlistEnabled) {
+        <a class="mh__icon" routerLink="/wishlist" aria-label="Wishlist">
+          <i class="bi bi-heart"></i>
+          @if (wishlist.count$ | async; as count) {
+            @if (count > 0) {
+              <span class="mh__badge">{{ count }}</span>
+            }
+          }
+        </a>
+      }
+      <a class="mh__icon" routerLink="/cart" aria-label="Cart">
+        <i class="bi bi-bag"></i>
+        @if (cart.count$ | async; as count) {
+          @if (count > 0) {
+            <span class="mh__badge">{{ count }}</span>
+          }
+        }
+      </a>
+    </div>
+  </div>
+  <form class="mh__search" (submit)="search(); $event.preventDefault()">
+    <i class="bi bi-search"></i>
+    <input type="search" name="mq" [(ngModel)]="searchTerm" placeholder="Search for products, brands and more..." />
+  </form>
+</div>
+
+<header class="app-header">
+  <div class="app-header__topbar">
+    <div class="app-header__container app-header__topbar-inner">
+      <span class="app-header__promo">
+        <i class="bi bi-truck"></i>
+        Free Shipping on orders above {{ bootstrap.tenant.currency }} 999
+      </span>
+      <div class="app-header__quick">
+        <a routerLink="/my-orders"><i class="bi bi-box-seam"></i> Track Order</a>
+        <span class="app-header__sep"></span>
+        @if (auth.user$ | async; as user) {
+          <a routerLink="/account"><i class="bi bi-person"></i> Hi, {{ user.name.split(' ')[0] }}</a>
+        } @else {
+          <a routerLink="/login" [queryParams]="{ returnUrl: loginReturnUrl }"><i class="bi bi-person"></i> Login / Sign Up</a>
+        }
+        @if (wishlistEnabled) {
+          <span class="app-header__sep"></span>
+          <a routerLink="/wishlist"><i class="bi bi-heart"></i> Wishlist</a>
+        }
+        <span class="app-header__sep"></span>
+        <a routerLink="/cart">
+          <i class="bi bi-bag"></i> Cart ({{ cart.count$ | async }})
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <div class="app-header__bar">
+    <div class="app-header__container app-header__bar-inner">
+      <button type="button" class="app-header__menu-icon" aria-label="Open menu" (click)="menuOpen = true">
+        <i class="bi bi-list"></i>
+      </button>
+
+      <a class="app-header__brand" (click)="navigate(navItems[0])" [attr.aria-label]="shopName + ' home'">
+        <ng-container *ngTemplateOutlet="wordmark"></ng-container>
+      </a>
+
+      <nav class="app-header__nav">
+        @for (item of navItems; track item.label; let first = $first) {
+          <a class="app-header__nav-link" [class.app-header__nav-link--active]="isActive(item, first)" (click)="navigate(item)">
+            {{ item.label }}
+          </a>
+        }
+      </nav>
+
+      <form class="app-header__search" (submit)="search(); $event.preventDefault()">
+        <i class="bi bi-search"></i>
+        <input type="search" name="q" [(ngModel)]="searchTerm" placeholder="Search products..." />
+      </form>
+
+      <div class="app-header__actions">
+        @if (wishlistEnabled) {
+          <a class="app-header__icon-link" title="Wishlist" routerLink="/wishlist">
+            <i class="bi bi-heart"></i>
+            @if (wishlist.count$ | async; as count) {
+              @if (count > 0) {
+                <span class="app-header__badge">{{ count }}</span>
+              }
+            }
+          </a>
+        }
+        <a class="app-header__icon-link" title="Cart" routerLink="/cart">
+          <i class="bi bi-bag"></i>
+          @if (cart.count$ | async; as count) {
+            @if (count > 0) {
+              <span class="app-header__badge">{{ count }}</span>
+            }
+          }
+        </a>
+        @if (auth.user$ | async) {
+          <a class="app-header__cta" routerLink="/account">
+            <i class="bi bi-person"></i>
+            <span>Account</span>
+          </a>
+        } @else {
+          <a class="app-header__cta" routerLink="/login" [queryParams]="{ returnUrl: loginReturnUrl }">
+            <i class="bi bi-person"></i>
+            <span>Login</span>
+          </a>
+        }
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- Mobile menu (MySkin uses an ng-bootstrap offcanvas; same content, no extra dependency) -->
+@if (menuOpen) {
+  <div class="app-header__scrim" (click)="menuOpen = false"></div>
+  <aside class="app-header__drawer" aria-label="Menu">
+    <div class="app-header__mobile-head">
+      <div class="app-header__brand"><ng-container *ngTemplateOutlet="wordmark"></ng-container></div>
+      <button type="button" class="btn-close" aria-label="Close" (click)="menuOpen = false"></button>
+    </div>
+    <form class="app-header__search app-header__search--mobile" (submit)="search(); $event.preventDefault()">
+      <i class="bi bi-search"></i>
+      <input type="search" name="qm" [(ngModel)]="searchTerm" placeholder="Search products..." />
+    </form>
+    @for (item of navItems; track item.label) {
+      <div class="app-header__mobile-item" (click)="navigate(item)">{{ item.label }}</div>
+    }
+    <div class="app-header__mobile-caption">My account</div>
+    <a class="app-header__mobile-item" routerLink="/my-orders" (click)="menuOpen = false">
+      <span>My orders</span><i class="bi bi-box-seam"></i>
+    </a>
+    @if (wishlistEnabled) {
+      <a class="app-header__mobile-item" routerLink="/wishlist" (click)="menuOpen = false">
+        <span>Wishlist</span><i class="bi bi-heart"></i>
+      </a>
+    }
+    <a class="app-header__mobile-item" routerLink="/cart" (click)="menuOpen = false">
+      <span>Cart ({{ cart.count$ | async }})</span><i class="bi bi-bag"></i>
+    </a>
+    @if (auth.user$ | async; as user) {
+      <a class="app-header__mobile-item" routerLink="/account" (click)="menuOpen = false">
+        <span>{{ user.name }}</span><i class="bi bi-person"></i>
+      </a>
+    } @else {
+      <a class="app-header__mobile-item" routerLink="/login" [queryParams]="{ returnUrl: loginReturnUrl }" (click)="menuOpen = false">
+        <span>Login / Sign up</span><i class="bi bi-person"></i>
+      </a>
+    }
+    @if (categories.length) {
+      <div class="app-header__mobile-caption">Categories</div>
+    }
+    @for (master of categories; track master.id) {
+      <div
+        class="app-header__mobile-master"
+        (click)="master.children.length ? toggleExpanded(master.id) : openCategory(master)"
+      >
+        <span>{{ master.name }}</span>
+        @if (master.children.length) {
+          <i class="bi" [ngClass]="expandedCategoryId === master.id ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
+        }
+      </div>
+      @if (expandedCategoryId === master.id) {
+        @for (child of master.children; track child.id) {
+          <div class="app-header__mobile-child" (click)="openCategory(child)">{{ child.name }}</div>
+        }
+      }
+    }
+  </aside>
+}
+
+<ng-template #wordmark>
+  @if (bootstrap.tenant.logo_url) {
+    <img class="app-header__logo" [src]="bootstrap.tenant.logo_url" [alt]="shopName" />
+  } @else {
+    <span class="app-header__wordmark">
+      <span class="app-header__name">{{ shopName }}</span>
+      <span class="app-header__tagline">{{ tagline }}</span>
+    </span>
+  }
+</ng-template>

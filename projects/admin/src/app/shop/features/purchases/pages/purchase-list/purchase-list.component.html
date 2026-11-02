@@ -1,0 +1,269 @@
+<div class="page-wrap">
+  <div class="page-header">
+    <div class="page-header-left">
+      <div class="page-title-main">Purchases</div>
+      <div class="page-breadcrumb">
+        <a [routerLink]="'/dashboard' | shopUrl">Dashboard</a>
+        <span class="sep">›</span>
+        <span class="current">Purchases</span>
+      </div>
+    </div>
+    <div class="page-header-actions">
+      <button class="btn btn-primary" (click)="openCreate()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>
+        New Purchase
+      </button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="toolbar">
+      <div class="toolbar-left">
+        <div class="search-box">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+          <input type="text" placeholder="Search by PO# or vendor…" autocomplete="off"
+                 [value]="search" (input)="onSearchInput($any($event.target).value)"/>
+        </div>
+      </div>
+      <div class="toolbar-right">
+        <select class="filter-select" [(ngModel)]="filterStatus" (change)="applyFilter()">
+          <option value="">All Status ▾</option>
+          <option value="pending">Pending</option>
+          <option value="received">Received</option>
+          <option value="partial">Partial</option>
+          <option value="cancelled">Cancelled</option>
+        </select>
+        <select class="filter-select" [(ngModel)]="filterPayStatus" (change)="applyFilter()">
+          <option value="">All Pay Status ▾</option>
+          <option value="unpaid">Unpaid</option>
+          <option value="partial">Partial</option>
+          <option value="paid">Paid</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table class="pos-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>PO Number</th>
+            <th>Vendor</th>
+            <th>Items</th>
+            <th>Total (₹)</th>
+            <th>Paid (₹)</th>
+            <th>Due (₹)</th>
+            <th>Pay Status</th>
+            <th>Status</th>
+            <th>Date</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngIf="loading">
+            <td colspan="11" class="tbl-empty"><span class="pos-loader"><span></span><span></span><span></span></span></td>
+          </tr>
+          <tr *ngIf="!loading && errorMessage">
+            <td colspan="11" class="tbl-empty" style="color:#ef4444">{{ errorMessage }}</td>
+          </tr>
+          <tr *ngIf="!loading && !errorMessage && !purchases.length">
+            <td colspan="11" class="tbl-empty">No purchase orders found</td>
+          </tr>
+          <tr *ngFor="let item of purchases; let i = index">
+            <td>{{ (page - 1) * limit + i + 1 }}</td>
+            <td><code>{{ item.purchase_number || item.id }}</code></td>
+            <td><strong>{{ item.Vendor?.name || '—' }}</strong></td>
+            <td>{{ item.items?.length || item.items_count || '—' }}</td>
+            <td style="font-weight:700">{{ formatCurrency(item.total_amount) }}</td>
+            <td style="color:#22c55e">{{ formatCurrency(item.paid_amount) }}</td>
+            <td [style.color]="item.due_amount > 0 ? '#ef4444' : '#22c55e'"
+                [style.fontWeight]="item.due_amount > 0 ? '700' : '400'">{{ formatCurrency(item.due_amount) }}</td>
+            <td><span class="badge" [ngClass]="payBadgeClass(item.payment_status)">{{ item.payment_status }}</span></td>
+            <td><span class="badge" [ngClass]="statusBadgeClass(item.status)">{{ item.status }}</span></td>
+            <td style="color:#9c8b91;font-size:.78rem">{{ formatDate(item.purchase_date || item.created_at) }}</td>
+            <td><app-row-actions [showView]="true" (view)="openView(item)"></app-row-actions></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="pagination-bar">
+      <div class="pagination-info">
+        Row Per Page
+        <select [ngModel]="limit" (ngModelChange)="limit = $event; load(1)">
+          <option [ngValue]="20">20</option>
+          <option [ngValue]="10">10</option>
+          <option [ngValue]="25">25</option>
+          <option [ngValue]="50">50</option>
+        </select>
+        Entries
+      </div>
+      <app-pagination [currentPage]="page" [totalPages]="totalPages" (pageChange)="load($event)"></app-pagination>
+    </div>
+  </div>
+</div>
+
+<app-drawer [open]="drawerMode !== null" [title]="drawerTitle"
+            [showFooter]="drawerMode === 'create' || drawerMode === 'payment'"
+            [saveLabel]="drawerMode === 'create' ? 'Create Order' : 'Record Payment'"
+            [saving]="saving" (closed)="closeDrawer()" (saveClicked)="handleSave()">
+
+  <!-- View purchase -->
+  <ng-container *ngIf="drawerMode === 'view' && viewingPurchase as p">
+    <div class="detail-grid">
+      <div class="detail-item"><label>PO Number</label><span><code>{{ p.purchase_number || p.id }}</code></span></div>
+      <div class="detail-item"><label>Vendor</label><span>{{ p.Vendor?.name || '—' }}{{ p.Vendor?.company ? ' — ' + (p.Vendor?.company || '') : '' }}</span></div>
+      <div class="detail-item"><label>Date</label><span>{{ formatDate(p.purchase_date || p.created_at) }}</span></div>
+      <div class="detail-item"><label>Status</label><span><span class="badge" [ngClass]="statusBadgeClass(p.status)">{{ p.status }}</span></span></div>
+      <div class="detail-item"><label>Payment</label><span><span class="badge" [ngClass]="payBadgeClass(p.payment_status)">{{ p.payment_status }}</span></span></div>
+      <div class="detail-item" *ngIf="p.reference_number"><label>Reference</label><span>{{ p.reference_number }}</span></div>
+      <div class="detail-item col-span-2" *ngIf="p.notes"><label>Notes</label><span>{{ p.notes }}</span></div>
+    </div>
+
+    <!-- Items table -->
+    <div class="po-section-title">Items</div>
+    <table class="pos-table po-items-table" *ngIf="p.items && p.items.length">
+      <thead>
+        <tr>
+          <th style="text-align:left;padding:6px 8px">PRODUCT</th>
+          <th style="text-align:right;padding:6px 8px">QTY</th>
+          <th style="text-align:right;padding:6px 8px">UNIT COST</th>
+          <th style="text-align:right;padding:6px 8px">TOTAL</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let pi of p.items">
+          <td style="padding:6px 8px">{{ pi.product_name || '—' }}<small *ngIf="pi.variant_name || pi.ProductVariant?.variant_name" style="color:#9c8b91;font-size:0.75rem">&nbsp;({{ pi.variant_name || pi.ProductVariant?.variant_name }})</small></td>
+          <td style="padding:6px 8px;text-align:right">{{ pi.quantity }}</td>
+          <td style="padding:6px 8px;text-align:right">{{ formatCurrency(pi.unit_cost) }}</td>
+          <td style="padding:6px 8px;text-align:right;font-weight:700">{{ formatCurrency(pi.total_cost) }}</td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="tbl-empty" *ngIf="!p.items || !p.items.length">No items</div>
+
+    <!-- Financials -->
+    <div class="po-fin-summary">
+      <div class="po-f-row"><span>Subtotal</span><span>{{ formatCurrency(p.subtotal) }}</span></div>
+      <div class="po-f-row" *ngIf="p.discount_amount > 0"><span>Discount</span><span style="color:#ef4444">−{{ formatCurrency(p.discount_amount) }}</span></div>
+      <div class="po-f-row" *ngIf="p.tax_amount > 0"><span>Tax</span><span>{{ formatCurrency(p.tax_amount) }}</span></div>
+      <div class="po-f-row" *ngIf="p.shipping_charge > 0"><span>Shipping</span><span>{{ formatCurrency(p.shipping_charge) }}</span></div>
+      <div class="po-f-row po-f-row-grand"><span>Grand Total</span><span>{{ formatCurrency(p.total_amount) }}</span></div>
+      <div class="po-f-row"><span>Paid</span><span style="color:#22c55e">{{ formatCurrency(p.paid_amount) }}</span></div>
+      <div class="po-f-row" [style.color]="p.due_amount > 0 ? '#ef4444' : '#22c55e'" [style.fontWeight]="'700'"><span>Due</span><span>{{ formatCurrency(p.due_amount) }}</span></div>
+    </div>
+
+    <!-- Action buttons -->
+    <div class="po-actions" *ngIf="(p.status === 'pending' || p.status === 'partial') || p.due_amount > 0">
+      <button class="btn btn-primary" *ngIf="p.status === 'pending' || p.status === 'partial'" (click)="markAsReceived(p.id)">Mark as Received</button>
+      <button class="btn btn-secondary" *ngIf="p.due_amount > 0" (click)="openAddPayment(p.id, p.due_amount)">+ Add Payment</button>
+    </div>
+  </ng-container>
+
+  <!-- Create purchase -->
+  <ng-container *ngIf="drawerMode === 'create'">
+    <div class="form-grid" style="margin-bottom:16px">
+      <div class="form-group">
+        <label class="form-label">Vendor <span class="req">*</span></label>
+        <select class="form-control" [(ngModel)]="poVendorId">
+          <option [ngValue]="null">Select vendor…</option>
+          <option *ngFor="let v of vendors" [ngValue]="v.id">{{ v.name }}{{ v.company ? ' (' + v.company + ')' : '' }}</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Purchase Date</label>
+        <input type="date" class="form-control" [(ngModel)]="poDate" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Reference Number</label>
+        <input type="text" class="form-control" [(ngModel)]="poRef" placeholder="Supplier invoice / ref" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Notes</label>
+        <input type="text" class="form-control" [(ngModel)]="poNotes" placeholder="Optional notes" />
+      </div>
+    </div>
+
+    <div class="po-section-title">Items <span class="req">*</span></div>
+    <div id="po-items">
+      <div class="po-item-row" *ngFor="let row of itemRows; let ri = index">
+        <div style="display:flex;gap:6px;align-items:center;margin-bottom:8px;flex-wrap:wrap">
+          <select class="form-control" style="flex:2;min-width:120px" [ngModel]="row.productId"
+                  (ngModelChange)="row.productId = $event; onProductChange(row)">
+            <option [ngValue]="null">Select product…</option>
+            <option *ngFor="let p of products" [ngValue]="p.id" [attr.data-cost]="p.purchase_price">
+              {{ p.name }}{{ p.sku ? ' [' + p.sku + ']' : '' }}
+            </option>
+          </select>
+          <select class="form-control" style="flex:1.5;min-width:100px;font-size:0.82rem"
+                  *ngIf="selectedProductVariants(row).length > 0"
+                  [ngModel]="row.variantId"
+                  (ngModelChange)="row.variantId = $event; onVariantChange(row)">
+            <option [ngValue]="null">Select variant…</option>
+            <option *ngFor="let v of selectedProductVariants(row)" [ngValue]="v.id" [attr.data-cost]="v.purchase_price">{{ v.variant_name }}</option>
+          </select>
+          <input type="number" class="form-control" placeholder="Qty" min="1" style="flex:1;min-width:60px"
+                 [(ngModel)]="row.qty" (ngModelChange)="calcTotal()" />
+          <input type="number" class="form-control" placeholder="Unit Cost ₹" step="0.01" style="flex:1;min-width:90px"
+                 [(ngModel)]="row.cost" (ngModelChange)="calcTotal()" />
+          <span style="min-width:72px;font-size:.78rem;color:#6b5a60;text-align:right;white-space:nowrap;font-weight:600">
+            {{ (row.qty || 0) * (row.cost || 0) > 0 ? formatCurrency((row.qty || 0) * (row.cost || 0)) : '' }}
+          </span>
+          <button type="button" class="po-rem-btn" (click)="removeItemRow(row.idx)" [disabled]="itemRows.length <= 1">✕</button>
+        </div>
+        <div class="po-item-meta">
+          <div>
+            <label>BATCH NO</label>
+            <input type="text" class="form-control" placeholder="e.g. B2024-01" [(ngModel)]="row.batch" />
+          </div>
+          <div>
+            <label>MFG DATE</label>
+            <input type="date" class="form-control" [(ngModel)]="row.mfg" />
+          </div>
+          <div>
+            <label class="exp-label">EXPIRY DATE ★</label>
+            <input type="date" class="form-control exp-input" [(ngModel)]="row.expiry" />
+          </div>
+        </div>
+      </div>
+    </div>
+    <button type="button" class="btn btn-outline btn-sm" (click)="addItemRow()" style="margin-bottom:12px">+ Add Item</button>
+
+    <div class="po-grand-total">
+      Grand Total: <strong>{{ formatCurrency(calcTotal()) }}</strong>
+    </div>
+  </ng-container>
+
+  <!-- Add payment -->
+  <ng-container *ngIf="drawerMode === 'payment'">
+    <div class="form-grid">
+      <div class="form-group">
+        <label class="form-label">Payment Method <span class="req">*</span></label>
+        <select class="form-control" [(ngModel)]="payMethod">
+          <option value="cash">Cash</option>
+          <option value="card">Card</option>
+          <option value="upi">UPI</option>
+          <option value="bank">Bank Transfer</option>
+          <option value="credit">Credit</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Amount <span class="req">*</span></label>
+        <input type="number" class="form-control" step="0.01" min="0.01" [max]="payMaxDue" [(ngModel)]="payAmount" />
+        <small style="color:#6b5a60">Max: {{ formatCurrency(payMaxDue) }}</small>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Reference No.</label>
+        <input type="text" class="form-control" [(ngModel)]="payRef" placeholder="Cheque / UTR / ref" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Notes</label>
+        <input type="text" class="form-control" [(ngModel)]="payNotes" placeholder="Optional" />
+      </div>
+    </div>
+  </ng-container>
+</app-drawer>

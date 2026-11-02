@@ -1,0 +1,67 @@
+// Classic template (MySkin) design tokens and button language — copied from myskin_web.
+@use './styles/tokens';
+@use './styles/buttons';
+@use './styles/shop-pages';
+
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Playfair+Display:wght@500;600;700&family=Great+Vibes&family=Marcellus&display=swap');
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont,
+    'Helvetica Neue', Arial, sans-serif;
+  font-size: 14px;
+  color: #0f172a;
+  background: #ffffff;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+::selection {
+  color: #fff;
+  background: #4f46e5;
+}
+
+:focus-visible {
+  outline: 2px solid #818cf8;
+  outline-offset: 2px;
+}
+
+// Short storefront note (ShopNavService.notify), shown by the app root
+.ms-notice {
+  position: fixed;
+  left: 50%;
+  bottom: 28px;
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: calc(100% - 32px);
+  padding: 12px 20px;
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  color: #fff;
+  background: var(--bg-dark);
+  border-radius: var(--radius-full);
+  box-shadow: var(--shadow-lg);
+  transform: translateX(-50%);
+}

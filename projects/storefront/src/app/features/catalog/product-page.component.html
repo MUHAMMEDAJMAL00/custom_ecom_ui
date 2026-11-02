@@ -1,0 +1,253 @@
+<app-shop-shell>
+  <div class="ms-container pd-wrap">
+    @if (loading) {
+      <div class="pd">
+        <div class="skeleton pd__media"></div>
+        <div class="pd__info">
+          <div class="skeleton line w60"></div>
+          <div class="skeleton line w40"></div>
+          <div class="skeleton line w80"></div>
+        </div>
+      </div>
+    } @else if (notFound || !product) {
+      <div class="empty">
+        <i class="bi bi-box-seam"></i>
+        <h2>This product isn't available</h2>
+        <p>It may be sold out or no longer listed.</p>
+        <a class="ms-pill" routerLink="/catalog">Browse all products</a>
+      </div>
+    } @else {
+      <nav class="crumbs" aria-label="Breadcrumb">
+        <a routerLink="/">Home</a>
+        <span>›</span>
+        <a routerLink="/catalog">All products</a>
+        @if (category) {
+          <span>›</span>
+          <a [routerLink]="['/catalog', 'category', category.slug]">{{ category.name }}</a>
+        }
+        <span>›</span>
+        <span class="crumbs__current">{{ product.name }}</span>
+      </nav>
+
+      <div class="pd">
+        <div class="pd__media">
+          <img [src]="image" [alt]="product.name" />
+          @if (discount > 0) {
+            <span class="pd__off">{{ discount }}% OFF</span>
+          }
+        </div>
+
+        <div class="pd__info">
+          @if (product.brand) {
+            <span class="pd__brand">{{ product.brand }}</span>
+          }
+          <h1>{{ product.name }}</h1>
+          @if (product.rating_count) {
+            <div class="pd__rating"><i class="bi bi-star-fill"></i> {{ product.rating_avg }} <span>({{ product.rating_count }} reviews)</span></div>
+          }
+
+          <div class="pd__price">
+            <strong>{{ price | currency: currency : 'symbol' : '1.0-2' }}</strong>
+            @if (mrp > price) {
+              <s>{{ mrp | currency: currency : 'symbol' : '1.0-2' }}</s>
+              <span class="save">Save {{ mrp - price | currency: currency : 'symbol' : '1.0-2' }}</span>
+            }
+          </div>
+          <small class="pd__tax">Inclusive of all taxes</small>
+
+          @if (product.variants?.length) {
+            <div class="pd__block">
+              <span class="pd__label">Choose option</span>
+              <div class="variants">
+                @for (v of product.variants; track v.id) {
+                  <button type="button" [class.on]="variant?.id === v.id" (click)="variant = v">{{ v.variant_name }}</button>
+                }
+              </div>
+            </div>
+          }
+
+          @if (showStock && stock !== null) {
+            <div class="pd__stock" [class.out]="stock <= 0">
+              <i class="bi" [class.bi-check-circle]="stock > 0" [class.bi-x-circle]="stock <= 0"></i>
+              {{ stock > 0 ? 'In stock' : 'Out of stock' }}
+            </div>
+          }
+
+          <div class="pd__buy">
+            <div class="qty">
+              <button type="button" (click)="changeQty(-1)" aria-label="Less">−</button>
+              <span>{{ quantity }}</span>
+              <button type="button" (click)="changeQty(1)" aria-label="More">+</button>
+            </div>
+            <button type="button" class="ms-pill" (click)="addToCart()"><i class="bi bi-bag"></i> Add to cart</button>
+            @if (wishlistEnabled) {
+              <button type="button" class="pd__wish" [class.is-on]="wishlisted" (click)="toggleWishlist()" [attr.aria-label]="wishlisted ? 'Remove from wishlist' : 'Save to wishlist'">
+                <i class="bi" [ngClass]="wishlisted ? 'bi-heart-fill' : 'bi-heart'"></i>
+              </button>
+            }
+          </div>
+
+          @if (product.description) {
+            <div class="pd__block">
+              <span class="pd__label">About this product</span>
+              <p class="pd__desc">{{ product.description }}</p>
+            </div>
+          }
+
+          <ul class="perks">
+            <li><i class="bi bi-truck"></i> Fast delivery</li>
+            <li><i class="bi bi-arrow-repeat"></i> Easy returns</li>
+            <li><i class="bi bi-shield-check"></i> Secure checkout</li>
+          </ul>
+        </div>
+      </div>
+
+      @if (reviewsEnabled) {
+        <section class="reviews">
+          <div class="reviews__head">
+            <div>
+              <h2>Customer reviews</h2>
+              @if (reviews?.summary; as summary) {
+                <p>{{ summary.ratings }} review{{ summary.ratings === 1 ? '' : 's' }} · {{ summary.average }} out of 5</p>
+              }
+            </div>
+            @if (canReview || myReview) {
+              <button class="btn-outline-brand" type="button" (click)="startReview()">
+                <i class="bi bi-pencil"></i> {{ myReview ? 'Edit your review' : 'Write a review' }}
+              </button>
+            } @else if (auth.isLoggedIn) {
+              <span class="reviews__note"><i class="bi bi-info-circle"></i> Reviews open after your order is delivered.</span>
+            } @else {
+              <button class="btn-outline-brand" type="button" (click)="startReview()">Sign in to review</button>
+            }
+          </div>
+
+          @if (reviewSuccess) {
+            <div class="form-success"><i class="bi bi-check-circle"></i> {{ reviewSuccess }}</div>
+          }
+
+          @if (showReviewForm) {
+            <div class="review-form">
+              <div class="review-form__head">
+                <h3>{{ myReview ? 'Update your review' : 'Share your experience' }}</h3>
+                <button class="btn-plain" type="button" (click)="showReviewForm = false">Cancel</button>
+              </div>
+              @if (reviewError) {
+                <div class="form-error"><i class="bi bi-exclamation-circle"></i> {{ reviewError }}</div>
+              }
+              <div class="review-form__stars">
+                <span>Your rating</span>
+                @for (star of stars(5); track star) {
+                  <button type="button" [class.is-on]="star <= reviewForm.rating" (click)="reviewForm.rating = star" [attr.aria-label]="star + ' stars'">
+                    <i class="bi" [ngClass]="star <= reviewForm.rating ? 'bi-star-fill' : 'bi-star'"></i>
+                  </button>
+                }
+              </div>
+              <label class="field">
+                <span>Title (optional)</span>
+                <input type="text" name="review_title" [(ngModel)]="reviewForm.title" maxlength="120" />
+              </label>
+              <label class="field">
+                <span>Your review</span>
+                <textarea name="review_body" [(ngModel)]="reviewForm.body" maxlength="3000"></textarea>
+              </label>
+              <div class="review-form__actions">
+                <button class="btn-brand" type="button" (click)="submitReview()" [disabled]="reviewSaving">
+                  {{ reviewSaving ? 'Saving…' : 'Submit review' }}
+                </button>
+              </div>
+            </div>
+          }
+
+          @if (reviewsLoading && !reviews) {
+            <div class="loading-row"><span class="shop-loader"></span></div>
+          } @else if (reviews?.summary?.ratings) {
+            <div class="reviews__layout">
+              <aside class="review-summary">
+                <strong class="review-summary__average">{{ reviews?.summary?.average }}</strong>
+                <span class="review-summary__stars">
+                  @for (star of stars(5); track star) {
+                    <i class="bi" [ngClass]="star <= (reviews?.summary?.average || 0) ? 'bi-star-fill' : 'bi-star'"></i>
+                  }
+                </span>
+                <span class="review-summary__count">{{ reviews?.summary?.ratings }} ratings</span>
+                <div class="review-summary__bars">
+                  @for (rating of [5, 4, 3, 2, 1]; track rating) {
+                    <button type="button" [class.is-active]="reviewRating === '' + rating" (click)="filterReviews('' + rating)">
+                      <span>{{ rating }} <i class="bi bi-star-fill"></i></span>
+                      <span class="bar"><span [style.width.%]="barWidth(rating)"></span></span>
+                      <span>{{ reviews?.summary?.distribution?.[rating] || 0 }}</span>
+                    </button>
+                  }
+                </div>
+                @if (reviewRating) {
+                  <button class="btn-plain" type="button" (click)="filterReviews('')">Show all ratings</button>
+                }
+              </aside>
+
+              <div class="review-list">
+                @for (review of reviews?.data || []; track review.id) {
+                  <article class="review">
+                    <div class="review__head">
+                      <strong>{{ review.author }}</strong>
+                      @if (review.is_verified) {
+                        <span class="status-chip status-chip--delivered">Verified buyer</span>
+                      }
+                      <span class="review__date">{{ review.created_at | date: 'mediumDate' }}</span>
+                    </div>
+                    <div class="review__stars">
+                      @for (star of stars(5); track star) {
+                        <i class="bi" [ngClass]="star <= review.rating ? 'bi-star-fill' : 'bi-star'"></i>
+                      }
+                    </div>
+                    @if (review.title) {
+                      <h3 class="review__title">{{ review.title }}</h3>
+                    }
+                    @if (review.body) {
+                      <p class="review__body">{{ review.body }}</p>
+                    }
+                    <div class="review__actions">
+                      <button class="btn-plain" type="button" (click)="markHelpful(review)" [disabled]="review.mine">
+                        <i class="bi" [ngClass]="review.voted_helpful ? 'bi-hand-thumbs-up-fill' : 'bi-hand-thumbs-up'"></i>
+                        Helpful ({{ review.helpful_count }})
+                      </button>
+                      @if (review.mine) {
+                        <span class="review__own">Your review</span>
+                      }
+                    </div>
+                  </article>
+                }
+              </div>
+            </div>
+
+            @if ((reviews?.total_pages || 1) > 1) {
+              <div class="review-pages">
+                <button type="button" [disabled]="reviewPage <= 1" (click)="loadReviews(reviewPage - 1)"><i class="bi bi-chevron-left"></i></button>
+                <span>Page {{ reviewPage }} of {{ reviews?.total_pages }}</span>
+                <button type="button" [disabled]="reviewPage >= (reviews?.total_pages || 1)" (click)="loadReviews(reviewPage + 1)"><i class="bi bi-chevron-right"></i></button>
+              </div>
+            }
+          } @else if (!reviewsLoading) {
+            <p class="reviews__empty">No reviews yet. Be the first to share your thoughts.</p>
+          }
+        </section>
+      }
+
+      @if (related.length) {
+        <section class="related">
+          <div class="related__head">
+            <h2>More from {{ category?.name }}</h2>
+            @if (category) {
+              <a [routerLink]="['/catalog', 'category', category.slug]">View all <i class="bi bi-arrow-right"></i></a>
+            }
+          </div>
+          <div class="grid">
+            @for (p of related; track p.id) {
+              <app-product-card [product]="p" [currency]="currency"></app-product-card>
+            }
+          </div>
+        </section>
+      }
+    }
+  </div>
+</app-shop-shell>

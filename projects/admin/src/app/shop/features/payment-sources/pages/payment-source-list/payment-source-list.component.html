@@ -1,0 +1,96 @@
+<div class="page-wrap">
+  <div class="page-header">
+    <div class="page-header-left">
+      <div class="page-title-main">Payment Methods</div>
+      <div class="page-breadcrumb">
+        <a [routerLink]="'/dashboard' | shopUrl">Dashboard</a>
+        <span class="sep">›</span>
+        <span class="current">Payment Methods</span>
+      </div>
+    </div>
+    <div class="page-header-actions">
+      <button class="btn btn-icon-tool" title="Refresh" (click)="load()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="23 4 23 10 17 10" /><polyline points="1 20 1 14 7 14" />
+          <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15" />
+        </svg>
+      </button>
+      <button class="btn btn-primary" (click)="openAdd()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+        </svg>
+        Add Method
+      </button>
+    </div>
+  </div>
+
+  <div class="ps-info-banner">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
+    </svg>
+    Define the payment methods available in the POS — e.g. multiple UPI QR codes, card machines, cash. Active methods appear as tiles in the payment screen.
+  </div>
+
+  <div class="ps-grid">
+    <div class="ps-loading" *ngIf="loading">Loading…</div>
+    <div class="ps-empty ps-error" *ngIf="!loading && errorMessage">{{ errorMessage }}</div>
+    <div class="ps-empty" *ngIf="!loading && !errorMessage && !sources.length">
+      <i class="bi bi-credit-card-2-front" style="font-size: 2rem; margin-bottom: 10px; display: block; opacity: 0.3"></i>
+      No payment methods yet.<br />Click <strong>Add Method</strong> to create one.
+    </div>
+
+    <div class="ps-card" [class.ps-card-inactive]="!s.is_active" *ngFor="let s of sources">
+      <div class="ps-card-head">
+        <div class="ps-card-icon"><i class="bi" [ngClass]="cardIcon(s)"></i></div>
+        <div class="ps-card-meta">
+          <div class="ps-card-name">{{ s.name }}</div>
+          <span class="ps-card-badge">{{ typeLabel(s.type) }}</span>
+        </div>
+      </div>
+      <div class="ps-card-notes" *ngIf="s.notes">{{ s.notes }}</div>
+      <div class="ps-card-footer">
+        <button class="ps-btn-status" [ngClass]="s.is_active ? 'ps-status-on' : 'ps-status-off'" (click)="toggleStatus(s)">
+          <span class="ps-status-dot"></span>
+          {{ s.is_active ? 'Active' : 'Inactive' }}
+        </button>
+        <div class="ps-card-acts">
+          <span class="ps-order-tag" *ngIf="s.display_order">#{{ s.display_order }}</span>
+          <button class="ps-btn-icon" title="Edit" (click)="openEdit(s)"><i class="bi bi-pencil"></i></button>
+          <button class="ps-btn-icon ps-btn-del" title="Delete" (click)="confirmDelete(s)"><i class="bi bi-trash"></i></button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<app-modal [open]="modalOpen" [title]="modalTitle" [saveLabel]="editId ? 'Save' : 'Save'" [saving]="saving" (closed)="closeModal()" (saveClicked)="handleSave()">
+  <form [formGroup]="form">
+    <div class="form-group">
+      <label class="form-label">Name <span class="req">*</span></label>
+      <input type="text" class="form-control" formControlName="name" placeholder="e.g. Paytm QR, HDFC Swipe" maxlength="80" />
+    </div>
+    <div class="form-group">
+      <label class="form-label">Type <span class="req">*</span></label>
+      <select class="form-control" formControlName="type" (change)="onTypeChange()">
+        <option *ngFor="let t of typeOptions" [value]="t">{{ typeLabel(t) }}</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Icon</label>
+      <div class="icon-picker">
+        <button type="button" class="ip-btn" *ngFor="let opt of iconOptions" [class.ip-active]="opt.cls === selectedIcon"
+                [title]="opt.label" (click)="pickIcon(opt.cls)">
+          <i class="bi" [ngClass]="opt.cls"></i>
+        </button>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Display Order</label>
+      <input type="number" class="form-control" formControlName="display_order" placeholder="0" min="0" />
+    </div>
+    <div class="form-group">
+      <label class="form-label">Notes</label>
+      <input type="text" class="form-control" formControlName="notes" placeholder="Optional note" maxlength="255" />
+    </div>
+  </form>
+</app-modal>

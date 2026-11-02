@@ -1,0 +1,109 @@
+<header class="topbar">
+  <button class="menu-btn" type="button" aria-label="Open menu" (click)="toggleSidebar.emit()">
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+    </svg>
+  </button>
+
+  <div class="page-heading">
+    <h1>{{ title }}</h1>
+    <p *ngIf="subtitle">{{ subtitle }}</p>
+  </div>
+
+  <div class="topbar-actions">
+    <div class="theme-picker">
+      <button
+        class="theme-btn"
+        type="button"
+        title="Theme and colour"
+        aria-label="Theme and colour"
+        [attr.aria-expanded]="themeOpen"
+        (click)="toggleThemeMenu($event)"
+      >
+        <svg
+          *ngIf="(theme.mode$ | async) === 'light'"
+          viewBox="0 0 24 24"
+          fill="none"
+          aria-hidden="true"
+        >
+          <circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="1.8" />
+          <path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6 7 7M17 17l1.4 1.4M18.4 5.6 17 7M7 17l-1.4 1.4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+        </svg>
+        <svg
+          *ngIf="(theme.mode$ | async) === 'dark'"
+          viewBox="0 0 24 24"
+          fill="none"
+          aria-hidden="true"
+        >
+          <path d="M20.5 13A8.5 8.5 0 0 1 11 3.5a8.5 8.5 0 1 0 9.5 9.5Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" />
+        </svg>
+      </button>
+
+      <div class="theme-menu" *ngIf="themeOpen" (click)="$event.stopPropagation()">
+        <div class="theme-menu-title">Appearance</div>
+        <div class="theme-modes">
+          <button
+            type="button"
+            [class.is-active]="(theme.mode$ | async) === 'light'"
+            (click)="setMode('light')"
+          >
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="1.7" />
+              <path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M18.4 5.6 17 7M7 17l-1.4 1.4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" />
+            </svg>
+            Light
+          </button>
+          <button
+            type="button"
+            [class.is-active]="(theme.mode$ | async) === 'dark'"
+            (click)="setMode('dark')"
+          >
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" />
+            </svg>
+            Dark
+          </button>
+        </div>
+
+        <div class="theme-menu-title">Accent colour</div>
+        <div class="theme-accents">
+          <button
+            type="button"
+            class="accent-option"
+            *ngFor="let accent of accents"
+            [class.is-active]="(theme.accent$ | async) === accent.key && !(theme.customActive$ | async)"
+            (click)="setAccent(accent.key)"
+          >
+            <span class="accent-dot" [style.background]="accent.color"></span>
+            {{ accent.label }}
+          </button>
+        </div>
+
+        <div class="theme-menu-title">Custom colour</div>
+        <label class="custom-color" [class.is-active]="theme.customActive$ | async">
+          <input
+            type="color"
+            [value]="(theme.customColor$ | async) || '#c8102e'"
+            (input)="setCustomColor($any($event.target).value)"
+          />
+          <span>{{ (theme.customColor$ | async) || '#c8102e' }}</span>
+        </label>
+      </div>
+    </div>
+
+    <div class="user-chip" *ngIf="user">
+      <span class="avatar">{{ avatarText }}</span>
+      <span class="user-copy">
+        <strong>{{ user.name }}</strong>
+        <small>{{ roleLabel }}</small>
+      </span>
+    </div>
+
+    <button class="logout-btn" type="button" (click)="logout.emit()" title="Sign out">
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+      </svg>
+      <span>Sign out</span>
+    </button>
+  </div>
+</header>

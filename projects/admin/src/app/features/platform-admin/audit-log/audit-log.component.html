@@ -1,0 +1,111 @@
+<div class="admin-page">
+  <div class="page-head">
+    <div>
+      <p class="eyebrow">Administration</p>
+      <h2>Audit log</h2>
+      <p>Every sensitive platform action, newest first.</p>
+    </div>
+    <span class="total-chip"><strong>{{ total }}</strong> events</span>
+  </div>
+
+  <div class="filter-bar">
+    <input
+      type="search"
+      placeholder="Filter by action, e.g. tenant.update"
+      [(ngModel)]="action"
+      (keyup.enter)="applyFilters()"
+    />
+    <label>
+      <span>From</span>
+      <input type="date" [(ngModel)]="from" />
+    </label>
+    <label>
+      <span>To</span>
+      <input type="date" [(ngModel)]="to" />
+    </label>
+    <button class="btn-primary" type="button" (click)="applyFilters()">Apply</button>
+    <button class="btn-back" type="button" (click)="clearFilters()">Clear</button>
+  </div>
+
+  <div class="error-box" *ngIf="errorMessage">{{ errorMessage }}</div>
+
+  <div class="admin-card">
+    <div class="empty-state" *ngIf="loading">
+      <span class="pos-loader"><span></span><span></span><span></span></span>
+    </div>
+
+    <div class="table-wrap" *ngIf="!loading">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Time</th>
+            <th>Actor</th>
+            <th>Action</th>
+            <th>Tenant</th>
+            <th>Entity</th>
+            <th>IP</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let row of rows">
+            <td class="muted nowrap">{{ row.created_at | date: 'MMM d, y HH:mm:ss' }}</td>
+            <td>{{ row.platform_user_name || 'System' }}</td>
+            <td><code>{{ row.action }}</code></td>
+            <td>
+              <span *ngIf="row.tenant_name">{{ row.tenant_name }} <small class="muted">({{ row.tenant_slug }})</small></span>
+              <span class="muted" *ngIf="!row.tenant_name">—</span>
+            </td>
+            <td class="muted">{{ row.entity_type || '—' }}{{ row.entity_id ? ' #' + row.entity_id : '' }}</td>
+            <td class="muted">{{ row.ip_address || '—' }}</td>
+            <td>
+              <button class="link-btn" type="button" (click)="openDetails(row)">Details</button>
+            </td>
+          </tr>
+          <tr *ngIf="!rows.length">
+            <td colspan="7" class="empty-cell">No audit events match these filters.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="pagination" *ngIf="totalPages > 1">
+      <button type="button" [disabled]="page <= 1" (click)="goToPage(page - 1)">Previous</button>
+      <span>Page {{ page }} of {{ totalPages }}</span>
+      <button type="button" [disabled]="page >= totalPages" (click)="goToPage(page + 1)">Next</button>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" *ngIf="selected as event" (click)="closeDetails()">
+    <div class="modal-card" (click)="$event.stopPropagation()">
+      <div class="modal-head">
+        <div>
+          <p class="eyebrow">Audit event #{{ event.id }}</p>
+          <h3>{{ event.action }}</h3>
+          <p>{{ event.created_at | date: 'MMM d, y HH:mm:ss' }} · {{ event.platform_user_name || 'System' }}</p>
+        </div>
+        <button class="icon-btn" type="button" (click)="closeDetails()" aria-label="Close">×</button>
+      </div>
+
+      <div class="detail-grid">
+        <div><span>Tenant</span><strong>{{ event.tenant_name || '—' }}</strong></div>
+        <div><span>Entity</span><strong>{{ event.entity_type || '—' }}{{ event.entity_id ? ' #' + event.entity_id : '' }}</strong></div>
+        <div><span>IP</span><strong>{{ event.ip_address || '—' }}</strong></div>
+      </div>
+
+      <div class="json-block" *ngIf="event.old_values !== null">
+        <span>Before</span>
+        <pre>{{ event.old_values | json }}</pre>
+      </div>
+
+      <div class="json-block" *ngIf="event.new_values !== null">
+        <span>After</span>
+        <pre>{{ event.new_values | json }}</pre>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn-back" type="button" (click)="closeDetails()">Close</button>
+      </div>
+    </div>
+  </div>
+</div>

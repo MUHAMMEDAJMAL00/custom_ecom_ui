@@ -1,0 +1,19 @@
+.exp-tabs {
+  display: flex; gap: 4px; margin-bottom: 16px;
+  border-bottom: 2px solid var(--border-light); padding-bottom: 0;
+}
+.exp-tab {
+  padding: 8px 18px; font-size: 0.85rem; font-weight: 600; font-family: inherit;
+  color: var(--text-secondary); background: none; border: none;
+  border-bottom: 2px solid transparent; margin-bottom: -2px; cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+.exp-tab:hover { color: var(--primary); }
+.exp-tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+.btn-icon-tool {
+  width: 34px; height: 34px; padding: 0; display: inline-flex; align-items: center;
+  justify-content: center; border-radius: 8px; background: #fff;
+  border: 1px solid var(--border); color: var(--text-secondary); cursor: pointer;
+  transition: all 0.15s;
+}
+.btn-icon-tool:hover { border-color: var(--primary); color: var(--primary); }

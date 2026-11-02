@@ -1,0 +1,427 @@
+<div class="page-wrap">
+  <div class="page-header">
+    <div class="page-header-left">
+      <div class="page-title-main">{{ view === 'offers' ? 'Product Offers' : 'Discounts' }}</div>
+      <div class="page-breadcrumb">
+        <a [routerLink]="'/dashboard' | shopUrl">Dashboard</a>
+        <span class="sep">›</span>
+        <span class="current">{{ view === 'offers' ? 'Product Offers' : 'Discounts' }}</span>
+      </div>
+    </div>
+    <div class="page-header-actions">
+      <div class="view-toggle">
+        <button class="view-btn" [class.active]="view === 'discounts'" (click)="switchView('discounts')">Discounts</button>
+        <button class="view-btn" [class.active]="view === 'offers'" (click)="switchView('offers')">Product Offers</button>
+      </div>
+      <button class="btn btn-icon-tool" title="Refresh" (click)="load()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="23 4 23 10 17 10" /><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10" />
+        </svg>
+      </button>
+      <button class="btn btn-primary" (click)="openAdd()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+        </svg>
+        <span>{{ addLabel }}</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="toolbar">
+      <div class="toolbar-left">
+        <div class="search-box">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+          </svg>
+          <input type="text" placeholder="Search by code or name…" autocomplete="off" [value]="search" (input)="onSearchInput($any($event.target).value)" />
+        </div>
+      </div>
+      <div class="toolbar-right">
+        <select class="filter-select" [(ngModel)]="typeFilter" (change)="onFilterChange()">
+          <option *ngFor="let o of typeFilterOptions" [value]="o.value">{{ o.label }}</option>
+        </select>
+        <select class="filter-select" [(ngModel)]="statusFilter" (change)="onFilterChange()">
+          <option value="">All Status ▾</option>
+          <option value="active">Active</option>
+          <option value="inactive">Inactive</option>
+          <option value="expired">Expired</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table class="pos-table">
+        <thead>
+          <tr><th>#</th><th>Code</th><th>Name</th><th>Type</th><th>Value / Rule</th><th>Scope</th><th>Usage</th><th>Valid Period</th><th>Status</th><th>Actions</th></tr>
+        </thead>
+        <tbody>
+          <tr *ngIf="loading"><td colspan="10" class="tbl-empty"><span class="pos-loader"><span></span><span></span><span></span></span></td></tr>
+          <tr *ngIf="!loading && errorMessage"><td colspan="10" class="tbl-empty" style="color: var(--danger)">{{ errorMessage }}</td></tr>
+          <tr *ngIf="!loading && !errorMessage && !rows.length">
+            <td colspan="10" class="tbl-empty">{{ view === 'offers' ? 'No product offers found — add one with the Add Offer button.' : 'No discounts found' }}</td>
+          </tr>
+          <tr *ngFor="let item of rows; let i = index" [hidden]="loading">
+            <td>{{ (page - 1) * limit + i + 1 }}</td>
+            <td><span class="discount-code">{{ item.code || '—' }}</span></td>
+            <td style="font-weight: 500">
+              {{ item.name || '—' }}
+              <br *ngIf="item.customer_group && item.customer_group !== 'all'" />
+              <small *ngIf="item.customer_group && item.customer_group !== 'all'" style="color: #6366f1; font-size: 11px">{{ customerGroupLabel(item.customer_group) }}</small>
+              <br *ngIf="item.show_on_website" />
+              <small *ngIf="item.show_on_website" class="dc-web-flag">On website</small>
+            </td>
+            <td><span class="badge" [style.background]="typeColor(item.discount_type).bg" [style.color]="typeColor(item.discount_type).color" [style.border]="'1px solid ' + typeColor(item.discount_type).border">{{ typeLabel(item.discount_type) }}</span></td>
+            <td [innerHTML]="valueDisplay(item)"></td>
+            <td style="color: #6b5a60; font-size: 13px">{{ scopeLabel(item) }}</td>
+            <td style="color: #6b5a60">{{ item.usage_count || 0 }} / {{ item.usage_limit || '∞' }}</td>
+            <td style="font-size: 0.78rem; color: #6b5a60">{{ item.start_date ? formatDate(item.start_date) : '∞' }} → {{ item.end_date ? formatDate(item.end_date) : '∞' }}</td>
+            <td><span class="badge" [ngClass]="statusBadgeClass(item)">{{ statusBadgeLabel(item) }}</span></td>
+            <td style="display: flex; align-items: center; gap: 4px">
+              <app-row-actions [showView]="view === 'offers'" [showEdit]="true" [showDelete]="true"
+                (view)="openView(item)" (edit)="openEdit(item)" (delete)="confirmDelete(item)"></app-row-actions>
+              <button *ngIf="item.usage_count > 0" class="reset-usage-btn" title="Reset usage count to 0" (click)="resetUsage(item)">Reset Usage</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="pagination-bar">
+      <div class="pagination-info">
+        Row Per Page
+        <select [ngModel]="limit" (ngModelChange)="onLimitChange($event)">
+          <option [ngValue]="20">20</option><option [ngValue]="10">10</option><option [ngValue]="25">25</option><option [ngValue]="50">50</option>
+        </select>
+        Entries
+      </div>
+      <app-pagination [currentPage]="page" [totalPages]="totalPages" (pageChange)="load($event)"></app-pagination>
+    </div>
+  </div>
+</div>
+
+<app-drawer [open]="drawerMode !== null" [title]="drawerTitle" [saveLabel]="editId ? 'Update' : 'Save'"
+            [saving]="saving" [showFooter]="drawerMode === 'form'" (closed)="closeDrawer()" (saveClicked)="handleSave()">
+
+  <form *ngIf="drawerMode === 'form'" [formGroup]="form" class="pf-form">
+    <div class="pf-section">
+      <div class="pf-section-header"><span class="pf-section-title">Basic Information</span></div>
+      <div class="pf-section-body">
+        <div class="form-grid">
+          <div class="form-group col-span-2">
+            <label class="form-label">Name <span class="req">*</span></label>
+            <input type="text" class="form-control" formControlName="name" placeholder="e.g. Summer Sale 20%" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Code</label>
+            <input type="text" class="form-control" formControlName="code" placeholder="Optional coupon code" />
+            <small class="form-hint">Leave blank to auto-apply when conditions are met.</small>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Type <span class="req">*</span></label>
+            <select class="form-control" formControlName="discount_type">
+              <optgroup label="Discounts" *ngIf="view === 'discounts'">
+                <option value="percent">Percent %</option>
+                <option value="flat">Flat ₹</option>
+                <!-- Bulk/qty tiers need a tier editor; only shown for discounts already saved as bulk -->
+                <option value="bulk" *ngIf="form.get('discount_type')?.value === 'bulk'" disabled>Bulk / Qty Tiers</option>
+                <option value="spend_get">Spend &amp; Get</option>
+                <option value="category">Category</option>
+              </optgroup>
+              <optgroup label="Product Offers" *ngIf="view === 'offers'">
+                <option value="bogo">Buy X Get Y</option>
+                <option value="min_qty">Min Qty</option>
+                <option value="bundle">Bundle</option>
+                <option value="free_item">Free Item</option>
+              </optgroup>
+            </select>
+            <small class="form-hint">
+              {{ view === 'discounts'
+                ? 'Saved under Discounts. Product offers (Buy X Get Y, Min Qty, Bundle, Free Item) are created from the Product Offers tab.'
+                : 'Saved under Product Offers and also listed in Website → Offers.' }}
+            </small>
+          </div>
+          <div class="form-group" *ngIf="editId">
+            <label class="form-label">Status</label>
+            <select class="form-control" formControlName="is_active">
+              <option [ngValue]="1">Active</option>
+              <option [ngValue]="0">Inactive</option>
+            </select>
+          </div>
+          <div class="form-group col-span-2">
+            <label class="form-label">Description</label>
+            <textarea class="form-control" formControlName="description" rows="2" placeholder="Optional"></textarea>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Value & scope (percent/flat/category/bundle/min_qty/spend_get) -->
+    <div class="pf-section" *ngIf="showValueSection()">
+      <div class="pf-section-header"><span class="pf-section-title">Value</span></div>
+      <div class="pf-section-body">
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label">Discount Value <span class="req">*</span></label>
+            <input type="number" class="form-control" formControlName="discount_value" min="0" step="0.01" />
+          </div>
+          <div class="form-group" *ngIf="showValueTypeToggle()">
+            <label class="form-label">Value Type</label>
+            <select class="form-control" formControlName="discount_value_type">
+              <option value="percent">Percent %</option>
+              <option value="flat">Flat ₹</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Max Discount Cap (₹)</label>
+            <input type="number" class="form-control" formControlName="max_discount_amount" min="0" placeholder="No cap" />
+          </div>
+        </div>
+
+        <div class="form-grid" *ngIf="showApplyToSection()" style="margin-top: 10px">
+          <div class="form-group">
+            <label class="form-label">Applies To</label>
+            <select class="form-control" formControlName="apply_to">
+              <option value="all">All Products</option>
+              <option value="category">Specific Category</option>
+              <option value="product">Specific Products</option>
+            </select>
+          </div>
+          <div class="form-group" *ngIf="form.value.apply_to === 'category'">
+            <label class="form-label">Category</label>
+            <select class="form-control" formControlName="category_id">
+              <option [ngValue]="null">Select category…</option>
+              <option *ngFor="let c of categories" [ngValue]="c.id">{{ c.name }}</option>
+            </select>
+          </div>
+          <div class="form-group" *ngIf="form.value.apply_to === 'product'">
+            <label class="form-label">Products</label>
+            <small class="form-hint" style="display: block; margin-top: 8px">Choose them in <strong>Products</strong> below.</small>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Category type -->
+    <div class="pf-section" *ngIf="showCategorySection()">
+      <div class="pf-section-header"><span class="pf-section-title">Category</span></div>
+      <div class="pf-section-body">
+        <div class="form-group">
+          <label class="form-label">Category <span class="req">*</span></label>
+          <select class="form-control" formControlName="category_id">
+            <option [ngValue]="null">Select category…</option>
+            <option *ngFor="let c of categories" [ngValue]="c.id">{{ c.name }}</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- BOGO -->
+    <div class="pf-section" *ngIf="showBogoSection()">
+      <div class="pf-section-header"><span class="pf-section-title">Buy X Get Y</span></div>
+      <div class="pf-section-body">
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label">Buy Qty</label>
+            <input type="number" class="form-control" formControlName="bogo_buy_qty" min="1" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Get Qty Free</label>
+            <input type="number" class="form-control" formControlName="bogo_get_qty" min="1" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Max Times / Order</label>
+            <input type="number" class="form-control" formControlName="bogo_max_times" min="0" placeholder="0 = unlimited" />
+          </div>
+          <div class="form-group dc-mssd-wrap">
+            <label class="form-label">Free Product (blank = same product)</label>
+            <div class="dc-mssd-row">
+              <input type="text" class="form-control" placeholder="Search product…"
+                     [value]="productPickers.bogoGet.query" (input)="onPickerInput('bogoGet', $any($event.target).value)" />
+              <button type="button" class="dc-mssd-clr" *ngIf="productPickers.bogoGet.selectedId" (click)="clearPicker('bogoGet')">×</button>
+            </div>
+            <div class="ssd-dropdown" *ngIf="productPickers.bogoGet.open">
+              <div class="ssd-item" *ngFor="let p of productPickers.bogoGet.results" (mousedown)="$event.preventDefault(); pickProduct('bogoGet', p)">
+                <span class="ssd-name">{{ p.name }}</span><span class="ssd-sku" *ngIf="p.sku">{{ p.sku }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Min qty -->
+    <div class="pf-section" *ngIf="showMinQtySection()">
+      <div class="pf-section-header"><span class="pf-section-title">Minimum Quantity</span></div>
+      <div class="pf-section-body">
+        <div class="form-group">
+          <label class="form-label">Min Qty in Cart</label>
+          <input type="number" class="form-control" formControlName="min_qty" min="1" />
+        </div>
+      </div>
+    </div>
+
+    <!-- Spend & get -->
+    <div class="pf-section" *ngIf="showSpendSection()">
+      <div class="pf-section-header"><span class="pf-section-title">Spend Threshold</span></div>
+      <div class="pf-section-body">
+        <div class="form-group">
+          <label class="form-label">Min Order Amount (₹)</label>
+          <input type="number" class="form-control" formControlName="min_order_amount" min="0" step="0.01" />
+        </div>
+      </div>
+    </div>
+
+    <!-- Free item -->
+    <div class="pf-section" *ngIf="showFreeItemSection()">
+      <div class="pf-section-header"><span class="pf-section-title">Free Item</span></div>
+      <div class="pf-section-body">
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label">Min Order Amount (₹)</label>
+            <input type="number" class="form-control" formControlName="min_order_amount" min="0" step="0.01" />
+          </div>
+          <div class="form-group dc-mssd-wrap">
+            <label class="form-label">Free Product <span class="req">*</span></label>
+            <div class="dc-mssd-row">
+              <input type="text" class="form-control" placeholder="Search product…"
+                     [value]="productPickers.freeItem.query" (input)="onPickerInput('freeItem', $any($event.target).value)" />
+              <button type="button" class="dc-mssd-clr" *ngIf="productPickers.freeItem.selectedId" (click)="clearPicker('freeItem')">×</button>
+            </div>
+            <div class="ssd-dropdown" *ngIf="productPickers.freeItem.open">
+              <div class="ssd-item" *ngFor="let p of productPickers.freeItem.results" (mousedown)="$event.preventDefault(); pickProduct('freeItem', p)">
+                <span class="ssd-name">{{ p.name }}</span><span class="ssd-sku" *ngIf="p.sku">{{ p.sku }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Products the discount / offer is assigned to -->
+    <div class="pf-section" *ngIf="showProductsSection()">
+      <div class="pf-section-header"><span class="pf-section-title">Products</span></div>
+      <div class="pf-section-body">
+        <div class="form-group dc-mssd-wrap">
+          <label class="form-label">{{ productsLabel }} <span class="req" *ngIf="productsRequired">*</span></label>
+          <div class="dc-mssd-row">
+            <input type="text" class="form-control" placeholder="Search product by name or SKU to add…"
+                   [value]="productPickers.members.query" (input)="onPickerInput('members', $any($event.target).value)" />
+          </div>
+          <div class="ssd-dropdown" *ngIf="productPickers.members.open">
+            <div class="ssd-item" *ngFor="let p of productPickers.members.results" (mousedown)="$event.preventDefault(); pickProduct('members', p)">
+              <span class="ssd-name">{{ p.name }}</span><span class="ssd-sku" *ngIf="p.sku">{{ p.sku }}</span>
+            </div>
+          </div>
+          <div class="dc-chips" *ngIf="offerProducts.length">
+            <span class="dc-chip" *ngFor="let p of offerProducts">{{ p.name }}<button type="button" (click)="removeOfferProduct(p.id)" title="Remove">×</button></span>
+          </div>
+          <small class="form-hint">{{ productsHint }}</small>
+        </div>
+      </div>
+    </div>
+
+    <!-- Website → Offers (same data as that page) -->
+    <div class="pf-section">
+      <div class="pf-section-header"><span class="pf-section-title">Website Offer</span></div>
+      <div class="pf-section-body">
+        <label style="display: flex; align-items: center; gap: 8px; font-size: 0.84rem; cursor: pointer; margin-bottom: 10px">
+          <input type="checkbox" formControlName="show_on_website" />
+          Show on the website (Website → Offers) while active and valid
+        </label>
+        <div class="form-grid" *ngIf="form.value.show_on_website">
+          <div class="form-group">
+            <label class="form-label">Title</label>
+            <input type="text" class="form-control" formControlName="web_title" maxlength="80" placeholder="e.g. Extra 10% OFF" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Highlight</label>
+            <input type="text" class="form-control" formControlName="web_highlight" maxlength="80" placeholder="e.g. Code: NEW15" />
+          </div>
+          <div class="form-group col-span-2">
+            <label class="form-label">Note</label>
+            <input type="text" class="form-control" formControlName="web_note" maxlength="120" placeholder="e.g. On first order above ₹999" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Badge</label>
+            <input type="text" class="form-control" formControlName="web_badge" maxlength="20" placeholder="e.g. VISA (optional)" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Icon</label>
+            <input type="text" class="form-control" formControlName="web_icon" maxlength="60" placeholder="bi-tag" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Display Order</label>
+            <input type="number" class="form-control" formControlName="web_sort_order" min="0" />
+          </div>
+        </div>
+        <small class="form-hint" *ngIf="form.value.show_on_website">Blank fields are filled from the discount (e.g. "20% OFF", "On Facial Glow Oil").</small>
+      </div>
+    </div>
+
+    <!-- Rules -->
+    <div class="pf-section">
+      <div class="pf-section-header"><span class="pf-section-title">Rules &amp; Validity</span></div>
+      <div class="pf-section-body">
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label">Customer Group</label>
+            <select class="form-control" formControlName="customer_group">
+              <option value="all">All Customers</option>
+              <option value="member">Members Only</option>
+              <option value="vip">VIP Only</option>
+              <option value="wholesale">Wholesale Only</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Tax Handling</label>
+            <select class="form-control" formControlName="tax_handling">
+              <option value="before_discount">Before Discount (standard)</option>
+              <option value="after_discount">After Discount</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Usage Limit (total)</label>
+            <input type="number" class="form-control" formControlName="usage_limit" min="0" placeholder="Unlimited" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Per-Customer Limit</label>
+            <input type="number" class="form-control" formControlName="per_customer_limit" min="0" placeholder="Unlimited" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Start Date</label>
+            <input type="date" class="form-control" formControlName="start_date" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">End Date</label>
+            <input type="date" class="form-control" formControlName="end_date" />
+          </div>
+          <div class="form-group col-span-2">
+            <label style="display: flex; align-items: center; gap: 8px; font-size: 0.84rem; cursor: pointer">
+              <input type="checkbox" formControlName="single_use_per_bill" />
+              Fire at most once per bill
+            </label>
+          </div>
+        </div>
+      </div>
+    </div>
+  </form>
+
+  <div *ngIf="drawerMode === 'view' && viewingDiscount as d">
+    <div class="detail-grid">
+      <div class="detail-item"><label>Name</label><span>{{ d.name }}</span></div>
+      <div class="detail-item"><label>Code</label><span>{{ d.code || '—' }}</span></div>
+      <div class="detail-item"><label>Type</label><span [innerHTML]="typeLabel(d.discount_type)"></span></div>
+      <div class="detail-item"><label>Rule</label><span [innerHTML]="valueDisplay(d)"></span></div>
+      <div class="detail-item"><label>Applies To</label><span>{{ scopeLabel(d) }}</span></div>
+      <div class="detail-item"><label>Website</label><span>{{ d.show_on_website ? 'Shown (Website → Offers)' : 'Hidden' }}</span></div>
+      <div class="detail-item"><label>Status</label><span class="badge" [ngClass]="statusBadgeClass(d)">{{ statusBadgeLabel(d) }}</span></div>
+      <div class="detail-item"><label>Usage</label><span>{{ d.usage_count || 0 }} / {{ d.usage_limit || '∞' }}</span></div>
+      <div class="detail-item"><label>Valid From</label><span>{{ d.start_date ? formatDate(d.start_date) : 'No start date' }}</span></div>
+      <div class="detail-item"><label>Valid To</label><span>{{ d.end_date ? formatDate(d.end_date) : 'No end date' }}</span></div>
+      <div class="detail-item"><label>Customer Group</label><span>{{ customerGroupLabel(d.customer_group) }}</span></div>
+      <div class="detail-item"><label>Tax Handling</label><span>{{ d.tax_handling === 'after_discount' ? 'After Discount' : 'Before Discount' }}</span></div>
+      <div class="detail-item col-span-2" *ngIf="d.description"><label>Description</label><span>{{ d.description }}</span></div>
+    </div>
+  </div>
+</app-drawer>

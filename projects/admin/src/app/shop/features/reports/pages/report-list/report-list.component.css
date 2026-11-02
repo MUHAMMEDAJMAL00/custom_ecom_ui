@@ -1,0 +1,21 @@
+.report-tabs-wrap { display:flex; flex-direction:column; gap:8px; margin-bottom:14px; }
+.report-tab-group { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+.report-tab-label { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--text-muted); min-width:70px; flex-shrink:0; }
+.report-pills { display:flex; flex-wrap:wrap; gap:4px; }
+.rpill { padding:5px 13px; border-radius:20px; border:1px solid var(--border); background:var(--bg-card); color:var(--text-secondary); font-size:12.5px; font-weight:500; font-family:inherit; cursor:pointer; transition:all .14s; white-space:nowrap; }
+.rpill:hover { background:var(--primary-light); color:var(--primary); border-color:var(--primary); }
+.rpill.active { background:var(--primary); color:#fff; border-color:var(--primary); font-weight:600; }
+.filter-label { font-size:12.5px; font-weight:600; color:var(--text-secondary); white-space:nowrap; }
+.filter-sep { font-size:12px; color:var(--text-muted); }
+.filter-divider { width:1px; height:20px; background:var(--border); margin:0 4px; }
+.date-filter { height:32px; padding:0 8px; border:1px solid var(--border); border-radius:8px; font-size:12.5px; font-family:inherit; color:var(--text-primary); background:var(--bg); cursor:pointer; transition:border-color .14s; width:138px; }
+.date-filter:focus { outline:none; border-color:var(--primary); }
+.btn-ghost { background:transparent; color:var(--text-secondary); border:1px solid var(--border); padding:4px 10px; border-radius:6px; font-size:12px; font-family:inherit; cursor:pointer; }
+.btn-ghost:hover { background:var(--primary-light); color:var(--primary); border-color:var(--primary); }
+.stat-icon.icon-blue { background:#eff6ff; color:#3b82f6; }
+.stat-icon.icon-green, .stat-icon.icon-teal { background:#f0fdf4; color:#059669; }
+.stat-icon.icon-purple { background:#faf5ff; color:#8b5cf6; }
+.stat-icon.icon-orange { background:#fff7ed; color:#f97316; }
+.stat-icon.icon-red { background:#fef2f2; color:#ef4444; }
+.stat-icon.icon-dark { background:#f6e7e9; color:#2a1a20; }
+.rpt-group { font-weight:700; font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:var(--text-secondary); }

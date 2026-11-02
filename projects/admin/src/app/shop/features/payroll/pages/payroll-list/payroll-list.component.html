@@ -1,0 +1,223 @@
+<div class="page-wrap">
+  <div class="page-header">
+    <div class="page-header-left">
+      <div class="page-title-main">Payroll</div>
+      <div class="page-breadcrumb"><a [routerLink]="'/dashboard' | shopUrl">Dashboard</a><span class="sep">›</span><span class="current">Payroll</span></div>
+    </div>
+    <div class="page-header-actions">
+      <button class="btn btn-icon-tool" title="Refresh" (click)="reload()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg></button>
+      <button class="btn btn-outline btn-sm" (click)="openAdvanceForm()">+ Advance</button>
+      <button class="btn btn-secondary btn-sm" (click)="openBulkPay()">Bulk Pay</button>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="stat-cards">
+    <div class="stat-card stat-card--teal"><div class="stat-card-info"><div class="stat-card-label">Total Payroll</div><div class="stat-card-value">{{ formatCurrency(stats.total_payroll) }}</div></div></div>
+    <div class="stat-card stat-card--dark"><div class="stat-card-info"><div class="stat-card-label">Total Paid</div><div class="stat-card-value" style="color:#16a34a">{{ formatCurrency(stats.total_paid) }}</div></div></div>
+    <div class="stat-card stat-card--orange"><div class="stat-card-info"><div class="stat-card-label">Pending</div><div class="stat-card-value" style="color:#d97706">{{ formatCurrency(stats.total_pending) }}</div></div></div>
+    <div class="stat-card stat-card--blue"><div class="stat-card-info"><div class="stat-card-label">Advance Outstanding</div><div class="stat-card-value" style="color:#7c3aed">{{ formatCurrency(stats.total_advance) }}</div></div></div>
+  </div>
+
+  <div class="card" style="margin-bottom:0">
+    <div class="toolbar">
+      <div class="toolbar-left" style="gap:10px">
+        <div><label style="font-size:.78rem;color:#6b5a60;display:block;margin-bottom:3px">Month</label><input type="month" class="filter-select" style="min-width:140px" [(ngModel)]="filterMonth" (change)="reload()" /></div>
+        <div style="display:flex;gap:6px;align-items:flex-end;padding-bottom:1px">
+          <button class="btn btn-sm" [style.background]="tab === 'dashboard' ? '#c8102e' : '#fff'" [style.color]="tab === 'dashboard' ? '#fff' : '#2a1a20'" (click)="switchTab('dashboard')">Dashboard</button>
+          <button class="btn btn-sm" [style.background]="tab === 'history' ? '#c8102e' : '#fff'" [style.color]="tab === 'history' ? '#fff' : '#2a1a20'" (click)="switchTab('history')">History</button>
+          <button class="btn btn-sm" [style.background]="tab === 'advances' ? '#c8102e' : '#fff'" [style.color]="tab === 'advances' ? '#fff' : '#2a1a20'" (click)="switchTab('advances')">Advances</button>
+        </div>
+      </div>
+      <div class="toolbar-right">
+        <div class="search-box"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input type="text" placeholder="Search employee…" autocomplete="off" [(ngModel)]="dashboardSearch" /></div>
+      </div>
+    </div>
+
+    <!-- Dashboard tab -->
+    <div *ngIf="tab === 'dashboard'">
+      <div class="table-wrap">
+        <table class="pos-table">
+          <thead><tr><th>#</th><th>Employee</th><th>Role</th><th>Monthly Salary</th><th>Advance Outstanding</th><th>Net Payable</th><th>Status</th><th></th></tr></thead>
+          <tbody>
+            <tr *ngIf="!filteredDashboard.length"><td colspan="8" class="tbl-empty">No employees found</td></tr>
+            <tr *ngFor="let r of filteredDashboard; let i = index">
+              <td>{{ i + 1 }}</td>
+              <td><strong>{{ r.name }}</strong></td>
+              <td>{{ r.role || '—' }}</td>
+              <td>{{ formatCurrency(r.monthly_salary) }}</td>
+              <td>{{ formatCurrency(r.outstanding_advance) }}</td>
+              <td>{{ r.status === 'Paid' ? (r.payroll_run?.net_payable || r.paid_via_salary || r.monthly_salary) : formatCurrency(r.monthly_salary) }}</td>
+              <td><span class="badge" [ngClass]="r.status === 'Paid' ? 'badge-success' : r.status === 'Cancelled' ? 'badge-cancelled' : 'badge-pending'">{{ r.status || 'Pending' }}</span></td>
+              <td><button *ngIf="r.status !== 'Paid'" class="btn btn-primary btn-sm" (click)="openPayForm(r)">Pay Now</button></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- History tab -->
+    <div *ngIf="tab === 'history'">
+      <div class="table-wrap">
+        <table class="pos-table">
+          <thead><tr><th>#</th><th>Employee</th><th>Month</th><th>Gross</th><th>Allowances</th><th>Deductions</th><th>Advance</th><th>Net Paid</th><th>Method</th><th>Date</th><th></th></tr></thead>
+          <tbody>
+            <tr *ngIf="histLoading"><td colspan="11" class="tbl-empty"><span class="pos-loader"><span></span><span></span><span></span></span></td></tr>
+            <tr *ngIf="!histLoading && !runs.length"><td colspan="11" class="tbl-empty">No records</td></tr>
+            <tr *ngFor="let r of runs; let i = index">
+              <td>{{ (histPage - 1) * histLimit + i + 1 }}</td>
+              <td><strong>{{ r.employee?.name || '—' }}</strong></td>
+              <td>{{ r.salary_month }}</td>
+              <td>{{ formatCurrency(r.gross_salary) }}</td>
+              <td>{{ formatCurrency(r.total_allowances) }}</td>
+              <td>{{ formatCurrency(r.total_deductions) }}</td>
+              <td>{{ formatCurrency(r.advance_deducted) }}</td>
+              <td><strong>{{ formatCurrency(r.net_payable) }}</strong></td>
+              <td>{{ r.payment_method }}</td>
+              <td>{{ r.payment_date }}</td>
+              <td><app-row-actions [showView]="true" (view)="openViewRun(r)"></app-row-actions></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="pagination-bar">
+        <div class="pagination-info">Show <select [ngModel]="histLimit" (ngModelChange)="histLimit = $event; loadHistory(1)"><option [ngValue]="20">20</option><option [ngValue]="50">50</option></select> entries</div>
+        <app-pagination [currentPage]="histPage" [totalPages]="histTotal" (pageChange)="loadHistory($event)"></app-pagination>
+      </div>
+    </div>
+
+    <!-- Advances tab -->
+    <div *ngIf="tab === 'advances'">
+      <div class="table-wrap">
+        <table class="pos-table">
+          <thead><tr><th>#</th><th>Employee</th><th>Date</th><th>Amount</th><th>Method</th><th>Status</th><th>Notes</th></tr></thead>
+          <tbody>
+            <tr *ngIf="advLoading"><td colspan="7" class="tbl-empty"><span class="pos-loader"><span></span><span></span><span></span></span></td></tr>
+            <tr *ngIf="!advLoading && !advances.length"><td colspan="7" class="tbl-empty">No advances found</td></tr>
+            <tr *ngFor="let a of advances; let i = index">
+              <td>{{ (advPage - 1) * advLimit + i + 1 }}</td>
+              <td><strong>{{ a.employee?.name || '—' }}</strong></td>
+              <td>{{ a.date }}</td>
+              <td>{{ formatCurrency(a.amount) }}</td>
+              <td>{{ a.payment_method }}</td>
+              <td><span class="badge" [ngClass]="a.status === 'Recovered' ? 'badge-success' : 'badge-warning'">{{ a.status }}</span></td>
+              <td>{{ a.notes || '—' }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="pagination-bar">
+        <div class="pagination-info">Show <select [ngModel]="advLimit" (ngModelChange)="advLimit = $event; loadAdvances(1)"><option [ngValue]="20">20</option><option [ngValue]="50">50</option></select> entries</div>
+        <app-pagination [currentPage]="advPage" [totalPages]="advTotal" (pageChange)="loadAdvances($event)"></app-pagination>
+      </div>
+    </div>
+  </div>
+</div>
+
+<app-drawer [open]="drawerOpen" [title]="drawerTitle" [showFooter]="drawerMode !== 'view'" [saving]="saving"
+            [saveLabel]="drawerMode === 'pay' ? 'Process Payment' : drawerMode === 'bulk' ? 'Process All' : 'Save Advance'"
+            (closed)="drawerOpen = false" (saveClicked)="handleSave()">
+
+  <!-- Pay form -->
+  <ng-container *ngIf="drawerMode === 'pay'">
+    <div class="form-grid cols-2">
+      <div class="form-group col-span-2">
+        <label class="form-label">Employee <span class="req">*</span></label>
+        <select class="form-control" [(ngModel)]="payEmpId">
+          <option [ngValue]="null">Select employee…</option>
+          <option *ngFor="let e of allEmployees" [ngValue]="e.id">{{ e.name }}</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">Month <span class="req">*</span></label><input type="month" class="form-control" [(ngModel)]="payMonth" /></div>
+      <div class="form-group"><label class="form-label">Payment Date <span class="req">*</span></label><input type="date" class="form-control" [(ngModel)]="payDate" /></div>
+      <div class="form-group"><label class="form-label">Gross Salary <span class="req">*</span></label><input type="number" class="form-control" min="0" step="0.01" [(ngModel)]="payGross" placeholder="0.00" (ngModelChange)="calcNet()" /></div>
+      <div class="form-group"><label class="form-label">Payment Method</label><select class="form-control" [(ngModel)]="payMethod"><option value="Cash">Cash</option><option value="Bank">Bank</option><option value="UPI">UPI</option><option value="Cheque">Cheque</option></select></div>
+      <div class="form-group"><label class="form-label">Advance Deduction</label><input type="number" class="form-control" min="0" step="0.01" [(ngModel)]="payAdv" (ngModelChange)="calcNet()" /></div>
+      <div class="form-group col-span-2"><label class="form-label">Notes</label><textarea class="form-control" rows="2" [(ngModel)]="payNotes"></textarea></div>
+    </div>
+
+    <div style="margin-top:14px"><strong>Allowances</strong> <button type="button" class="btn btn-sm" style="margin-left:8px" (click)="addPayLine('allowance')">+ Add</button></div>
+    <div style="margin-top:6px">
+      <div *ngFor="let l of payLines; let i = index">
+        <div style="display:flex;gap:8px;margin-bottom:6px" *ngIf="l.type === 'allowance'">
+          <input type="text" class="form-control" placeholder="Label" style="flex:1" [(ngModel)]="l.label" />
+          <input type="number" class="form-control" min="0" step="0.01" placeholder="0.00" style="width:110px" [(ngModel)]="l.amount" (ngModelChange)="calcNet()" />
+          <button type="button" style="background:none;border:none;color:#dc2626;cursor:pointer;font-size:16px" (click)="removePayLine(i)">✕</button>
+        </div>
+      </div>
+    </div>
+    <div style="margin-top:14px"><strong>Deductions</strong> <button type="button" class="btn btn-sm" style="margin-left:8px" (click)="addPayLine('deduction')">+ Add</button></div>
+    <div style="margin-top:6px">
+      <div *ngFor="let l of payLines; let i = index">
+        <div style="display:flex;gap:8px;margin-bottom:6px" *ngIf="l.type === 'deduction'">
+          <input type="text" class="form-control" placeholder="Label" style="flex:1" [(ngModel)]="l.label" />
+          <input type="number" class="form-control" min="0" step="0.01" placeholder="0.00" style="width:110px" [(ngModel)]="l.amount" (ngModelChange)="calcNet()" />
+          <button type="button" style="background:none;border:none;color:#dc2626;cursor:pointer;font-size:16px" (click)="removePayLine(i)">✕</button>
+        </div>
+      </div>
+    </div>
+    <div style="margin-top:14px;padding:10px;background:#fdf4f5;border-radius:6px">
+      <strong>Net Payable: {{ formatCurrency(calcNet()) }}</strong>
+    </div>
+  </ng-container>
+
+  <!-- Bulk pay -->
+  <ng-container *ngIf="drawerMode === 'bulk'">
+    <div style="margin-bottom:12px"><strong>Bulk Salary Payment — {{ filterMonth }}</strong></div>
+    <div class="form-grid cols-2" style="margin-bottom:12px">
+      <div class="form-group"><label class="form-label">Payment Date</label><input type="date" class="form-control" [(ngModel)]="bulkDate" /></div>
+      <div class="form-group"><label class="form-label">Payment Method</label><select class="form-control" [(ngModel)]="bulkMethod"><option value="Cash">Cash</option><option value="Bank">Bank</option><option value="UPI">UPI</option><option value="Cheque">Cheque</option></select></div>
+    </div>
+    <div class="table-wrap"><table class="pos-table"><thead><tr><th>Employee</th><th>Gross</th><th>Adv Deduction</th><th>Net</th></tr></thead>
+      <tbody>
+        <tr *ngFor="let r of pendingEmployees">
+          <td><strong>{{ r.name }}</strong></td>
+          <td>{{ formatCurrency(r.monthly_salary) }}</td>
+          <td>{{ formatCurrency(r.outstanding_advance) }}</td>
+          <td>{{ formatCurrency(calcNetPay(r.monthly_salary, r.outstanding_advance)) }}</td>
+        </tr>
+      </tbody>
+    </table></div>
+  </ng-container>
+
+  <!-- Advance form -->
+  <ng-container *ngIf="drawerMode === 'advance'">
+    <div class="form-grid cols-2">
+      <div class="form-group col-span-2">
+        <label class="form-label">Employee <span class="req">*</span></label>
+        <select class="form-control" [(ngModel)]="advEmpId">
+          <option [ngValue]="null">Select employee…</option>
+          <option *ngFor="let e of allEmployees" [ngValue]="e.id">{{ e.name }}</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">Date <span class="req">*</span></label><input type="date" class="form-control" [(ngModel)]="advDate" /></div>
+      <div class="form-group"><label class="form-label">Amount <span class="req">*</span></label><input type="number" class="form-control" min="0.01" step="0.01" [(ngModel)]="advAmount" placeholder="0.00" /></div>
+      <div class="form-group"><label class="form-label">Payment Method</label><select class="form-control" [(ngModel)]="advMethod"><option value="Cash">Cash</option><option value="Bank">Bank</option><option value="UPI">UPI</option><option value="Cheque">Cheque</option></select></div>
+      <div class="form-group col-span-2"><label class="form-label">Notes</label><textarea class="form-control" rows="2" [(ngModel)]="advNotes"></textarea></div>
+    </div>
+  </ng-container>
+
+  <!-- View run -->
+  <ng-container *ngIf="drawerMode === 'view' && viewRun as r">
+    <div class="detail-grid">
+      <div class="detail-item"><label>Employee</label><span><strong>{{ r.employee?.name || '—' }}</strong></span></div>
+      <div class="detail-item"><label>Month</label><span>{{ r.salary_month }}</span></div>
+      <div class="detail-item"><label>Gross Salary</label><span>{{ formatCurrency(r.gross_salary) }}</span></div>
+      <div class="detail-item"><label>Allowances</label><span>{{ formatCurrency(r.total_allowances) }}</span></div>
+      <div class="detail-item"><label>Deductions</label><span>{{ formatCurrency(r.total_deductions) }}</span></div>
+      <div class="detail-item"><label>Advance Deducted</label><span>{{ formatCurrency(r.advance_deducted) }}</span></div>
+      <div class="detail-item"><label>Net Payable</label><span><strong>{{ formatCurrency(r.net_payable) }}</strong></span></div>
+      <div class="detail-item"><label>Payment Method</label><span>{{ r.payment_method }}</span></div>
+      <div class="detail-item"><label>Payment Date</label><span>{{ r.payment_date }}</span></div>
+    </div>
+    <div *ngIf="r.lines && r.lines.length" style="margin-top:16px">
+      <strong>Allowances &amp; Deductions</strong>
+      <div class="table-wrap" style="margin-top:8px">
+        <table class="pos-table">
+          <thead><tr><th>Label</th><th>Type</th><th>Amount</th></tr></thead>
+          <tbody><tr *ngFor="let l of r.lines"><td>{{ l.label }}</td><td><span class="badge" [ngClass]="l.line_type === 'allowance' ? 'badge-success' : 'badge-cancelled'">{{ l.line_type }}</span></td><td><strong>{{ formatCurrency(l.amount) }}</strong></td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </ng-container>
+</app-drawer>

@@ -1,0 +1,270 @@
+<div class="edit-page">
+  <!-- Header: who, status, and the main actions -->
+  <header class="page-head">
+    <div class="head-main">
+      <a class="back-link" routerLink="/platform/tenants">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M19 12H5m0 0 6-6m-6 6 6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+        Shops
+      </a>
+      <div class="head-title">
+        <span class="avatar">{{ (tenant?.name || '?').charAt(0).toUpperCase() }}</span>
+        <div>
+          <h2>{{ tenant ? tenant.name : 'Edit shop' }}</h2>
+          <p *ngIf="tenant">
+            <code>{{ tenant.slug }}</code>
+            <span class="status" [class.is-active]="tenant.status === 'active'">{{ tenant.status }}</span>
+          </p>
+        </div>
+      </div>
+    </div>
+    <div class="head-actions" *ngIf="tenant">
+      <a class="btn-ghost" [href]="storefrontUrl" target="_blank" rel="noopener">View storefront ↗</a>
+      <a class="btn-ghost" [routerLink]="['/platform/tenants', tenant.id, 'domains']">Domains</a>
+      <button
+        class="btn-ghost is-danger"
+        type="button"
+        *ngIf="tenant.status === 'active' && canSuspend"
+        (click)="startSuspend()"
+      >Suspend shop</button>
+      <button
+        class="btn-ghost is-success"
+        type="button"
+        *ngIf="tenant.status === 'suspended' && canSuspend"
+        [disabled]="statusBusy"
+        (click)="activate()"
+      >{{ statusBusy ? 'Activating…' : 'Activate shop' }}</button>
+    </div>
+  </header>
+
+  <div class="empty-state" *ngIf="loading">
+    <span class="pos-loader"><span></span><span></span><span></span></span>
+  </div>
+
+  <div class="alert is-error" *ngIf="!loading && !tenant && errorMessage">{{ errorMessage }}</div>
+
+  <div class="read-only-note" *ngIf="!loading && tenant && !canEditProfile && !canEditModules">
+    Read-only access. You can view this shop, but your role cannot change its profile or modules.
+  </div>
+
+  <form class="layout" [formGroup]="form" (ngSubmit)="save()" *ngIf="!loading && tenant">
+    <!-- Left: shop profile -->
+    <fieldset class="main-col" [disabled]="!canEditProfile">
+      <!-- 1. Identity -->
+      <section class="card" id="sec-identity">
+        <div class="card-head">
+          <span class="step">1</span>
+          <div>
+            <h3>Shop identity</h3>
+            <p>Name customers see, and the legal details used on invoices.</p>
+          </div>
+        </div>
+        <div class="grid cols-2">
+          <div class="field">
+            <label for="name">Shop name <b>*</b></label>
+            <input id="name" type="text" formControlName="name" [class.is-invalid]="form.controls.name.invalid && form.controls.name.touched" />
+            <small class="field-error" *ngIf="form.controls.name.invalid && form.controls.name.touched">Enter at least 2 characters.</small>
+          </div>
+          <div class="field">
+            <label for="legal_name">Legal name <span>optional</span></label>
+            <input id="legal_name" type="text" formControlName="legal_name" placeholder="Registered business name" />
+          </div>
+          <div class="field">
+            <label for="gstin">GSTIN <span>optional</span></label>
+            <input id="gstin" type="text" formControlName="gstin" placeholder="29ABCDE1234F1Z5" />
+          </div>
+        </div>
+      </section>
+
+      <!-- 2. Contact -->
+      <section class="card" id="sec-contact">
+        <div class="card-head">
+          <span class="step">2</span>
+          <div>
+            <h3>Contact</h3>
+            <p>Where platform emails and customer replies go.</p>
+          </div>
+        </div>
+        <div class="grid cols-2">
+          <div class="field">
+            <label for="email">Contact email <b>*</b></label>
+            <input id="email" type="email" formControlName="email" [class.is-invalid]="form.controls.email.invalid && form.controls.email.touched" />
+            <small class="field-error" *ngIf="form.controls.email.invalid && form.controls.email.touched">Enter a valid email.</small>
+          </div>
+          <div class="field">
+            <label for="phone">Contact phone</label>
+            <input id="phone" type="text" formControlName="phone" placeholder="+91 98765 43210" />
+          </div>
+        </div>
+      </section>
+
+      <!-- 3. Regional -->
+      <section class="card" id="sec-regional">
+        <div class="card-head">
+          <span class="step">3</span>
+          <div>
+            <h3>Regional defaults</h3>
+            <p>Currency for prices, and the time zone and locale for dates and numbers.</p>
+          </div>
+        </div>
+        <div class="grid cols-2">
+          <div class="field">
+            <label for="currency">Currency</label>
+            <select id="currency" formControlName="currency">
+              <option *ngFor="let currency of currencies" [value]="currency">{{ currency }}</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="timezone">Timezone</label>
+            <select id="timezone" formControlName="timezone">
+              <option *ngFor="let timezone of timezones" [value]="timezone">{{ timezone }}</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="locale">Locale</label>
+            <select id="locale" formControlName="locale">
+              <option *ngFor="let locale of locales" [value]="locale">{{ locale }}</option>
+            </select>
+          </div>
+        </div>
+      </section>
+
+      <!-- 4. Branding -->
+      <section class="card" id="sec-branding">
+        <div class="card-head">
+          <span class="step">4</span>
+          <div>
+            <h3>Storefront &amp; branding</h3>
+            <p>Layout template and the images used in the shop header and browser tab.</p>
+          </div>
+        </div>
+        <div class="grid cols-2">
+          <div class="field">
+            <label for="layout_template">Layout template</label>
+            <select id="layout_template" formControlName="layout_template">
+              <option *ngFor="let layout of layouts" [value]="layout.value">{{ layout.label }}</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="logo_url">Logo URL <span>optional</span></label>
+            <div class="with-preview">
+              <input id="logo_url" type="text" formControlName="logo_url" placeholder="https://cdn.shop.com/logo.png" />
+              <span class="preview">
+                <img *ngIf="form.controls.logo_url.value" [src]="form.controls.logo_url.value" alt="" />
+              </span>
+            </div>
+          </div>
+          <div class="field">
+            <label for="favicon_url">Favicon URL <span>optional</span></label>
+            <div class="with-preview">
+              <input id="favicon_url" type="text" formControlName="favicon_url" placeholder="https://cdn.shop.com/favicon.png" />
+              <span class="preview">
+                <img *ngIf="form.controls.favicon_url.value" [src]="form.controls.favicon_url.value" alt="" />
+              </span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </fieldset>
+
+    <!-- Right: module access -->
+    <aside class="side-col">
+      <!-- 5. Modules -->
+      <section class="card modules-card" id="sec-modules">
+        <div class="card-head">
+          <span class="step">5</span>
+          <div>
+            <h3>Module access</h3>
+            <p>Switch features on or off for this shop. Turning a module off hides it but keeps its data.</p>
+          </div>
+          <span class="count">{{ selectedModuleCount }} optional on</span>
+        </div>
+
+        <div class="core-strip">
+          <span class="core-label">Always on</span>
+          <span class="chip" *ngFor="let module of coreModules" [title]="module.description">{{ module.label }}</span>
+        </div>
+
+        <div class="module-groups">
+          <div class="module-group" *ngFor="let group of optionalGroups">
+            <div class="group-head">
+              <h4>{{ group.name }}</h4>
+              <span>{{ groupSelectedCount(group) }} / {{ group.modules.length }}</span>
+            </div>
+            <button
+              type="button"
+              class="module-row"
+              *ngFor="let module of group.modules"
+              [class.is-on]="isModuleSelected(module)"
+              [class.is-planned]="!module.is_built"
+              [disabled]="!module.is_built"
+              [attr.aria-pressed]="isModuleSelected(module)"
+              (click)="toggleModule(module)"
+            >
+              <span class="module-copy">
+                <span class="module-title">
+                  {{ module.label }}
+                  <span class="tag" *ngIf="!module.is_built">Planned</span>
+                </span>
+                <small>{{ module.description }}</small>
+                <em *ngIf="module.depends_on.length">Requires {{ requiresLabel(module) }}</em>
+              </span>
+              <span class="switch" aria-hidden="true"><span></span></span>
+            </button>
+          </div>
+        </div>
+      </section>
+    </aside>
+
+    <!-- Sticky save bar -->
+    <div class="save-bar">
+      <span class="save-state">
+        <ng-container *ngIf="successMessage && !dirty"><span class="dot is-ok"></span>{{ successMessage }}</ng-container>
+        <ng-container *ngIf="errorMessage"><span class="dot is-error"></span>{{ errorMessage }}</ng-container>
+        <ng-container *ngIf="!errorMessage && dirty"><span class="dot"></span>Unsaved changes</ng-container>
+        <ng-container *ngIf="!errorMessage && !dirty && !successMessage">No unsaved changes</ng-container>
+      </span>
+      <div class="save-actions">
+        <button class="btn-back" type="button" (click)="back()" [disabled]="saving">Cancel</button>
+        <button
+          class="btn-save"
+          type="submit"
+          *ngIf="canEditProfile || canEditModules"
+          [disabled]="saving || !dirty"
+        >
+          <span class="spinner" *ngIf="saving" aria-hidden="true"></span>
+          {{ saving ? 'Saving…' : 'Save changes' }}
+        </button>
+      </div>
+    </div>
+  </form>
+
+  <div class="status-backdrop" *ngIf="showSuspend" (click)="cancelSuspend()">
+    <div class="status-dialog" (click)="$event.stopPropagation()">
+      <h3>Suspend this shop?</h3>
+      <p>
+        The storefront and shop admin will be unavailable until you activate it again.
+        Data is not deleted.
+      </p>
+
+      <label for="suspend_reason">Reason</label>
+      <textarea
+        id="suspend_reason"
+        rows="3"
+        [(ngModel)]="suspendReason"
+        placeholder="e.g. Unpaid invoice for October"
+      ></textarea>
+
+      <div class="status-error" *ngIf="statusError">{{ statusError }}</div>
+
+      <div class="status-actions">
+        <button class="btn-back" type="button" (click)="cancelSuspend()" [disabled]="statusBusy">Cancel</button>
+        <button class="btn-danger" type="button" (click)="confirmSuspend()" [disabled]="statusBusy">
+          {{ statusBusy ? 'Suspending…' : 'Suspend shop' }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

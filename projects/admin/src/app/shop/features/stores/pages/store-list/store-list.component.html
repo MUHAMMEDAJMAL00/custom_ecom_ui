@@ -1,0 +1,166 @@
+<div class="page-wrap">
+  <div class="page-header">
+    <div class="page-header-left">
+      <div class="page-title-main">Stores</div>
+      <div class="page-breadcrumb">
+        <a [routerLink]="'/dashboard' | shopUrl">Dashboard</a>
+        <span class="sep">›</span>
+        <span class="current">Stores</span>
+      </div>
+    </div>
+    <div class="page-header-actions">
+      <button class="btn btn-primary" *ngIf="isSuperAdmin" (click)="openCreate()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/>
+        </svg>
+        Add Store
+      </button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="toolbar">
+      <div class="toolbar-left">
+        <div class="search-box">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+          <input type="text" placeholder="Search stores…" autocomplete="off"
+                 [value]="search" (input)="onSearchInput($any($event.target).value)"/>
+        </div>
+      </div>
+      <div class="toolbar-right">
+        <select class="filter-select" [(ngModel)]="filterStatus" (change)="applyFilter()">
+          <option value="">Status ▾</option>
+          <option value="1">Active</option>
+          <option value="0">Inactive</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table class="pos-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Code</th>
+            <th>Store Name</th>
+            <th>Phone</th>
+            <th>Currency</th>
+            <th>Timezone</th>
+            <th>Status</th>
+            <th>Backorder</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngIf="loading"><td colspan="9" class="tbl-empty"><span class="pos-loader"><span></span><span></span><span></span></span></td></tr>
+          <tr *ngIf="!loading && errorMessage"><td colspan="9" class="tbl-empty" style="color:#ef4444">{{ errorMessage }}</td></tr>
+          <tr *ngIf="!loading && !errorMessage && !stores.length"><td colspan="9" class="tbl-empty">No stores found</td></tr>
+          <tr *ngFor="let s of stores; let i = index">
+            <td>{{ (page - 1) * limit + i + 1 }}</td>
+            <td><span class="cell-code">{{ s.code || '—' }}</span></td>
+            <td><strong>{{ s.name || '—' }}</strong></td>
+            <td>{{ s.phone || '—' }}</td>
+            <td>{{ s.currency || 'INR' }}</td>
+            <td><span class="tz-label">{{ timezoneShort(s.timezone) }}</span></td>
+            <td><span class="badge" [ngClass]="s.is_active ? 'badge-active' : 'badge-inactive'">{{ s.is_active ? 'Active' : 'Inactive' }}</span></td>
+            <td><span class="badge" [ngClass]="s.allow_negative_stock ? 'badge-active' : 'badge-inactive'">{{ s.allow_negative_stock ? 'Enabled' : 'Disabled' }}</span></td>
+            <td><app-row-actions [showView]="true" [showEdit]="isSuperAdmin" [showDelete]="isSuperAdmin" (view)="openView(s)" (edit)="openEdit(s)" (delete)="confirmDelete(s)"></app-row-actions></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="pagination-bar">
+      <div class="pagination-info">
+        Row Per Page
+        <select [ngModel]="limit" (ngModelChange)="limit = $event; load(1)">
+          <option [ngValue]="20">20</option>
+          <option [ngValue]="10">10</option>
+          <option [ngValue]="25">25</option>
+          <option [ngValue]="50">50</option>
+        </select>
+        Entries
+      </div>
+      <app-pagination [currentPage]="page" [totalPages]="totalPages" (pageChange)="load($event)"></app-pagination>
+    </div>
+  </div>
+</div>
+
+<app-drawer [open]="drawerMode !== null" [title]="drawerTitle"
+            [showFooter]="drawerMode === 'create' || drawerMode === 'edit'"
+            [saveLabel]="saveLabel"
+            [saving]="saving" (closed)="closeDrawer()" (saveClicked)="handleSave()">
+
+  <!-- View store -->
+  <ng-container *ngIf="drawerMode === 'view' && viewingStore as s">
+    <div class="detail-grid">
+      <div class="detail-item"><label>Store Name</label><span>{{ s.name || '—' }}</span></div>
+      <div class="detail-item"><label>Store Code</label><span><span class="cell-code">{{ s.code || '—' }}</span></span></div>
+      <div class="detail-item"><label>Phone</label><span>{{ s.phone || '—' }}</span></div>
+      <div class="detail-item"><label>Email</label><span>{{ s.email || '—' }}</span></div>
+      <div class="detail-item"><label>Currency</label><span>{{ s.currency || 'INR' }}</span></div>
+      <div class="detail-item"><label>Timezone</label><span>{{ s.timezone || '—' }}</span></div>
+      <div class="detail-item"><label>Status</label><span class="badge" [ngClass]="s.is_active ? 'badge-active' : 'badge-inactive'">{{ s.is_active ? 'Active' : 'Inactive' }}</span></div>
+      <div class="detail-item"><label>Backorder</label><span class="badge" [ngClass]="s.allow_negative_stock ? 'badge-active' : 'badge-inactive'">{{ s.allow_negative_stock ? 'Enabled' : 'Disabled' }}</span></div>
+      <div class="detail-item"><label>ID</label><span>{{ s.id }}</span></div>
+      <div class="detail-item col-span-2" *ngIf="s.address"><label>Address</label><span>{{ s.address }}</span></div>
+    </div>
+  </ng-container>
+
+  <!-- Add / Edit store -->
+  <ng-container *ngIf="drawerMode === 'create' || drawerMode === 'edit'">
+    <div class="form-grid cols-2">
+      <div class="form-group">
+        <label class="form-label">Store Name <span class="req">*</span></label>
+        <input type="text" class="form-control" placeholder="e.g. Main Branch" autocomplete="off" [(ngModel)]="fName"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Store Code <span class="req">*</span></label>
+        <input type="text" class="form-control" style="text-transform:uppercase" placeholder="e.g. MAIN01" autocomplete="off"
+               [(ngModel)]="fCode" [disabled]="drawerMode === 'edit'"/>
+        <small class="form-hint">{{ drawerMode === 'edit' ? 'Code cannot be changed.' : 'Unique, no spaces. Auto-uppercased.' }}</small>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Phone</label>
+        <input type="text" class="form-control" placeholder="+91 9999999999" [(ngModel)]="fPhone"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Email</label>
+        <input type="email" class="form-control" placeholder="store@example.com" [(ngModel)]="fEmail"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Currency</label>
+        <select class="form-control" [(ngModel)]="fCurrency">
+          <option *ngFor="let c of currencies" [value]="c">{{ c }}</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Timezone</label>
+        <select class="form-control" [(ngModel)]="fTimezone">
+          <option *ngFor="let tz of timezones" [value]="tz">{{ tz }}</option>
+        </select>
+      </div>
+      <div class="form-group col-span-2">
+        <label class="form-label">Address</label>
+        <textarea class="form-control" rows="2" placeholder="Full store address" [(ngModel)]="fAddress"></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Status</label>
+        <select class="form-control" [ngModel]="fActive" (ngModelChange)="fActive = $event">
+          <option [ngValue]="1">Active</option>
+          <option [ngValue]="0">Inactive</option>
+        </select>
+      </div>
+      <div class="form-group col-span-2">
+        <label class="form-label">Inventory</label>
+        <label class="form-check-label" style="display:flex;align-items:center;gap:8px;margin-top:4px">
+          <input type="checkbox" [(ngModel)]="fAllowNegative"/>
+          Allow selling when stock is 0 or below (Backorder)
+        </label>
+        <small class="form-hint">When enabled, sales complete normally even if inventory goes negative.</small>
+      </div>
+    </div>
+  </ng-container>
+</app-drawer>

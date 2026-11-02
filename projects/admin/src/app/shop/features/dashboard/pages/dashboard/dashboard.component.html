@@ -1,0 +1,130 @@
+<div class="dash-wrap">
+  <div class="dash-header">
+    <div>
+      <div class="dash-title">Overview</div>
+      <div class="dash-sub">{{ lastUpdated || 'Loading…' }}</div>
+    </div>
+  </div>
+
+  <div *ngIf="loading" class="empty-state" style="padding:80px">
+    <span class="pos-loader"><span></span><span></span><span></span></span>
+  </div>
+
+  <div *ngIf="!loading && errorMessage" class="empty-state">
+    <p>{{ errorMessage }}</p>
+    <button class="btn btn-outline btn-sm" (click)="load()">Retry</button>
+  </div>
+
+  <ng-container *ngIf="!loading && summary as s">
+    <!-- Stat Cards -->
+    <div class="dash-stats">
+      <div class="dash-card" (click)="goToSales()">
+        <div class="dash-card-icon icon-blue">🛒</div>
+        <div>
+          <div class="dash-card-lbl">Today's Sales</div>
+          <div class="dash-card-val">{{ s.today.sales_count }}</div>
+          <small>orders placed</small>
+        </div>
+      </div>
+      <div class="dash-card" (click)="goToSales()">
+        <div class="dash-card-icon icon-green">💰</div>
+        <div>
+          <div class="dash-card-lbl">Today's Revenue</div>
+          <div class="dash-card-val">{{ formatCurrency(s.today.sales_total) }}</div>
+          <small>total collected</small>
+        </div>
+      </div>
+      <div class="dash-card" (click)="goToSales()">
+        <div class="dash-card-icon icon-purple">📊</div>
+        <div>
+          <div class="dash-card-lbl">Today's Profit</div>
+          <div class="dash-card-val">{{ formatCurrency(s.today.profit) }}</div>
+          <small>own margin + commission</small>
+        </div>
+      </div>
+      <div class="dash-card" (click)="goToCustomers()">
+        <div class="dash-card-icon icon-orange">👥</div>
+        <div>
+          <div class="dash-card-lbl">Total Customers</div>
+          <div class="dash-card-val">{{ s.customers.total }}</div>
+          <small>registered</small>
+        </div>
+      </div>
+    </div>
+
+    <!-- Chart + Summary -->
+    <div class="dash-row">
+      <div class="dash-chart-col">
+        <div class="card">
+          <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;border-bottom:none;padding:16px 20px 8px">
+            <div class="card-title">7-Day Sales Report</div>
+            <div class="chart-legend">
+              <span><span class="dot dot-blue"></span>Income</span>
+              <span><span class="dot dot-green"></span>Profit</span>
+              <span><span class="dot dot-red"></span>Expense</span>
+            </div>
+          </div>
+          <div class="card-body">
+            <div id="sales-chart" style="min-height:260px"></div>
+          </div>
+        </div>
+      </div>
+      <div class="dash-summary-col">
+        <div class="card" style="height:100%">
+          <div class="card-header" style="border-bottom:none;padding:16px 20px 8px">
+            <div class="card-title">Today's Summary</div>
+          </div>
+          <div class="card-body">
+            <ul class="dash-summary-list">
+              <li><span>Total Sales</span><strong>{{ s.today.sales_count }}</strong></li>
+              <li><span>Total Revenue</span><strong>{{ formatCurrency(s.today.sales_total) }}</strong></li>
+              <li><span>Total Cost</span><strong style="color:#f97316">{{ formatCurrency(s.today.cost) }}</strong></li>
+              <li><span>Net Profit</span><strong style="color:#16a34a">{{ formatCurrency(s.today.profit) }}</strong></li>
+              <li><span>Low Stock Items</span><strong>{{ s.inventory.low_stock_products }}</strong></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recent Sales -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Recent Sales</div>
+      </div>
+      <div class="card-body-flush">
+        <div class="table-wrap">
+          <table class="pos-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Invoice</th>
+                <th>Customer</th>
+                <th>Items</th>
+                <th>Total</th>
+                <th>Profit</th>
+                <th>Status</th>
+                <th>Date</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let sale of s.recent_sales; let i = index">
+                <td>{{ i + 1 }}</td>
+                <td><code>{{ sale.invoice_number }}</code></td>
+                <td>{{ sale.Customer?.name || 'Walk-in' }}</td>
+                <td>{{ sale.items?.length || '—' }}</td>
+                <td>{{ formatCurrency(sale.total_amount) }}</td>
+                <td>{{ formatCurrency(sale.total_profit) }}</td>
+                <td><span class="badge" [ngClass]="'badge-' + sale.status">{{ sale.status }}</span></td>
+                <td>{{ sale.created_at | date: 'MMM d, y' }}</td>
+              </tr>
+              <tr *ngIf="!s.recent_sales.length">
+                <td colspan="8" class="tbl-empty">No sales yet</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </ng-container>
+</div>

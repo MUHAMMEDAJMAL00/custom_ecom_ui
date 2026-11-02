@@ -1,0 +1,102 @@
+<div class="page-wrap">
+  <div class="page-header">
+    <div class="page-header-left">
+      <div class="page-title-main">Ledger Statement</div>
+      <div class="page-breadcrumb"><a [routerLink]="'/dashboard' | shopUrl">Dashboard</a><span class="sep">›</span><span class="current">Ledger Statement</span></div>
+    </div>
+    <div class="page-header-actions">
+      <button class="btn btn-icon-tool" title="Refresh" (click)="loadStatement()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg></button>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:16px">
+    <div class="toolbar" style="flex-wrap:wrap;gap:12px">
+      <div class="toolbar-left" style="gap:10px;flex-wrap:wrap">
+        <div>
+          <label style="font-size:.78rem;color:#6b5a60;display:block;margin-bottom:3px">Account</label>
+          <select class="filter-select" style="min-width:200px" [(ngModel)]="filterAccount">
+            <option value="">— Select account —</option>
+            <option *ngFor="let a of accounts" [value]="a.id">{{ a.name }}{{ a.category ? ' (' + a.category.name + ')' : '' }}</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:.78rem;color:#6b5a60;display:block;margin-bottom:3px">From</label>
+          <input type="date" class="filter-select" [(ngModel)]="filterFrom" />
+        </div>
+        <div>
+          <label style="font-size:.78rem;color:#6b5a60;display:block;margin-bottom:3px">To</label>
+          <input type="date" class="filter-select" [(ngModel)]="filterTo" />
+        </div>
+        <div style="align-self:flex-end;padding-bottom:1px">
+          <button class="btn btn-primary btn-sm" (click)="loadStatement()">Load Statement</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <ng-container *ngIf="!loaded && !loading">
+    <div style="padding:40px;text-align:center;color:#6b5a60">Select an account and date range, then click Load Statement.</div>
+  </ng-container>
+
+  <ng-container *ngIf="loading">
+    <div class="card" style="margin-bottom:0">
+      <div class="table-wrap">
+        <table class="pos-table"><tbody><tr><td colspan="7" class="tbl-empty"><span class="pos-loader"><span></span><span></span><span></span></span></td></tr></tbody></table>
+      </div>
+    </div>
+  </ng-container>
+
+  <ng-container *ngIf="!loading && statement">
+    <!-- Header -->
+    <div class="card" style="margin-bottom:12px;padding:14px 20px">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px">
+        <div>
+          <strong style="font-size:1.05rem">{{ (statement.account?.name) || '—' }}</strong>
+          <span style="margin-left:8px;font-size:.83rem;color:#6b5a60" *ngIf="statement.account?.category?.name">
+            {{ statement.account?.category?.name }}{{ statement.account?.category?.group ? ' · ' + (statement.account?.category?.group || '') : '' }}
+          </span>
+        </div>
+        <div style="display:flex;gap:20px">
+          <div><span style="font-size:.78rem;color:#6b5a60">Opening Balance</span><br/><strong>{{ formatCurrency((statement.account?.opening_balance) || 0) }}</strong></div>
+          <div><span style="font-size:.78rem;color:#6b5a60">Total Debit</span><br/><strong style="color:#16a34a">{{ formatCurrency(totalDebit()) }}</strong></div>
+          <div><span style="font-size:.78rem;color:#6b5a60">Total Credit</span><br/><strong style="color:#dc2626">{{ formatCurrency(totalCredit()) }}</strong></div>
+          <div><span style="font-size:.78rem;color:#6b5a60">Closing Balance</span><br/><strong>{{ formatCurrency(statement.closing_balance ?? 0) }}</strong></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Table -->
+    <div class="card" style="margin-bottom:0">
+      <div class="table-wrap">
+        <table class="pos-table">
+          <thead><tr><th>Date</th><th>Reference</th><th>Description</th><th>Source</th><th style="text-align:right">Debit</th><th style="text-align:right">Credit</th><th style="text-align:right">Balance</th></tr></thead>
+          <tbody>
+            <tr style="background:#fdf4f5;font-weight:600">
+              <td colspan="4" style="padding:10px 12px">Opening Balance</td>
+              <td style="text-align:right;padding:10px 12px">—</td>
+              <td style="text-align:right;padding:10px 12px">—</td>
+              <td style="text-align:right;padding:10px 12px">{{ formatCurrency((statement.account?.opening_balance) || 0) }}</td>
+            </tr>
+            <tr *ngFor="let l of statement?.lines">
+              <td>{{ fmtDate(l.date) }}</td>
+              <td><strong>{{ l.reference_number || '—' }}</strong></td>
+              <td>{{ l.description || '—' }}</td>
+              <td><small>{{ humanizeRef(l.reference_type) }}{{ l.reference_id ? ' #' + l.reference_id : '' }}</small></td>
+              <td style="text-align:right">{{ l.debit > 0 ? formatCurrency(l.debit) : '—' }}</td>
+              <td style="text-align:right">{{ l.credit > 0 ? formatCurrency(l.credit) : '—' }}</td>
+              <td style="text-align:right"><strong>{{ formatCurrency(l.balance) }}</strong></td>
+            </tr>
+          </tbody>
+          <tfoot>
+            <tr style="background:#fdf4f5;font-weight:600">
+              <td colspan="4" style="padding:10px 12px">Closing Balance</td>
+              <td style="text-align:right;padding:10px 12px">{{ formatCurrency(totalDebit()) }}</td>
+              <td style="text-align:right;padding:10px 12px">{{ formatCurrency(totalCredit()) }}</td>
+              <td style="text-align:right;padding:10px 12px">{{ formatCurrency(statement.closing_balance ?? 0) }}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+  </ng-container>
+</div>

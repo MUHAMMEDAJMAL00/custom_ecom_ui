@@ -1,0 +1,300 @@
+<div class="page-wrap">
+  <div class="page-header">
+    <div class="page-header-left">
+      <div class="page-title-main">Website Offers</div>
+      <div class="page-breadcrumb">
+        <a [routerLink]="'/dashboard' | shopUrl">Dashboard</a>
+        <span class="sep">›</span>
+        <span>Website</span>
+        <span class="sep">›</span>
+        <span class="current">Offers</span>
+      </div>
+    </div>
+    <div class="page-header-actions">
+      <button class="btn btn-outline" (click)="load()" title="Refresh">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="23 4 23 10 17 10" /><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10" />
+        </svg>
+      </button>
+      <button class="btn btn-primary" (click)="openAdd()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="16" /><line x1="8" y1="12" x2="16" y2="12" />
+        </svg>
+        Add Offer
+      </button>
+    </div>
+  </div>
+
+  <div class="hint-bar">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" />
+    </svg>
+    <span>
+      These are the same offers as <a [routerLink]="'/discounts' | shopUrl">Finance → Discounts</a> — a change here changes the discount.
+      Percent/Flat offers appear under <strong>Discounts</strong>; Buy X Get Y, Min Qty, Bundle and Free Item offers appear under <strong>Product Offers</strong>.
+      The website shows an offer while it is <strong>Active</strong>, <strong>Show on website</strong> is on and today is inside its dates.
+      Clicking an offer on the website opens its product, its category, or a list of the products it applies to.
+    </span>
+  </div>
+
+  <div class="card">
+    <div class="toolbar">
+      <div class="toolbar-left">
+        <div class="search-box">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+          </svg>
+          <input type="text" placeholder="Search by name or code…" autocomplete="off" [value]="search"
+                 (input)="onSearchInput($any($event.target).value)" />
+        </div>
+      </div>
+      <div class="toolbar-right">
+        <select class="filter-select" [(ngModel)]="websiteFilter" (change)="load(1)">
+          <option value="">Website: All</option>
+          <option value="1">Shown on website</option>
+          <option value="0">Hidden from website</option>
+        </select>
+        <select class="filter-select" [(ngModel)]="statusFilter" (change)="load(1)">
+          <option value="">All Statuses</option>
+          <option value="1">Active</option>
+          <option value="0">Inactive</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table class="pos-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Offer (as shown on website)</th>
+            <th>Discount</th>
+            <th>Applies To</th>
+            <th>Valid Period</th>
+            <th>Website</th>
+            <th>Status</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngIf="loading">
+            <td colspan="8" class="tbl-empty"><span class="pos-loader"><span></span><span></span><span></span></span></td>
+          </tr>
+          <tr *ngIf="!loading && errorMessage">
+            <td colspan="8" class="tbl-empty" style="color: #ef4444">{{ errorMessage }}</td>
+          </tr>
+          <tr *ngIf="!loading && !errorMessage && !rows.length">
+            <td colspan="8" class="tbl-empty">No offers yet — add one here or in Finance → Discounts.</td>
+          </tr>
+          <tr *ngFor="let d of rows; let i = index" [hidden]="loading">
+            <td class="cell-num">{{ (page - 1) * limit + i + 1 }}</td>
+            <td>
+              <div class="cell-offer">
+                <span class="offer-icon" [class.offer-icon--badge]="d.web_badge">
+                  <ng-container *ngIf="d.web_badge; else iconTpl">{{ d.web_badge }}</ng-container>
+                  <ng-template #iconTpl><i class="bi" [ngClass]="d.web_icon || 'bi-tag'"></i></ng-template>
+                </span>
+                <div class="offer-meta">
+                  <span class="offer-title">{{ previewTitle(d) }} <span class="offer-highlight">| {{ previewHighlight(d) }}</span></span>
+                  <span class="offer-note">{{ d.web_note || d.name }}</span>
+                </div>
+              </div>
+            </td>
+            <td>
+              <div class="cell-discount">
+                <span>{{ valueLabel(d) }}</span>
+                <small>{{ typeLabel(d.discount_type) }}<ng-container *ngIf="d.code"> · <code>{{ d.code }}</code></ng-container><ng-container *ngIf="!d.code"> · auto</ng-container></small>
+              </div>
+            </td>
+            <td class="cell-scope">{{ appliesTo(d) }}</td>
+            <td style="font-size: 0.78rem; color: #6b5a60; white-space: nowrap">
+              {{ d.start_date ? (d.start_date | date: 'dd MMM yyyy') : '∞' }} → {{ d.end_date ? (d.end_date | date: 'dd MMM yyyy') : '∞' }}
+            </td>
+            <td>
+              <button type="button" class="toggle-pill" [class.on]="d.show_on_website" (click)="toggleWebsite(d)"
+                      [title]="d.show_on_website ? 'Hide from website' : 'Show on website'">
+                <span class="toggle-pill__dot"></span>
+              </button>
+              <div><span class="badge" [ngClass]="websiteState(d).cls">{{ websiteState(d).label }}</span></div>
+            </td>
+            <td>
+              <button type="button" class="toggle-pill" [class.on]="d.is_active" (click)="toggleActive(d)"
+                      [title]="d.is_active ? 'Deactivate' : 'Activate'">
+                <span class="toggle-pill__dot"></span>
+              </button>
+              <div><span class="badge" [ngClass]="d.is_active ? 'badge-active' : 'badge-inactive'">{{ d.is_active ? 'Active' : 'Inactive' }}</span></div>
+            </td>
+            <td>
+              <app-row-actions [showView]="true" [showEdit]="true" [showDelete]="true"
+                (view)="openView(d)" (edit)="openEdit(d)" (delete)="confirmDelete(d)"></app-row-actions>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="pagination-bar">
+      <div class="pagination-info">
+        Row Per Page
+        <select [ngModel]="limit" (ngModelChange)="onLimitChange($event)">
+          <option [ngValue]="20">20</option>
+          <option [ngValue]="10">10</option>
+          <option [ngValue]="50">50</option>
+        </select>
+        Entries
+      </div>
+      <app-pagination [currentPage]="page" [totalPages]="totalPages" (pageChange)="load($event)"></app-pagination>
+    </div>
+  </div>
+</div>
+
+<app-drawer [open]="drawerMode !== null" [title]="drawerTitle" [saveLabel]="editId ? 'Update' : 'Save'"
+            [saving]="saving" [showFooter]="drawerMode === 'form'" (closed)="closeDrawer()" (saveClicked)="handleSave()">
+
+  <form *ngIf="drawerMode === 'form'" [formGroup]="form" class="pf-form">
+    <div class="pf-section">
+      <div class="pf-section-header"><span class="pf-section-title">Offer</span></div>
+      <div class="pf-section-body">
+        <div class="form-grid">
+          <div class="form-group col-span-2">
+            <label class="form-label">Name <span class="req">*</span></label>
+            <input type="text" class="form-control" formControlName="name" maxlength="100" placeholder="e.g. Glow Oil 20% OFF" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Coupon Code</label>
+            <input type="text" class="form-control" formControlName="code" maxlength="50" placeholder="Blank = applied automatically" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Status</label>
+            <select class="form-control" formControlName="is_active">
+              <option [ngValue]="1">Active</option>
+              <option [ngValue]="0">Inactive</option>
+            </select>
+          </div>
+        </div>
+
+        <ng-container *ngIf="canEditRules; else rulesElsewhere">
+          <div class="form-grid" style="margin-top: 10px">
+            <div class="form-group">
+              <label class="form-label">Discount Type</label>
+              <select class="form-control" formControlName="discount_type">
+                <option value="percent">Percent %</option>
+                <option value="flat">Flat ₹</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Value <span class="req">*</span></label>
+              <input type="number" class="form-control" formControlName="discount_value" min="0" step="0.01" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Applies To</label>
+              <select class="form-control" formControlName="apply_to">
+                <option value="all">All Products</option>
+                <option value="category">Specific Category</option>
+                <option value="product">Specific Product</option>
+              </select>
+            </div>
+            <div class="form-group" *ngIf="form.value.apply_to === 'category'">
+              <label class="form-label">Category <span class="req">*</span></label>
+              <select class="form-control" formControlName="category_id">
+                <option [ngValue]="null">Select category…</option>
+                <option *ngFor="let c of categories" [ngValue]="c.id">{{ c.name }}</option>
+              </select>
+            </div>
+            <div class="form-group dc-mssd-wrap" *ngIf="form.value.apply_to === 'product'">
+              <label class="form-label">Product <span class="req">*</span></label>
+              <div class="dc-mssd-row">
+                <input type="text" class="form-control" placeholder="Search product by name or SKU…"
+                       [value]="productQuery" (input)="onProductInput($any($event.target).value)" />
+                <button type="button" class="dc-mssd-clr" *ngIf="selectedProduct" (click)="clearProduct()">×</button>
+              </div>
+              <div class="ssd-dropdown" *ngIf="productOpen">
+                <div class="ssd-item" *ngFor="let p of productResults" (mousedown)="$event.preventDefault(); pickProduct(p)">
+                  <span class="ssd-name">{{ p.name }}</span><span class="ssd-sku" *ngIf="p.sku">{{ p.sku }}</span>
+                </div>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Min Order (₹)</label>
+              <input type="number" class="form-control" formControlName="min_order_amount" min="0" step="0.01" />
+            </div>
+          </div>
+        </ng-container>
+        <ng-template #rulesElsewhere>
+          <p class="form-hint" style="margin: 10px 0 0">
+            This <strong>{{ typeLabel(editType) }}</strong> offer{{ editHasProductList ? " has several products" : "" }}. Its rules and products are edited in
+            <a [routerLink]="'/discounts' | shopUrl">Finance → Discounts</a>; here you can change its name, dates, status and how it looks on the website.
+          </p>
+        </ng-template>
+
+        <div class="form-grid" style="margin-top: 10px">
+          <div class="form-group">
+            <label class="form-label">Start Date</label>
+            <input type="date" class="form-control" formControlName="start_date" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">End Date</label>
+            <input type="date" class="form-control" formControlName="end_date" />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="pf-section">
+      <div class="pf-section-header"><span class="pf-section-title">On the Website</span></div>
+      <div class="pf-section-body">
+        <label style="display: flex; align-items: center; gap: 8px; font-size: 0.84rem; cursor: pointer; margin-bottom: 10px">
+          <input type="checkbox" formControlName="show_on_website" />
+          Show on the website while active and valid
+        </label>
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label">Title</label>
+            <input type="text" class="form-control" formControlName="web_title" maxlength="80" placeholder="e.g. Extra 10% OFF" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Highlight</label>
+            <input type="text" class="form-control" formControlName="web_highlight" maxlength="80" placeholder="e.g. Code: NEW15" />
+          </div>
+          <div class="form-group col-span-2">
+            <label class="form-label">Note</label>
+            <input type="text" class="form-control" formControlName="web_note" maxlength="120" placeholder="e.g. On first order above ₹999" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Badge</label>
+            <input type="text" class="form-control" formControlName="web_badge" maxlength="20" placeholder="e.g. VISA (optional)" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Icon</label>
+            <input type="text" class="form-control" formControlName="web_icon" maxlength="60" placeholder="bi-tag" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Display Order</label>
+            <input type="number" class="form-control" formControlName="web_sort_order" min="0" />
+          </div>
+        </div>
+        <small class="form-hint">Blank title/highlight/note are filled from the discount, e.g. "20% OFF | On Facial Glow Oil".</small>
+      </div>
+    </div>
+  </form>
+
+  <div *ngIf="drawerMode === 'view' && viewing as d" class="offer-view">
+    <div class="offer-preview">
+      <span class="offer-icon" [class.offer-icon--badge]="d.web_badge">
+        <ng-container *ngIf="d.web_badge; else viewIcon">{{ d.web_badge }}</ng-container>
+        <ng-template #viewIcon><i class="bi" [ngClass]="d.web_icon || 'bi-tag'"></i></ng-template>
+      </span>
+      <div>
+        <div class="offer-preview-title">{{ previewTitle(d) }} <span class="offer-highlight">| {{ previewHighlight(d) }}</span></div>
+        <div class="offer-preview-note">{{ d.web_note || d.name }}</div>
+      </div>
+    </div>
+    <div class="offer-view-row"><span>Discount</span><strong>{{ d.name }}</strong></div>
+    <div class="offer-view-row"><span>Rule</span><strong>{{ valueLabel(d) }} ({{ typeLabel(d.discount_type) }})</strong></div>
+    <div class="offer-view-row"><span>Coupon</span><strong>{{ d.code || 'Applied automatically' }}</strong></div>
+    <div class="offer-view-row"><span>Applies to</span><strong>{{ appliesTo(d) }}</strong></div>
+    <div class="offer-view-row"><span>Valid</span><strong>{{ d.start_date ? (d.start_date | date: 'dd MMM yyyy') : 'Any time' }} → {{ d.end_date ? (d.end_date | date: 'dd MMM yyyy') : 'No end' }}</strong></div>
+    <div class="offer-view-row"><span>Website</span><strong>{{ websiteState(d).label }}</strong></div>
+    <div class="offer-view-row"><span>Used</span><strong>{{ d.usage_count || 0 }} / {{ d.usage_limit || '∞' }}</strong></div>
+  </div>
+</app-drawer>

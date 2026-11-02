@@ -1,0 +1,113 @@
+<app-shop-shell>
+  <div class="ms-container page-wrap">
+    <div class="page-head">
+      <div>
+        <h1>Saved addresses</h1>
+        <p>Deliveries use these addresses. Keep up to five.</p>
+      </div>
+      <button class="btn-brand" type="button" (click)="startAdd()" [disabled]="maxReached || showForm">
+        <i class="bi bi-plus-lg"></i> Add address
+      </button>
+    </div>
+
+    @if (error) {
+      <div class="form-error page-alert"><i class="bi bi-exclamation-circle"></i> {{ error }}</div>
+    }
+    @if (success) {
+      <div class="form-success page-alert"><i class="bi bi-check-circle"></i> {{ success }}</div>
+    }
+
+    <div class="account-layout">
+      <section class="address-list">
+        @if (loading) {
+          <div class="loading-row"><span class="shop-loader"></span></div>
+        } @else if (!addresses.length) {
+          <div class="empty-state">
+            <i class="bi bi-geo-alt"></i>
+            <h2>No saved addresses</h2>
+            <p>Add a delivery address now, or create one during checkout.</p>
+            <button class="btn-brand" type="button" (click)="startAdd()">Add your first address</button>
+          </div>
+        } @else {
+          @for (address of addresses; track address.id) {
+            <article class="address-card" [class.address-card--default]="address.is_default">
+              <div class="address-card__head">
+                <strong>{{ address.name }}</strong>
+                <span class="address-card__type">{{ address.address_type }}</span>
+                @if (address.is_default) {
+                  <span class="status-chip status-chip--confirmed">Default</span>
+                }
+              </div>
+              <p class="address-card__text">{{ lines(address) }}</p>
+              <p class="address-card__text"><i class="bi bi-telephone"></i> {{ address.phone }}</p>
+              <div class="address-card__actions">
+                <button class="btn-plain" type="button" (click)="startEdit(address)">Edit</button>
+                @if (!address.is_default) {
+                  <button class="btn-plain" type="button" (click)="makeDefault(address)">Set as default</button>
+                }
+                <button class="btn-plain is-danger" type="button" (click)="remove(address)">Delete</button>
+              </div>
+            </article>
+          }
+        }
+      </section>
+
+      @if (showForm) {
+        <section class="panel address-form">
+          <div class="panel__head">
+            <h2 class="panel__title">{{ editingId ? 'Edit address' : 'New address' }}</h2>
+            <button class="btn-plain" type="button" (click)="cancel()">Cancel</button>
+          </div>
+          <form class="shop-form" (submit)="save(); $event.preventDefault()">
+            <div class="field-row">
+              <label class="field">
+                <span>Full name</span>
+                <input type="text" name="name" [(ngModel)]="draft.name" autocomplete="name" />
+              </label>
+              <label class="field">
+                <span>Phone</span>
+                <input type="tel" name="phone" [(ngModel)]="draft.phone" autocomplete="tel" />
+              </label>
+            </div>
+            <label class="field">
+              <span>Address</span>
+              <textarea name="address" [(ngModel)]="draft.full_address" autocomplete="street-address"></textarea>
+            </label>
+            <div class="field-row">
+              <label class="field">
+                <span>City</span>
+                <input type="text" name="city" [(ngModel)]="draft.city" autocomplete="address-level2" />
+              </label>
+              <label class="field">
+                <span>State</span>
+                <input type="text" name="state" [(ngModel)]="draft.state" autocomplete="address-level1" />
+              </label>
+            </div>
+            <div class="field-row">
+              <label class="field">
+                <span>PIN code</span>
+                <input type="text" name="pin" [(ngModel)]="draft.postal_code" maxlength="6" inputmode="numeric" autocomplete="postal-code" />
+              </label>
+              <label class="field">
+                <span>Country</span>
+                <input type="text" name="country" [(ngModel)]="draft.country" autocomplete="country-name" />
+              </label>
+            </div>
+            <label class="check-line">
+              <input
+                type="checkbox"
+                name="default"
+                [ngModel]="draft.is_default === 1"
+                (ngModelChange)="draft.is_default = $event ? 1 : 0"
+              />
+              <span>Use as my default address</span>
+            </label>
+            <button class="btn-brand" type="submit" [disabled]="saving">
+              {{ saving ? 'Saving…' : 'Save address' }}
+            </button>
+          </form>
+        </section>
+      }
+    </div>
+  </div>
+</app-shop-shell>

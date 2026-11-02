@@ -1,0 +1,256 @@
+<div class="page-wrap">
+  <div class="page-header">
+    <div class="page-header-left">
+      <div class="page-title-main">Home Banners</div>
+      <div class="page-breadcrumb">
+        <a [routerLink]="'/dashboard' | shopUrl">Dashboard</a>
+        <span class="sep">›</span>
+        <span>Website</span>
+        <span class="sep">›</span>
+        <span class="current">Home Banners</span>
+      </div>
+    </div>
+    <div class="page-header-actions">
+      <button class="btn btn-outline" (click)="load()" title="Refresh">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="23 4 23 10 17 10" /><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10" />
+        </svg>
+      </button>
+      <button class="btn btn-primary" (click)="openAdd()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="16" /><line x1="8" y1="12" x2="16" y2="12" />
+        </svg>
+        Add Banner
+      </button>
+    </div>
+  </div>
+
+  <div class="hint-bar">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" />
+    </svg>
+    <span>
+      These slides rotate on the storefront home page hero. Active slides show in Sort Order; the website
+      falls back to its built-in slides if no banner is active.
+    </span>
+  </div>
+
+  <div class="card">
+    <div class="toolbar">
+      <div class="toolbar-left">
+        <div class="search-box">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+          </svg>
+          <input type="text" placeholder="Search by title or eyebrow…" autocomplete="off" [value]="search"
+                 (input)="onSearchInput($any($event.target).value)" />
+        </div>
+      </div>
+      <div class="toolbar-right">
+        <select class="filter-select" [(ngModel)]="statusFilter" (change)="load(1)">
+          <option value="">All Statuses</option>
+          <option value="1">Active</option>
+          <option value="0">Inactive</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table class="pos-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Slide</th>
+            <th>Button Link</th>
+            <th>Order</th>
+            <th>Status</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngIf="loading">
+            <td colspan="6" class="tbl-empty"><span class="pos-loader"><span></span><span></span><span></span></span></td>
+          </tr>
+          <tr *ngIf="!loading && errorMessage">
+            <td colspan="6" class="tbl-empty" style="color: #ef4444">{{ errorMessage }}</td>
+          </tr>
+          <tr *ngIf="!loading && !errorMessage && !banners.length">
+            <td colspan="6" class="tbl-empty">No banners yet — add one to override the built-in home slides.</td>
+          </tr>
+          <tr *ngFor="let b of banners; let i = index" [hidden]="loading">
+            <td class="cell-num">{{ (page - 1) * limit + i + 1 }}</td>
+            <td>
+              <div class="cell-banner">
+                <div class="banner-thumb">
+                  <img *ngIf="b.image_url" [src]="bannersService.imageSrc(b.image_url)" alt="" />
+                  <span *ngIf="!b.image_url">{{ (b.title || '?').charAt(0).toUpperCase() }}</span>
+                </div>
+                <div class="banner-meta">
+                  <span class="banner-eyebrow">{{ b.eyebrow || '—' }}</span>
+                  <span class="banner-title">{{ b.title }}<span *ngIf="b.title_line2"> {{ b.title_line2 }}</span></span>
+                </div>
+              </div>
+            </td>
+            <td>{{ linkLabel(b) }}</td>
+            <td>{{ b.sort_order }}</td>
+            <td><span class="badge" [ngClass]="b.is_active ? 'badge-active' : 'badge-inactive'">{{ b.is_active ? 'active' : 'inactive' }}</span></td>
+            <td>
+              <app-row-actions [showView]="true" [showEdit]="true" [showDelete]="true"
+                (view)="openView(b)" (edit)="openEdit(b)" (delete)="confirmDelete(b)"></app-row-actions>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="pagination-bar">
+      <div class="pagination-info">
+        Row Per Page
+        <select [ngModel]="limit" (ngModelChange)="onLimitChange($event)">
+          <option [ngValue]="20">20</option>
+          <option [ngValue]="10">10</option>
+          <option [ngValue]="50">50</option>
+        </select>
+        Entries
+      </div>
+      <app-pagination [currentPage]="page" [totalPages]="totalPages" (pageChange)="load($event)"></app-pagination>
+    </div>
+  </div>
+</div>
+
+<app-drawer [open]="drawerMode !== null" [title]="drawerTitle" [saveLabel]="editId !== null ? 'Update Banner' : 'Save Banner'"
+            [saving]="saving || uploadingField !== null" [showFooter]="drawerMode === 'form'" (closed)="closeDrawer()" (saveClicked)="handleSave()">
+
+  <form *ngIf="drawerMode === 'form'" [formGroup]="form" class="pf-form">
+    <div class="pf-section">
+      <div class="pf-section-header"><span class="pf-section-title">Slide Copy</span></div>
+      <div class="pf-section-body">
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label">Eyebrow</label>
+            <input type="text" class="form-control" formControlName="eyebrow" placeholder="New Season" autocomplete="off" />
+            <small class="form-hint">Small label above the title.</small>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Script Line</label>
+            <input type="text" class="form-control" formControlName="script" placeholder="Be Bold" autocomplete="off" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Title <span class="req">*</span></label>
+            <input type="text" class="form-control" formControlName="title" placeholder="Makeup That" autocomplete="off" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Title — Second Line</label>
+            <input type="text" class="form-control" formControlName="title_line2" placeholder="Loves Your Skin" autocomplete="off" />
+          </div>
+          <div class="form-group col-span-2">
+            <label class="form-label">Description</label>
+            <textarea class="form-control" formControlName="text" rows="3"
+              placeholder="Long-wear lips, flawless bases and palettes made for every tone."></textarea>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Button Label</label>
+            <input type="text" class="form-control" formControlName="cta_label" placeholder="Explore Makeup" autocomplete="off" />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="pf-section">
+      <div class="pf-section-header"><span class="pf-section-title">Images</span></div>
+      <div class="pf-section-body">
+        <div class="image-fields">
+          <div class="image-field">
+            <div class="image-preview image-preview--portrait">
+              <img *ngIf="form.value.image_url" [src]="bannersService.imageSrc(form.value.image_url)" alt="Model preview" />
+              <span *ngIf="!form.value.image_url">No image</span>
+            </div>
+            <div class="image-actions">
+              <label class="btn btn-outline">
+                {{ uploadingField === 'image_url' ? 'Uploading…' : 'Upload model image' }}
+                <input type="file" accept="image/png,image/jpeg,image/webp,image/gif" hidden
+                       (change)="onImageSelected($event, 'image_url')" [disabled]="uploadingField !== null" />
+              </label>
+              <button type="button" class="btn btn-outline" *ngIf="form.value.image_url" (click)="clearImage('image_url')">Remove</button>
+              <small class="form-hint">Main photo (right side of the slide). Portrait crop, up to 5 MB.</small>
+            </div>
+          </div>
+
+          <div class="image-field">
+            <div class="image-preview image-preview--square">
+              <img *ngIf="form.value.products_image_url" [src]="bannersService.imageSrc(form.value.products_image_url)" alt="Product preview" />
+              <span *ngIf="!form.value.products_image_url">No image</span>
+            </div>
+            <div class="image-actions">
+              <label class="btn btn-outline">
+                {{ uploadingField === 'products_image_url' ? 'Uploading…' : 'Upload product image' }}
+                <input type="file" accept="image/png,image/jpeg,image/webp,image/gif" hidden
+                       (change)="onImageSelected($event, 'products_image_url')" [disabled]="uploadingField !== null" />
+              </label>
+              <button type="button" class="btn btn-outline" *ngIf="form.value.products_image_url" (click)="clearImage('products_image_url')">Remove</button>
+              <small class="form-hint">Small square product shot shown under the model photo.</small>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="pf-section">
+      <div class="pf-section-header"><span class="pf-section-title">Button Link</span></div>
+      <div class="pf-section-body">
+        <div class="form-grid">
+          <div class="form-group col-span-2">
+            <label class="form-label">Category</label>
+            <select class="form-control" formControlName="category_id" (change)="onCategoryChange()">
+              <option [ngValue]="null">No category link</option>
+              <option *ngFor="let c of categories" [ngValue]="c.id">{{ c.name }}</option>
+            </select>
+            <small class="form-hint">Sends the button to that category's product listing.</small>
+          </div>
+          <div class="form-group col-span-2">
+            <label class="form-label">Custom URL</label>
+            <input type="text" class="form-control" formControlName="link_url" autocomplete="off"
+                   placeholder="/catalog/category/skincare or https://…" (input)="onLinkUrlInput($any($event.target).value)" />
+            <small class="form-hint">Used only when no category is selected. A category always wins.</small>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="pf-section">
+      <div class="pf-section-header"><span class="pf-section-title">Display</span></div>
+      <div class="pf-section-body">
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label">Sort Order</label>
+            <input type="number" class="form-control" formControlName="sort_order" min="0" placeholder="0" />
+            <small class="form-hint">Lower numbers show first in the rotation.</small>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Status</label>
+            <select class="form-control" formControlName="is_active">
+              <option [ngValue]="1">Active</option>
+              <option [ngValue]="0">Inactive</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+  </form>
+
+  <div *ngIf="drawerMode === 'view' && viewingBanner as b" class="banner-view">
+    <div class="banner-view-preview" [style.background-image]="b.image_url ? 'url(' + bannersService.imageSrc(b.image_url) + ')' : null">
+      <div class="banner-view-overlay">
+        <span class="banner-view-eyebrow">{{ b.eyebrow || ' ' }}</span>
+        <div class="banner-view-title">{{ b.title }}<span *ngIf="b.title_line2"><br />{{ b.title_line2 }}</span></div>
+        <p class="banner-view-text">{{ b.text }}</p>
+        <span class="banner-view-cta" *ngIf="b.cta_label">{{ b.cta_label }} →</span>
+      </div>
+    </div>
+    <div class="banner-view-row"><span>Status</span><span class="badge" [ngClass]="b.is_active ? 'badge-active' : 'badge-inactive'">{{ b.is_active ? 'Active' : 'Inactive' }}</span></div>
+    <div class="banner-view-row"><span>Sort order</span><strong>{{ b.sort_order }}</strong></div>
+    <div class="banner-view-row"><span>Button link</span><strong>{{ linkLabel(b) }}</strong></div>
+    <div class="banner-view-row"><span>Script line</span><strong>{{ b.script || '—' }}</strong></div>
+    <div class="banner-view-row"><span>Product image</span><strong>{{ b.products_image_url ? 'Yes' : '—' }}</strong></div>
+  </div>
+</app-drawer>

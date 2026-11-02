@@ -1,0 +1,246 @@
+<app-classic-header [bootstrap]="bootstrap" [categories]="categoryTree"></app-classic-header>
+
+<main class="home">
+  <!-- Hero -->
+  <section class="ms-container hero-wrap">
+    <div class="hero">
+      @for (slide of heroSlides; track $index; let i = $index) {
+        <div class="hero__slide" [class.hero__slide--active]="i === heroIndex">
+          <div class="hero__copy">
+            <span class="hero__eyebrow">{{ slide.eyebrow }}</span>
+            <h1 class="hero__title">{{ slide.title }}<br />{{ slide.titleLine2 }}</h1>
+            <p class="hero__text">{{ slide.text }}</p>
+            <button type="button" class="ms-pill" (click)="open(slide)">{{ slide.cta }} <i class="bi bi-arrow-right"></i></button>
+          </div>
+          <img class="hero__model" [src]="slide.model" [alt]="slide.title" />
+          <span class="hero__script">{{ slide.script }}</span>
+          <img class="hero__products" [src]="slide.products" alt="" />
+        </div>
+      }
+      @if (heroSlides.length > 1) {
+        <div class="hero__dots">
+          @for (slide of heroSlides; track $index; let i = $index) {
+            <button type="button" [class.active]="i === heroIndex" (click)="goToSlide(i)" [attr.aria-label]="'Slide ' + (i + 1)"></button>
+          }
+        </div>
+      }
+    </div>
+  </section>
+
+  <!-- Offer strips -->
+  <section class="ms-container offers">
+    @for (offer of offers; track offer.title) {
+      <div class="offer">
+        <span class="offer__icon"><i class="bi" [ngClass]="offer.icon"></i></span>
+        <div>
+          <div class="offer__title">{{ offer.title }} <span>| {{ offer.highlight }}</span></div>
+          <div class="offer__note">{{ offer.note }}</div>
+        </div>
+      </div>
+    }
+  </section>
+
+  <!-- Shop by category -->
+  <section class="ms-container ms-section">
+    <div class="ms-head">
+      <h2 class="ms-title">Shop By Category</h2>
+      <a class="ms-viewall" (click)="viewAllCategories()">View All <i class="bi bi-arrow-right"></i></a>
+    </div>
+    <div class="cats">
+      @for (cat of categories; track cat.name) {
+        <a class="cat" (click)="openCategory(cat)">
+          <span class="cat__img"><img [src]="cat.image" [alt]="cat.name" loading="lazy" /></span>
+          <span class="cat__name">{{ cat.name }}</span>
+        </a>
+      }
+    </div>
+  </section>
+
+  <!-- Limited time deals -->
+  @if (show('deals') && deals.length) {
+  <section class="ms-container ms-section">
+    <div class="ms-head">
+      <h2 class="ms-title ms-title--caps">{{ heads['deals'].title }}</h2>
+      @if (heads['deals'].cta) {
+        <a class="ms-viewall" (click)="open(heads['deals'].link)">{{ heads['deals'].cta }} <i class="bi bi-arrow-right"></i></a>
+      }
+    </div>
+    <div class="deals">
+      @for (deal of deals; track $index) {
+        <a class="deal" [ngClass]="'deal--' + deal.style" (click)="open(deal)">
+          <div class="deal__copy">
+            <span class="deal__eyebrow">{{ deal.eyebrow }}</span>
+            <span class="deal__value">{{ deal.value }}</span>
+            <span class="deal__label">{{ deal.label }} <i class="bi bi-arrow-right"></i></span>
+          </div>
+          <img class="deal__img" [src]="deal.image" alt="" loading="lazy" />
+        </a>
+      }
+    </div>
+  </section>
+  }
+
+  <!-- Festive packs -->
+  @if (show('packs') && packs.length) {
+  <section class="ms-container ms-section">
+    <div class="ms-head">
+      <h2 class="ms-title">{{ heads['packs'].title }}</h2>
+      @if (heads['packs'].cta) {
+        <a class="ms-viewall" (click)="open(heads['packs'].link)">{{ heads['packs'].cta }} <i class="bi bi-arrow-right"></i></a>
+      }
+    </div>
+    <div class="packs">
+      @for (pack of packs; track $index) {
+        <div class="pack" [style.background]="'linear-gradient(180deg, #fff 0%, ' + pack.tint + ' 100%)'">
+          <div class="pack__title">{{ pack.title }}</div>
+          <div class="pack__sub">{{ pack.subtitle }}</div>
+          <img class="pack__img" [src]="pack.image" [alt]="pack.title" loading="lazy" />
+          <button type="button" class="ms-pill ms-pill--outline ms-pill--sm" (click)="open(pack)">Shop Now <i class="bi bi-arrow-right"></i></button>
+        </div>
+      }
+    </div>
+  </section>
+  }
+
+  <!-- Big brands -->
+  @if (show('brands') && brands.length) {
+  <section class="ms-section brands-band" id="brands">
+    <div class="ms-container">
+      <h2 class="ms-ribbon">{{ heads['brands'].title }}</h2>
+      <div class="brands">
+        @for (brand of brands; track $index) {
+          <a class="brand" (click)="open(brand)">
+            <span class="brand__name">{{ brand.name }}</span>
+            <span class="brand__img"><img [src]="brand.image" [alt]="brand.name" loading="lazy" /></span>
+            <span class="brand__offer">{{ brand.offer }}</span>
+            <span class="brand__note">{{ brand.note }}</span>
+          </a>
+        }
+      </div>
+    </div>
+  </section>
+  }
+
+  <!-- Season's hottest offers -->
+  @if (show('hot_offers')) {
+  <section class="hot">
+    <div class="ms-container hot__inner">
+      <div>
+        <div class="hot__eyebrow">{{ heads['hot_offers'].eyebrow }}</div>
+        <h2 class="hot__title">{{ heads['hot_offers'].title }}</h2>
+        <div class="hot__sub">{{ heads['hot_offers'].highlight }}</div>
+        @if (heads['hot_offers'].cta) {
+          <button type="button" class="ms-pill" (click)="open(heads['hot_offers'].link)">{{ heads['hot_offers'].cta }}</button>
+        }
+      </div>
+      @if (heads['hot_offers'].image) {
+        <img class="hot__img" [src]="heads['hot_offers'].image" alt="" loading="lazy" />
+      }
+    </div>
+  </section>
+  }
+
+  <!-- More beauty, better value -->
+  @if (show('value')) {
+  <section class="ms-container ms-section" id="value">
+    <h2 class="ms-ribbon">{{ heads['value'].title }}</h2>
+    <div class="values">
+      @for (item of valueItems; track $index) {
+        <a class="value" (click)="open(item.link)">
+          <span class="value__img"><img [src]="item.image" [alt]="item.name" loading="lazy" /></span>
+          <span class="value__name">{{ item.name }}</span>
+          <span class="value__price">{{ item.price }}</span>
+        </a>
+      }
+    </div>
+  </section>
+
+  }
+
+  <!-- MySkin Luxe -->
+  @if (show('luxe')) {
+  <section class="luxe">
+    <div class="ms-container">
+      <h2 class="luxe__title">{{ heads['luxe'].title }}</h2>
+      @if (heads['luxe'].subtitle) {
+        <div class="luxe__sub">{{ heads['luxe'].subtitle }}</div>
+      }
+      <div class="luxe__cards">
+        @for (card of luxeCards; track $index) {
+          <a class="luxe-card" (click)="open(card)">
+            <img [src]="card.image" [alt]="card.title" loading="lazy" />
+            <div class="luxe-card__copy">
+              <strong>{{ card.title }}</strong>
+              <span>{{ card.subtitle }}</span>
+            </div>
+            <span class="luxe-card__btn">Shop Now <i class="bi bi-arrow-right"></i></span>
+          </a>
+        }
+      </div>
+      @if (show('perks') && luxePerks.length) {
+      <div class="perks">
+        @for (perk of luxePerks; track $index) {
+          <div class="perk">
+            <i class="bi" [ngClass]="perk.icon"></i>
+            <strong>{{ perk.title }}</strong>
+            <span>{{ perk.note }}</span>
+          </div>
+        }
+      </div>
+      }
+      @if (heads['luxe'].highlight) {
+        <div class="luxe__rewards">{{ rewardsParts[0] }} @if (rewardsParts[1]) {<span>|</span> {{ rewardsParts[1] }}}</div>
+      }
+    </div>
+  </section>
+  }
+
+  <!-- Spotlight stories -->
+  @if (show('stories') || show('trending')) {
+  <section class="ms-container ms-section" id="community">
+    @if (show('stories')) {
+    <h2 class="ms-ribbon">{{ heads['stories'].title }}</h2>
+    <div class="stories">
+      @for (story of stories; track $index) {
+        <button type="button" class="story" (click)="open(story)">{{ story.label }}</button>
+      }
+    </div>
+    }
+
+    @if (show('trending')) {
+    <a class="trend" (click)="open(trending)">
+      <div class="trend__copy">
+        <div class="trend__title">{{ trending.title }}<br />{{ trending.subtitle }}</div>
+        <div class="trend__offer">{{ trending.offer }}</div>
+      </div>
+      <div class="trend__imgs">
+        @for (img of trending.images; track img) {
+          <span><img [src]="img" alt="" loading="lazy" /></span>
+        }
+      </div>
+    </a>
+    }
+  </section>
+  }
+
+  <!-- Connect with us -->
+  <section class="connect">
+    <div class="connect__photos">
+      @for (photo of connectPhotos; track photo) {
+        <img [src]="photo" alt="" loading="lazy" />
+      }
+    </div>
+    <div class="connect__overlay">
+      <h2 class="connect__title">{{ heads['connect'].title }}</h2>
+      <div class="connect__icons">
+        @for (social of socials; track social.label) {
+          <a [href]="social.url" target="_blank" rel="noopener" [attr.aria-label]="social.label">
+            <i class="bi" [ngClass]="social.icon"></i>
+          </a>
+        }
+      </div>
+    </div>
+  </section>
+</main>
+
+<app-classic-footer [bootstrap]="bootstrap" [categories]="categoryTree"></app-classic-footer>

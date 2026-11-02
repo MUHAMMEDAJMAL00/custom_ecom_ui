@@ -1,0 +1,209 @@
+<div class="page-wrap">
+  <div class="page-header">
+    <div class="page-header-left">
+      <div class="page-title-main">Wastage &amp; Returns</div>
+      <div class="page-breadcrumb">
+        <a [routerLink]="'/dashboard' | shopUrl">Dashboard</a>
+        <span class="sep">›</span>
+        <span class="current">Inventory Logs</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="main-layout">
+
+    <!-- LEFT: Activity Log -->
+    <div class="log-area">
+      <div class="card">
+        <div class="card-header" style="padding:16px 20px;border-bottom:1px solid #efd6da;display:flex;justify-content:space-between;align-items:center">
+          <span class="card-title">{{ mode === 'dead_stock' ? 'Dead Stock Logs' : 'Vendor Returns Log' }}</span>
+          <div style="display:flex;gap:12px;align-items:center">
+            <div class="search-box">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input type="text" placeholder="Search..." autocomplete="off" [(ngModel)]="search" (ngModelChange)="loadLogs(1)" />
+            </div>
+          </div>
+        </div>
+
+        <div class="table-wrap" style="height:500px;overflow-y:auto">
+          <table class="pos-table" id="wastage-table">
+            <thead>
+              <tr *ngIf="mode === 'dead_stock'">
+                <th>#</th><th>Product Details</th><th>Qty</th><th>Ref #</th><th>Reason</th><th>Notes</th><th>Date</th>
+              </tr>
+              <tr *ngIf="mode === 'vendor_return'">
+                <th>#</th><th>Product Details</th><th>Qty</th><th>Ref #</th><th>Vendor</th><th>Action</th><th>Reason</th><th>Date</th>
+              </tr>
+            </thead>
+            <tbody id="tbody">
+              <tr *ngIf="loading"><td [attr.colspan]="mode === 'dead_stock' ? 7 : 8" class="tbl-empty"><span class="pos-loader"><span></span><span></span><span></span></span></td></tr>
+              <tr *ngIf="!loading && !logs.length"><td [attr.colspan]="mode === 'dead_stock' ? 7 : 8" class="tbl-empty">No records found</td></tr>
+              <!-- Dead stock rows -->
+              <ng-container *ngIf="mode === 'dead_stock'">
+                <tr *ngFor="let m of logs; let i = index">
+                  <td>{{ (page - 1) * limit + i + 1 }}</td>
+                  <td>
+                    <div class="product-cell">
+                      <span class="product-name">{{ m.Product?.name || '—' }}</span>
+                      <span class="product-sku">{{ m.Product?.sku || '—' }}</span>
+                    </div>
+                  </td>
+                  <td style="font-weight:700;color:#e11d48">{{ m.quantity }}</td>
+                  <td><code>{{ m.reference_number || '—' }}</code></td>
+                  <td><span class="status-pill status-dead">{{ m.reason || '—' }}</span></td>
+                  <td>{{ m.notes || '—' }}</td>
+                  <td style="color:#6b5a60;font-size:.8rem">{{ formatDate(m.created_at || m.createdAt) }}</td>
+                </tr>
+              </ng-container>
+              <!-- Vendor return rows -->
+              <ng-container *ngIf="mode === 'vendor_return'">
+                <tr *ngFor="let m of logs; let i = index">
+                  <td>{{ (page - 1) * limit + i + 1 }}</td>
+                  <td>
+                    <div class="product-cell">
+                      <span class="product-name">{{ m.Product?.name || '—' }}</span>
+                      <span class="product-sku">{{ m.Product?.sku || '—' }}</span>
+                    </div>
+                  </td>
+                  <td style="font-weight:700;color:#4f46e5">{{ m.quantity }}</td>
+                  <td><code>{{ m.reference_number || '—' }}</code></td>
+                  <td>{{ getVendorName(m) }}</td>
+                  <td><span class="badge badge-active">{{ getReturnAction(m) }}</span></td>
+                  <td>{{ m.reason || '—' }}</td>
+                  <td style="color:#6b5a60;font-size:.8rem">{{ formatDate(m.created_at || m.createdAt) }}</td>
+                </tr>
+              </ng-container>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="pagination-bar">
+          <div class="pagination-info">
+            Rows:
+            <select [ngModel]="limit" (ngModelChange)="limit = $event; loadLogs(1)">
+              <option [ngValue]="20">20</option>
+              <option [ngValue]="50">50</option>
+            </select>
+          </div>
+          <app-pagination [currentPage]="page" [totalPages]="totalPages" (pageChange)="loadLogs($event)"></app-pagination>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: Quick Record Panel -->
+    <div class="action-panel">
+      <div class="card">
+        <div class="card-header" style="background:#fdf4f5">
+          <span class="card-title">Quick Record</span>
+        </div>
+        <div class="card-body">
+          <!-- Mode Toggle -->
+          <div class="mode-selector">
+            <button class="mode-btn" [class.active]="mode === 'dead_stock'" (click)="switchMode('dead_stock')">Dead Stock</button>
+            <button class="mode-btn" [class.active]="mode === 'vendor_return'" (click)="switchMode('vendor_return')">Returns</button>
+          </div>
+
+          <form (ngSubmit)="submitForm()">
+            <!-- Vendor (return mode only) -->
+            <div class="form-group" *ngIf="mode === 'vendor_return'">
+              <label class="form-label">Vendor <span class="req">*</span></label>
+              <select class="form-control" [(ngModel)]="selectedVendorId" name="vendor" (ngModelChange)="onVendorChange()">
+                <option [ngValue]="null">Select vendor…</option>
+                <option *ngFor="let v of vendors" [ngValue]="v.id">{{ v.name }}</option>
+              </select>
+            </div>
+
+            <!-- Barcode scan -->
+            <div class="form-group">
+              <label class="form-label">Scan Barcode <span style="font-size:0.72rem;font-weight:400;color:#9c8b91">(optional)</span></label>
+              <div style="display:flex;align-items:center;gap:8px">
+                <div style="position:relative;flex:1">
+                  <svg class="barcode-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="4" height="16"/><rect x="7" y="4" width="2" height="16"/><rect x="11" y="4" width="4" height="16"/><rect x="17" y="4" width="2" height="16"/><rect x="21" y="4" width="2" height="16"/></svg>
+                  <input type="text" class="form-control barcode-input" placeholder="Scan barcode or type + Enter…" autocomplete="off"
+                         [(ngModel)]="barcodeValue" name="barcode" (keydown.enter)="$event.preventDefault(); onBarcodeEnter()" />
+                </div>
+              </div>
+            </div>
+
+            <!-- Product search -->
+            <div class="form-group">
+              <label class="form-label">Product <span class="req">*</span></label>
+              <div class="ssd-wrap">
+                <input type="text" class="form-control" placeholder="{{ mode === 'vendor_return' && !selectedVendorId ? 'Select vendor first…' : 'Type name or SKU…' }}" autocomplete="off"
+                       [disabled]="mode === 'vendor_return' && !selectedVendorId"
+                       [(ngModel)]="searchQuery" name="searchQ"
+                       (focus)="searchProductFocused = true; filterProducts()"
+                       (input)="selectedProduct = null; filterProducts()"
+                       (blur)="onProductSearchBlur()" />
+                <div class="ssd-dropdown" *ngIf="searchProductFocused && filteredProducts.length">
+                  <div class="ssd-item" *ngFor="let p of filteredProducts" (mousedown)="selectProductFromDropdown(p)">
+                    <span class="ssd-name">{{ p.name }}</span>
+                    <span class="ssd-sku" *ngIf="p.sku">{{ p.sku }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Qty & Reason row -->
+            <div style="display:flex;gap:12px;flex-wrap:wrap">
+              <div class="form-group" style="flex:1;min-width:80px">
+                <label class="form-label">Qty <span class="req">*</span></label>
+                <input type="number" class="form-control" step="any" [(ngModel)]="qty" name="qty" (ngModelChange)="updatePreview()" />
+                <div class="stock-hint" *ngIf="selectedProduct">
+                  Available: <strong>{{ activeStock }}</strong>
+                </div>
+              </div>
+              <div class="form-group" style="flex:1.5;min-width:120px">
+                <label class="form-label">Reason</label>
+                <select class="form-control" [(ngModel)]="reason" name="reason">
+                  <option value="damaged">Damaged</option>
+                  <option value="expired">Expired</option>
+                  <option value="lost">Lost</option>
+                  <option value="other">Other</option>
+                </select>
+                <div class="loss-hint" *ngIf="selectedProduct && (qty || 0) > 0" [class.refund]="mode === 'vendor_return'">
+                  <span>{{ mode === 'vendor_return' ? 'Est. Refund' : 'Est. Loss' }}</span>: <strong>{{ formatCurrency(estAmount) }}</strong>
+                </div>
+              </div>
+              <div class="form-group" style="flex:1.5;min-width:120px">
+                <label class="form-label">Ref #</label>
+                <input type="text" class="form-control" [(ngModel)]="refNumber" name="ref" placeholder="Doc #" />
+              </div>
+            </div>
+
+            <!-- Expected Action (return mode only) -->
+            <div class="form-group" *ngIf="mode === 'vendor_return'">
+              <label class="form-label">Expected Action</label>
+              <select class="form-control" [(ngModel)]="returnAction" name="action">
+                <option value="refund">Refund (Credit Note)</option>
+                <option value="replacement">Replacement</option>
+                <option value="repair">Repair</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+
+            <!-- Linked Purchase (return mode) -->
+            <div class="form-group" *ngIf="mode === 'vendor_return'">
+              <label class="form-label">Linked Purchase</label>
+              <select class="form-control" [(ngModel)]="selectedPurchaseId" name="purchase">
+                <option [ngValue]="null">Optional…</option>
+                <option *ngFor="let p of purchases" [ngValue]="p.id">{{ p.purchase_number }}</option>
+              </select>
+            </div>
+
+            <!-- Notes -->
+            <div class="form-group">
+              <label class="form-label">Notes</label>
+              <textarea class="form-control" rows="2" [(ngModel)]="notes" name="notes"></textarea>
+            </div>
+
+            <button type="submit" class="btn btn-save" [disabled]="submitting">
+              <span>{{ submitting ? 'Saving…' : (mode === 'dead_stock' ? 'Submit Wastage' : 'Record Return') }}</span>
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>

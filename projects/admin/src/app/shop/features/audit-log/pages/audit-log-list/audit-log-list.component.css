@@ -1,0 +1,91 @@
+.entry-count-badge {
+  display: inline-block;
+  padding: 6px 16px;
+  border-radius: 20px;
+  font-size: .82rem;
+  font-weight: 600;
+  background: #f6e7e9;
+  color: #6b5a60;
+  border: 1px solid #efd6da;
+  white-space: nowrap;
+}
+
+.mod-badge,
+.act-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: .7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  white-space: nowrap;
+}
+
+.ref-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: .7rem;
+  background: #f6e7e9;
+  color: #5a0614;
+  font-family: monospace;
+  white-space: nowrap;
+}
+
+.log-desc {
+  max-width: 240px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.log-row { cursor: pointer; }
+.log-row:hover { background: #f0f4ff; }
+
+.pagination-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: .82rem;
+  color: #6b5a60;
+}
+
+.diff-table { font-size: .78rem; }
+.diff-table th { font-size: .7rem; font-weight: 600; color: #9c8b91; }
+.diff-table td, .diff-table th { padding: 5px 10px; }
+.diff-table code {
+  font-size: .72rem;
+  background: #f6e7e9;
+  padding: 1px 4px;
+  border-radius: 3px;
+  word-break: break-all;
+  color: #5a0614;
+}
+.diff-changed { background: #fef9c3; }
+
+.section-label {
+  font-size: .65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: #9c8b91;
+}
+
+.text-danger { color: #dc2626; }
+.text-success { color: #16a34a; }
+.text-muted { color: #9c8b91; }
+
+/* Bootstrap 5.3 subtle/text tokens not covered by the CDN/npm build defaults */
+.bg-purple-subtle  { background-color: #ede7f6 !important; }
+.text-purple       { color: #6f42c1 !important; }
+.bg-teal-subtle    { background-color: #e0f2f1 !important; }
+.text-teal         { color: #20c997 !important; }
+.bg-orange-subtle  { background-color: #fff3e0 !important; }
+.text-orange       { color: #fd7e14 !important; }
+.bg-pink-subtle    { background-color: #fce4ec !important; }
+.text-pink         { color: #d63384 !important; }
+.bg-indigo-subtle  { background-color: #e8eaf6 !important; }
+.text-indigo       { color: #6610f2 !important; }
+.bg-cyan-subtle    { background-color: #e0f7fa !important; }
+.text-cyan         { color: #0dcaf0 !important; }

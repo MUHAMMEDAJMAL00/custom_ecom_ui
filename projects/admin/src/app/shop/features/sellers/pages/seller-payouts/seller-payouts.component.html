@@ -1,0 +1,138 @@
+<div class="page-wrap">
+  <div class="page-header">
+    <div class="page-header-left">
+      <div class="page-title-main">Seller Payouts</div>
+      <div class="page-breadcrumb">
+        <a [routerLink]="'/dashboard' | shopUrl">Dashboard</a>
+        <span class="sep">›</span>
+        <a [routerLink]="'/sellers' | shopUrl">Sellers</a>
+        <span class="sep">›</span>
+        <span class="current">Payouts</span>
+      </div>
+    </div>
+    <div class="page-header-actions">
+      <button class="btn btn-outline" (click)="load()" title="Refresh">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="23 4 23 10 17 10" /><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10" />
+        </svg>
+      </button>
+      <a class="btn btn-outline" [routerLink]="'/sellers' | shopUrl">Back to Sellers</a>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="toolbar">
+      <div class="toolbar-left">
+        <span class="toolbar-label">Payouts settle a seller's unpaid sale lines in one batch.</span>
+      </div>
+      <div class="toolbar-right">
+        <select class="filter-select" [(ngModel)]="statusFilter" (change)="onFilterChange()">
+          <option value="">All Statuses</option>
+          <option value="pending">Pending</option>
+          <option value="paid">Paid</option>
+          <option value="cancelled">Cancelled</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table class="pos-table">
+        <thead>
+          <tr>
+            <th>Payout #</th>
+            <th>Seller</th>
+            <th>Period</th>
+            <th>Lines</th>
+            <th>Gross</th>
+            <th>Commission</th>
+            <th>Net Payable</th>
+            <th>Status</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngIf="loading">
+            <td colspan="9" class="tbl-empty"><span class="pos-loader"><span></span><span></span><span></span></span></td>
+          </tr>
+          <tr *ngIf="!loading && errorMessage">
+            <td colspan="9" class="tbl-empty" style="color: #ef4444">{{ errorMessage }}</td>
+          </tr>
+          <tr *ngIf="!loading && !errorMessage && !payouts.length">
+            <td colspan="9" class="tbl-empty">No payouts found</td>
+          </tr>
+          <tr *ngFor="let payout of payouts" [hidden]="loading">
+            <td><strong>{{ payout.payout_number }}</strong></td>
+            <td>{{ payout.Seller?.business_name || 'Seller #' + payout.seller_id }}</td>
+            <td class="cell-sub">{{ payout.period_from || '—' }} → {{ payout.period_to }}</td>
+            <td>{{ payout.line_count }}</td>
+            <td>₹{{ formatCurrency(payout.gross_sales) }}</td>
+            <td>₹{{ formatCurrency(payout.commission_amount) }}</td>
+            <td><strong>₹{{ formatCurrency(payout.net_payable) }}</strong></td>
+            <td>
+              <span class="badge" [ngClass]="statusClass(payout.status)">{{ payout.status }}</span>
+              <div class="cell-sub" *ngIf="payout.status === 'paid'">{{ methodLabel(payout.payment_method) }}</div>
+            </td>
+            <td>
+              <div class="row-actions">
+                <button class="btn btn-primary btn-sm" *ngIf="payout.status === 'pending'" (click)="openMarkPaid(payout)">Mark Paid</button>
+                <button class="btn btn-outline btn-sm" *ngIf="payout.status === 'pending'" (click)="cancelPayout(payout)">Cancel</button>
+                <span class="cell-sub" *ngIf="payout.status !== 'pending'">{{ payout.paid_at ? (payout.paid_at | date: 'dd MMM yyyy') : '—' }}</span>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="pagination-bar">
+      <div class="pagination-info">
+        Row Per Page
+        <select [ngModel]="limit" (ngModelChange)="onLimitChange($event)">
+          <option [ngValue]="20">20</option>
+          <option [ngValue]="10">10</option>
+          <option [ngValue]="50">50</option>
+        </select>
+        Entries
+      </div>
+      <app-pagination [currentPage]="page" [totalPages]="totalPages" (pageChange)="load($event)"></app-pagination>
+    </div>
+  </div>
+</div>
+
+<app-modal [open]="payModalOpen" title="Mark Payout Paid" saveLabel="Mark Paid" [saving]="saving"
+           (closed)="closePayModal()" (saveClicked)="submitPayment()">
+  <ng-container *ngIf="selectedPayout as p">
+    <div class="pay-summary">
+      <div><span>Payout</span><strong>{{ p.payout_number }}</strong></div>
+      <div><span>Net Payable</span><strong>₹{{ formatCurrency(p.net_payable) }}</strong></div>
+      <div><span>Seller</span><strong>{{ p.Seller?.business_name || 'Seller #' + p.seller_id }}</strong></div>
+    </div>
+
+    <div class="pay-bank" *ngIf="p.Seller">
+      <div><span>Account Name</span><strong>{{ p.Seller.bank_account_name || '—' }}</strong></div>
+      <div><span>Account Number</span><strong>{{ p.Seller.bank_account_number || '—' }}</strong></div>
+      <div><span>IFSC</span><strong>{{ p.Seller.bank_ifsc || '—' }}</strong></div>
+      <div><span>UPI ID</span><strong>{{ p.Seller.upi_id || '—' }}</strong></div>
+    </div>
+
+    <form [formGroup]="payForm" class="form-grid">
+      <div class="form-group">
+        <label class="form-label">Payment Method <span class="req">*</span></label>
+        <select class="form-control" formControlName="payment_method">
+          <option value="bank_transfer">Bank Transfer</option>
+          <option value="upi">UPI</option>
+          <option value="cheque">Cheque</option>
+          <option value="cash">Cash</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Reference</label>
+        <input type="text" class="form-control" formControlName="payment_reference" placeholder="UTR / cheque no." />
+      </div>
+      <div class="form-group col-span-2">
+        <label class="form-label">Notes</label>
+        <textarea class="form-control" rows="3" formControlName="notes" placeholder="Optional note"></textarea>
+      </div>
+    </form>
+  </ng-container>
+</app-modal>

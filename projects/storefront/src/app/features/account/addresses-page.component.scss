@@ -1,0 +1,105 @@
+.account-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 380px;
+  align-items: start;
+  gap: 20px;
+}
+
+.page-alert {
+  margin-bottom: 14px;
+}
+
+.address-list {
+  display: grid;
+  gap: 14px;
+}
+
+.address-card {
+  padding: 18px 20px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+
+  &--default {
+    border-color: var(--brand-primary);
+    box-shadow: 0 0 0 1px var(--brand-primary) inset;
+  }
+
+  &__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+
+    strong {
+      font-size: 0.92rem;
+    }
+  }
+
+  &__type {
+    padding: 2px 8px;
+    font-size: 0.66rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+    background: var(--bg-alt);
+    border-radius: var(--radius-full);
+  }
+
+  &__text {
+    margin: 3px 0;
+    font-size: 0.82rem;
+    line-height: 1.55;
+    color: var(--text-secondary);
+
+    i {
+      margin-right: 5px;
+      color: var(--text-muted);
+    }
+  }
+
+  &__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 10px;
+    padding-top: 8px;
+    border-top: 1px solid var(--border-light);
+  }
+}
+
+.btn-plain.is-danger {
+  color: #b91c1c;
+}
+
+.address-form {
+  position: sticky;
+  top: calc(var(--header-h) + 18px);
+}
+
+.check-line {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+
+  input {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--brand-primary);
+  }
+}
+
+@media (max-width: 980px) {
+  .account-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .address-form {
+    position: static;
+  }
+}

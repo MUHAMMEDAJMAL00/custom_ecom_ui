@@ -1,0 +1,75 @@
+<div class="page-wrap">
+  <div class="page-header">
+    <div class="page-header-left">
+      <div class="page-title-main">Seller Settlement</div>
+      <div class="page-breadcrumb">
+        <a [routerLink]="'/dashboard' | shopUrl">Dashboard</a>
+        <span class="sep">›</span>
+        <a [routerLink]="'/sellers' | shopUrl">Sellers</a>
+        <span class="sep">›</span>
+        <span class="current">Settlement</span>
+      </div>
+    </div>
+    <div class="page-header-actions">
+      <a class="btn btn-outline" [routerLink]="'/sellers/payouts' | shopUrl">Payouts</a>
+      <button class="btn btn-outline" [disabled]="!rows.length" (click)="exportCsv()">Export CSV</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="toolbar">
+      <div class="toolbar-left report-bar">
+        <label class="form-label">From</label>
+        <input type="date" class="form-control" [(ngModel)]="from" />
+        <label class="form-label">To</label>
+        <input type="date" class="form-control" [(ngModel)]="to" />
+        <button class="btn btn-primary" (click)="load()">Run</button>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table class="pos-table">
+        <thead>
+          <tr>
+            <th>Seller</th>
+            <th class="num">Orders</th>
+            <th class="num">Gross sales</th>
+            <th class="num">Commission</th>
+            <th class="num">Seller earnings</th>
+            <th class="num">Paid</th>
+            <th class="num">In payout</th>
+            <th class="num">Unsettled</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngIf="loading"><td colspan="8" class="tbl-empty"><span class="pos-loader"><span></span><span></span><span></span></span></td></tr>
+          <tr *ngIf="!loading && !rows.length"><td colspan="8" class="tbl-empty">No seller sales in this period</td></tr>
+          <tr *ngFor="let r of rows" [hidden]="loading">
+            <td><div class="cell-strong">{{ r.business_name }}</div><div class="cell-sub">{{ r.status }}</div></td>
+            <td class="num">{{ r.orders }}</td>
+            <td class="num">₹{{ r.gross | number: '1.2-2' }}</td>
+            <td class="num">₹{{ r.commission | number: '1.2-2' }}</td>
+            <td class="num">₹{{ r.earnings | number: '1.2-2' }}</td>
+            <td class="num">₹{{ r.paid | number: '1.2-2' }}</td>
+            <td class="num">₹{{ r.in_payout | number: '1.2-2' }}</td>
+            <td class="num">₹{{ r.unsettled | number: '1.2-2' }}</td>
+          </tr>
+          <tr *ngIf="!loading && rows.length && totals" class="totals-row">
+            <td>Total</td>
+            <td class="num">{{ totals.orders }}</td>
+            <td class="num">₹{{ totals.gross | number: '1.2-2' }}</td>
+            <td class="num">₹{{ totals.commission | number: '1.2-2' }}</td>
+            <td class="num">₹{{ totals.earnings | number: '1.2-2' }}</td>
+            <td class="num">₹{{ totals.paid | number: '1.2-2' }}</td>
+            <td class="num">₹{{ totals.in_payout | number: '1.2-2' }}</td>
+            <td class="num">₹{{ totals.unsettled | number: '1.2-2' }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="report-note">
+      Gross = what customers paid for seller items. Unsettled = delivered order lines not yet in a payout.
+      Cancelled and returned orders are excluded.
+    </div>
+  </div>
+</div>

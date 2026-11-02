@@ -1,0 +1,117 @@
+.view-toggle {
+  display: flex;
+  background: #f6e7e9;
+  border-radius: 8px;
+  padding: 3px;
+  gap: 2px;
+}
+.view-btn {
+  padding: 6px 16px;
+  border: none;
+  background: transparent;
+  color: #6b5a60;
+  font-size: 0.84rem;
+  font-weight: 600;
+  font-family: inherit;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.view-btn.active { background: #fff; color: #5a0614; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); }
+
+.discount-code {
+  display: inline-block;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-size: 0.78rem;
+  font-weight: 700;
+  font-family: ui-monospace, 'Cascadia Code', monospace;
+  padding: 2px 8px;
+  border-radius: 5px;
+  letter-spacing: 0.04em;
+  border: 1px solid #bfdbfe;
+}
+
+.reset-usage-btn {
+  padding: 4px 8px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  border: 1px solid #fde68a;
+  background: #fffbeb;
+  color: #92400e;
+  border-radius: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+/* ── Section card layout ─────────────────────────────────────── */
+.pf-form { display: flex; flex-direction: column; gap: 12px; }
+/* overflow stays visible so the product search dropdown can escape the card */
+.pf-section { border: 1px solid var(--border, #efd6da); border-radius: 10px; background: #fff; }
+.pf-section-header {
+  display: flex;
+  align-items: center;
+  padding: 9px 14px;
+  background: #f6e7e9;
+  border-bottom: 1px solid var(--border, #efd6da);
+  border-left: 3px solid var(--primary);
+  border-radius: 9px 9px 0 0;
+}
+.pf-section-title { font-size: 0.75rem; font-weight: 700; color: #2a1a20; text-transform: uppercase; letter-spacing: 0.07em; }
+.pf-section-body { padding: 14px; }
+.pf-section-body .form-grid { gap: 10px; margin: 0; }
+.pf-section-body .form-group { margin: 0; }
+
+/* ── Mini SSD (Searchable Select Dropdown) ───────────────────── */
+.dc-mssd-wrap { position: relative; }
+/* Keep the open picker above the next section card */
+.dc-mssd-wrap:focus-within { z-index: 30; }
+.dc-mssd-row { position: relative; display: flex; align-items: center; }
+.dc-mssd-clr {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #9c8b91;
+  font-size: 16px;
+  line-height: 1;
+  padding: 0;
+  z-index: 1;
+}
+.dc-mssd-clr:hover { color: #2a1a20; }
+
+.ssd-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  z-index: 1000;
+  max-height: 220px;
+  overflow-y: auto;
+}
+.ssd-item { display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; cursor: pointer; border-bottom: 1px solid #f6e7e9; transition: background 0.1s; }
+.ssd-item:last-child { border-bottom: none; }
+.ssd-item:hover { background: #fdf4f5; }
+.ssd-name { font-size: 0.84rem; font-weight: 500; color: #2a1a20; }
+.ssd-sku { font-size: 0.75rem; color: #9c8b91; font-family: ui-monospace, monospace; }
+
+/* Selected products (BOGO buy products / bundle members) */
+.dc-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.dc-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 3px 4px 3px 10px; border-radius: 999px;
+  background: #f6e7e9; border: 1px solid #efd6da; font-size: 12px; color: #2a1a20;
+}
+.dc-chip button {
+  border: 0; background: transparent; cursor: pointer; font-size: 14px; line-height: 1;
+  color: #8b0a1e; padding: 0 4px;
+}
+.dc-web-flag { color: #0f8a5f; font-size: 11px; font-weight: 600; }

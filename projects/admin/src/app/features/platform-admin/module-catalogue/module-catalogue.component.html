@@ -1,0 +1,124 @@
+<div class="admin-page">
+  <div class="page-head">
+    <div>
+      <p class="eyebrow">Administration</p>
+      <h2>Module catalogue</h2>
+      <p>Display names, descriptions, ordering and visibility for every platform module.</p>
+    </div>
+    <div class="stat-chips">
+      <span><strong>{{ modules.length }}</strong> modules</span>
+      <span><strong>{{ builtCount }}</strong> built</span>
+      <span><strong>{{ totalUsage }}</strong> active installs</span>
+    </div>
+  </div>
+
+  <div class="success-box" *ngIf="successMessage">{{ successMessage }}</div>
+  <div class="error-box" *ngIf="errorMessage">{{ errorMessage }}</div>
+
+  <div class="admin-card">
+    <div class="card-head">
+      <h3>All modules</h3>
+      <p>Core modules are always on. Hidden modules do not appear in the tenant storefront.</p>
+    </div>
+
+    <div class="empty-state" *ngIf="loading">
+      <span class="pos-loader"><span></span><span></span><span></span></span>
+    </div>
+
+    <div class="table-wrap" *ngIf="!loading">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Module</th>
+            <th>Key</th>
+            <th>Group</th>
+            <th>Type</th>
+            <th>Installs</th>
+            <th>Status</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let module of modules">
+            <td>
+              <div class="module-cell">
+                <strong>{{ module.label }}</strong>
+                <small>{{ module.description || 'No description' }}</small>
+              </div>
+            </td>
+            <td><code>{{ module.key }}</code></td>
+            <td class="muted">{{ module.group }}</td>
+            <td>
+              <span class="tag" [class.is-core]="module.is_core">{{ module.is_core ? 'Core' : 'Optional' }}</span>
+              <span class="tag is-built" *ngIf="module.is_built">Built</span>
+              <span class="tag is-planned" *ngIf="!module.is_built">Planned</span>
+            </td>
+            <td>{{ module.tenants }}</td>
+            <td>
+              <span class="status-chip" [class.is-hidden]="module.status === 'hidden'">
+                {{ module.status === 'hidden' ? 'Hidden' : 'Active' }}
+              </span>
+            </td>
+            <td>
+              <div class="row-actions" *ngIf="canEdit">
+                <button type="button" class="action-btn primary" (click)="openEdit(module)">Edit</button>
+                <button
+                  type="button"
+                  class="action-btn"
+                  *ngIf="!module.is_core"
+                  (click)="toggleStatus(module)"
+                >
+                  {{ module.status === 'hidden' ? 'Show' : 'Hide' }}
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" *ngIf="editing as module" (click)="cancelEdit()">
+    <div class="modal-card" (click)="$event.stopPropagation()">
+      <div class="modal-head">
+        <div>
+          <p class="eyebrow">Edit module</p>
+          <h3>{{ module.label }}</h3>
+        </div>
+        <button class="icon-btn" type="button" (click)="cancelEdit()" aria-label="Close">×</button>
+      </div>
+
+      <div class="field-grid">
+        <label class="field span-2">
+          <span>Label</span>
+          <input type="text" [(ngModel)]="draft.label" />
+        </label>
+
+        <label class="field span-2">
+          <span>Description</span>
+          <textarea rows="2" [(ngModel)]="draft.description"></textarea>
+        </label>
+
+        <label class="field">
+          <span>Sort order</span>
+          <input type="number" min="0" [(ngModel)]="draft.sort_order" />
+        </label>
+
+        <label class="field">
+          <span>Status</span>
+          <select [(ngModel)]="draft.status">
+            <option value="active">Active</option>
+            <option value="hidden">Hidden</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn-back" type="button" (click)="cancelEdit()">Cancel</button>
+        <button class="btn-save" type="button" (click)="save()" [disabled]="saving">
+          {{ saving ? 'Saving…' : 'Save module' }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,220 @@
+<div class="page-wrap">
+  <div class="page-header">
+    <div class="page-header-left">
+      <div class="page-title-main">Employees</div>
+      <div class="page-breadcrumb">
+        <a [routerLink]="'/dashboard' | shopUrl">Dashboard</a>
+        <span class="sep">›</span>
+        <span class="current">Employees</span>
+      </div>
+    </div>
+    <div class="page-header-actions">
+      <button class="btn btn-outline" (click)="load()" title="Refresh">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="23 4 23 10 17 10" /><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10" />
+        </svg>
+      </button>
+      <button class="btn btn-primary" (click)="openAdd()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="16" /><line x1="8" y1="12" x2="16" y2="12" />
+        </svg>
+        Add Employee
+      </button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="toolbar">
+      <div class="toolbar-left">
+        <div class="search-box">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+          </svg>
+          <input type="text" placeholder="Search employees…" autocomplete="off" [value]="search"
+                 (input)="onSearchInput($any($event.target).value)" />
+        </div>
+      </div>
+      <div class="toolbar-right">
+        <select class="filter-select" [(ngModel)]="statusFilter" (change)="onFilterChange()">
+          <option value="">All Statuses</option>
+          <option value="1">Active</option>
+          <option value="0">Inactive</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table class="pos-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Name</th>
+            <th>Role</th>
+            <th>Contact</th>
+            <th>Monthly Salary</th>
+            <th>Joining Date</th>
+            <th>Status</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngIf="loading">
+            <td colspan="8" class="tbl-empty">
+              <span class="pos-loader"><span></span><span></span><span></span></span>
+            </td>
+          </tr>
+          <tr *ngIf="!loading && errorMessage">
+            <td colspan="8" class="tbl-empty" style="color: #ef4444">{{ errorMessage }}</td>
+          </tr>
+          <tr *ngIf="!loading && !errorMessage && !employees.length">
+            <td colspan="8" class="tbl-empty">No employees found</td>
+          </tr>
+          <tr *ngFor="let e of employees; let i = index" [hidden]="loading">
+            <td>{{ (page - 1) * limit + i + 1 }}</td>
+            <td><strong>{{ e.name }}</strong></td>
+            <td>{{ e.role || '—' }}</td>
+            <td style="font-size: 0.8rem">
+              {{ e.phone || '' }}
+              <br *ngIf="e.phone && e.email" />
+              <span *ngIf="e.email" style="color: #9c8b91">{{ e.email }}</span>
+              <span *ngIf="!e.phone && !e.email">—</span>
+            </td>
+            <td style="font-weight: 700">{{ formatCurrency(e.monthly_salary) }}</td>
+            <td style="color: #9c8b91; font-size: 0.8rem">{{ formatDate(e.joining_date) }}</td>
+            <td>
+              <span [style.background]="(e.is_active ? '#22c55e' : '#9c8b91') + '22'" [style.color]="e.is_active ? '#22c55e' : '#9c8b91'"
+                    style="display: inline-block; padding: 2px 10px; border-radius: 20px; font-size: 0.72rem; font-weight: 700">
+                {{ e.is_active ? 'Active' : 'Inactive' }}
+              </span>
+            </td>
+            <td>
+              <app-row-actions [showView]="true" [showEdit]="true" (view)="openView(e)" (edit)="openEdit(e)"></app-row-actions>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="pagination-bar">
+      <div class="pagination-info">
+        Row Per Page
+        <select [ngModel]="limit" (ngModelChange)="onLimitChange($event)">
+          <option [ngValue]="20">20</option>
+          <option [ngValue]="10">10</option>
+          <option [ngValue]="25">25</option>
+          <option [ngValue]="50">50</option>
+        </select>
+        Entries
+      </div>
+      <app-pagination [currentPage]="page" [totalPages]="totalPages" (pageChange)="goToPage($event)"></app-pagination>
+    </div>
+  </div>
+</div>
+
+<app-drawer [open]="drawerMode !== null" [title]="drawerTitle"
+            [saveLabel]="drawerMode === 'pay' ? 'Record Payment' : (editId ? 'Update Employee' : 'Save Employee')"
+            [saving]="saving" [showFooter]="drawerMode === 'form' || drawerMode === 'pay'"
+            (closed)="closeDrawer()" (saveClicked)="drawerMode === 'pay' ? handlePaySalary() : handleSave()">
+
+  <form *ngIf="drawerMode === 'form'" [formGroup]="form">
+    <div class="form-grid">
+      <div class="form-group col-span-2">
+        <label class="form-label">Full Name <span class="req">*</span></label>
+        <input type="text" class="form-control" formControlName="name" placeholder="Employee full name" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Role / Designation</label>
+        <input type="text" class="form-control" formControlName="role" placeholder="e.g. Cashier, Manager" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Phone</label>
+        <input type="text" class="form-control" formControlName="phone" placeholder="Mobile number" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Email</label>
+        <input type="email" class="form-control" formControlName="email" placeholder="email@example.com" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Monthly Salary (₹)</label>
+        <input type="number" class="form-control" formControlName="monthly_salary" min="0" step="0.01" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Joining Date</label>
+        <input type="date" class="form-control" formControlName="joining_date" />
+      </div>
+      <div class="form-group" *ngIf="editId">
+        <label class="form-label">Status</label>
+        <select class="form-control" formControlName="is_active">
+          <option [ngValue]="1">Active</option>
+          <option [ngValue]="0">Inactive</option>
+        </select>
+      </div>
+    </div>
+  </form>
+
+  <div *ngIf="drawerMode === 'view' && viewingEmployee as e">
+    <div class="detail-grid">
+      <div class="detail-item"><label>Name</label><span>{{ e.name }}</span></div>
+      <div class="detail-item"><label>Role</label><span>{{ e.role || '—' }}</span></div>
+      <div class="detail-item"><label>Phone</label><span>{{ e.phone || '—' }}</span></div>
+      <div class="detail-item"><label>Email</label><span>{{ e.email || '—' }}</span></div>
+      <div class="detail-item"><label>Monthly Salary</label><span>{{ formatCurrency(e.monthly_salary) }}</span></div>
+      <div class="detail-item"><label>Joining Date</label><span>{{ formatDate(e.joining_date) }}</span></div>
+      <div class="detail-item"><label>Status</label><span>{{ e.is_active ? 'Active' : 'Inactive' }}</span></div>
+    </div>
+
+    <ng-container *ngIf="sortedPayments(e) as payments">
+      <div class="section-divider" *ngIf="payments.length">Recent Salary Payments</div>
+      <table class="pos-table mini-table" *ngIf="payments.length">
+        <thead>
+          <tr><th>Month</th><th style="text-align: right">Amount</th><th>Method</th><th>Date</th></tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let p of payments.slice(0, 10)">
+            <td>{{ p.salary_month }}</td>
+            <td style="text-align: right; font-weight: 700">{{ formatCurrency(p.amount) }}</td>
+            <td style="text-transform: capitalize">{{ p.payment_method || 'cash' }}</td>
+            <td style="color: #9c8b91; font-size: 0.78rem">{{ formatDate(p.payment_date) }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </ng-container>
+
+    <button class="btn btn-primary btn-sm" style="margin-top: 14px" (click)="openPaySalary()">Pay Salary</button>
+  </div>
+
+  <form *ngIf="drawerMode === 'pay'" [formGroup]="payForm">
+    <div class="form-grid">
+      <div class="form-group col-span-2">
+        <label class="form-label">Employee</label>
+        <input class="form-control" [value]="viewingEmployee?.name" readonly style="background: #fdf4f5; color: #6b5a60" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Salary Month <span class="req">*</span></label>
+        <input type="month" class="form-control" formControlName="salary_month" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Amount <span class="req">*</span></label>
+        <input type="number" class="form-control" formControlName="amount" min="0.01" step="0.01" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Payment Method</label>
+        <select class="form-control" formControlName="payment_method">
+          <option value="cash">Cash</option>
+          <option value="bank">Bank Transfer</option>
+          <option value="upi">UPI</option>
+          <option value="card">Card</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Payment Date</label>
+        <input type="date" class="form-control" formControlName="payment_date" />
+      </div>
+      <div class="form-group col-span-2">
+        <label class="form-label">Notes</label>
+        <input type="text" class="form-control" formControlName="notes" placeholder="Optional remarks" />
+      </div>
+    </div>
+    <button type="button" class="btn btn-outline btn-sm" style="margin-top: 10px" (click)="backToView()">← Back to details</button>
+  </form>
+</app-drawer>

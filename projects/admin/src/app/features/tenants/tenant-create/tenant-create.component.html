@@ -1,0 +1,571 @@
+<div class="wizard" *ngIf="!result">
+  <div class="wizard-head">
+    <a
+      class="wizard-back"
+      routerLink="/platform/tenants"
+      title="Back to shops"
+      aria-label="Back to shops"
+    >
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M19 12H5m0 0 6-6m-6 6 6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+      </svg>
+    </a>
+
+    <p class="eyebrow">Create shop</p>
+    <h2>Set up a new shop</h2>
+    <p class="head-copy">Six steps. The platform creates the shop, owner, roles, branch, and domain automatically.</p>
+    <div class="progress" aria-hidden="true">
+      <span [style.width.%]="progress"></span>
+    </div>
+  </div>
+
+  <div class="wizard-grid">
+    <aside class="step-rail">
+      <button
+        type="button"
+        class="step-item"
+        *ngFor="let item of steps; let i = index"
+        [class.is-active]="step === i + 1"
+        [class.is-done]="step > i + 1"
+        [disabled]="i + 1 > maxReached"
+        (click)="goToStep(i + 1)"
+      >
+        <span class="step-dot">{{ step > i + 1 ? '✓' : i + 1 }}</span>
+        <span class="step-copy">
+          <strong>{{ item.label }}</strong>
+          <small>{{ item.hint }}</small>
+        </span>
+      </button>
+    </aside>
+
+    <section class="step-card">
+      <form [formGroup]="form" novalidate>
+        <div class="step-head">
+          <div>
+            <p class="step-eyebrow">Step {{ step }} of {{ steps.length }}</p>
+            <h3>{{ steps[step - 1].label }}</h3>
+          </div>
+          <span class="step-fraction">{{ step }}/{{ steps.length }}</span>
+        </div>
+
+        <!-- ─── 1. Profile ──────────────────────────────────────────────── -->
+        <ng-container *ngIf="step === 1">
+          <div class="section-note">This is the shop's public identity and where platform email is sent.</div>
+
+          <div class="field-grid">
+            <div class="field">
+              <label for="name">Shop name</label>
+              <input id="name" type="text" formControlName="name" (input)="onNameInput()" placeholder="Glow Beauty" [class.is-invalid]="isInvalid('name')" />
+              <small class="field-error" *ngIf="isInvalid('name')">Enter a shop name of at least 2 characters.</small>
+            </div>
+
+            <div class="field">
+              <label for="slug">Slug</label>
+              <div class="input-suffix">
+                <input id="slug" type="text" formControlName="slug" (input)="onSlugInput()" (blur)="onSlugBlur()" placeholder="glow-beauty" [class.is-invalid]="isInvalid('slug')" />
+                <span>.{{ rootDomain }}</span>
+              </div>
+              <small class="field-hint" *ngIf="slugStatus === 'idle'">Used for the subdomain and internal references.</small>
+              <small class="field-status" [class.is-checking]="slugStatus === 'checking'" [class.is-ok]="slugStatus === 'available'" [class.is-bad]="slugStatus === 'unavailable' || slugStatus === 'error'" *ngIf="slugStatus !== 'idle'">
+                {{ slugMessage }}
+              </small>
+              <small class="field-error" *ngIf="isInvalid('slug')">Use 3–40 lowercase letters, numbers, or hyphens.</small>
+            </div>
+
+            <div class="field">
+              <label for="email">Contact email</label>
+              <input id="email" type="email" formControlName="email" placeholder="hello@shop.com" [class.is-invalid]="isInvalid('email')" />
+              <small class="field-error" *ngIf="isInvalid('email')">Enter a valid email address.</small>
+            </div>
+
+            <div class="field">
+              <label for="phone">Contact phone</label>
+              <input id="phone" type="text" formControlName="phone" placeholder="+91 98765 43210" [class.is-invalid]="isInvalid('phone')" />
+            </div>
+
+            <div class="field">
+              <label for="legal_name">Legal name <span>optional</span></label>
+              <input id="legal_name" type="text" formControlName="legal_name" placeholder="Registered business name" />
+            </div>
+
+            <div class="field">
+              <label for="gstin">GSTIN <span>optional</span></label>
+              <input id="gstin" type="text" formControlName="gstin" placeholder="29ABCDE1234F1Z5" [class.is-invalid]="isInvalid('gstin')" />
+              <small class="field-error" *ngIf="isInvalid('gstin')">Enter a valid 15-character GSTIN.</small>
+            </div>
+
+            <div class="field">
+              <label for="currency">Currency</label>
+              <select id="currency" formControlName="currency">
+                <option *ngFor="let currency of currencies" [value]="currency">{{ currency }}</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label for="timezone">Timezone</label>
+              <select id="timezone" formControlName="timezone">
+                <option *ngFor="let timezone of timezones" [value]="timezone">{{ timezone }}</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label for="locale">Locale</label>
+              <select id="locale" formControlName="locale">
+                <option *ngFor="let locale of locales" [value]="locale">{{ locale }}</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label for="logo_url">Logo URL <span>optional</span></label>
+              <input id="logo_url" type="text" formControlName="logo_url" placeholder="https://cdn.shop.com/logo.png" />
+              <small class="field-hint">Paste a hosted PNG, JPG, or SVG.</small>
+            </div>
+          </div>
+        </ng-container>
+
+        <!-- ─── 2. Design ──────────────────────────────────────────────── -->
+        <ng-container *ngIf="step === 2">
+          <div class="section-note">Pick a structure, then tune the colours. The preview updates as you type.</div>
+
+          <div class="layout-grid">
+            <button
+              type="button"
+              class="layout-card"
+              *ngFor="let layout of layouts"
+              [class.is-selected]="form.controls.layout_template.value === layout.key"
+              (click)="setLayout(layout.key)"
+            >
+              <span class="layout-thumb" [class.minimal]="layout.key === 'minimal'">
+                <span class="thumb-head"></span>
+                <span class="thumb-hero"></span>
+                <span class="thumb-row"><i></i><i></i><i></i></span>
+              </span>
+              <span class="layout-copy">
+                <strong>{{ layout.name }}</strong>
+                <small>{{ layout.text }}</small>
+              </span>
+              <span class="layout-tick" *ngIf="form.controls.layout_template.value === layout.key">✓</span>
+            </button>
+          </div>
+
+          <div class="design-grid">
+            <div class="design-form">
+              <div class="subhead">
+                <h4>Preset palettes</h4>
+                <p>Start from a ready-made combination.</p>
+              </div>
+              <div class="preset-row">
+                <button type="button" class="preset" *ngFor="let preset of presets" (click)="applyPreset(preset)">
+                  <span class="preset-swatch">
+                    <i [style.background]="preset.colors.primary"></i>
+                    <i [style.background]="preset.colors.primary_dark"></i>
+                    <i [style.background]="preset.colors.tint"></i>
+                  </span>
+                  {{ preset.name }}
+                </button>
+              </div>
+
+              <div class="subhead">
+                <h4>Colours</h4>
+                <p>Every value is a hex colour.</p>
+              </div>
+              <div class="color-grid">
+                <label class="color-field" *ngFor="let field of colorFields">
+                  <span class="color-label">{{ field.label }}</span>
+                  <span class="color-input">
+                    <input type="color" [formControlName]="field.key" />
+                    <code>{{ form.controls[field.key].value }}</code>
+                  </span>
+                  <small>{{ field.hint }}</small>
+                </label>
+              </div>
+
+              <div class="shape-grid">
+                <div class="subhead">
+                  <h4>Button shape</h4>
+                </div>
+                <div class="segment-row">
+                  <button type="button" class="segment" *ngFor="let shape of ['pill', 'rounded', 'square']" [class.is-selected]="form.controls.button_shape.value === shape" (click)="form.controls.button_shape.setValue($any(shape))">
+                    {{ shape }}
+                  </button>
+                </div>
+
+                <div class="subhead">
+                  <h4>Button style</h4>
+                </div>
+                <div class="segment-row">
+                  <button type="button" class="segment" *ngFor="let style of ['gradient', 'solid', 'outline']" [class.is-selected]="form.controls.button_style.value === style" (click)="form.controls.button_style.setValue($any(style))">
+                    {{ style }}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="preview-wrap">
+              <div class="preview-label">
+                <span>Live preview</span>
+                <span>{{ layoutName(form.controls.layout_template.value) }}</span>
+              </div>
+              <div class="preview" [ngStyle]="previewVars" [class.is-minimal]="form.controls.layout_template.value === 'minimal'">
+                <div class="pv-header">
+                  <strong>{{ form.controls.name.value || 'Your shop' }}</strong>
+                  <span class="pv-nav"><i></i><i></i><i></i></span>
+                </div>
+                <div class="pv-hero">
+                  <span class="pv-kicker">New season</span>
+                  <h4>Made for your everyday.</h4>
+                  <p>Thoughtful products, delivered to your door.</p>
+                  <span class="pv-button">Shop now</span>
+                </div>
+                <div class="pv-products">
+                  <div class="pv-product" *ngFor="let n of [1, 2]">
+                    <span class="pv-image"></span>
+                    <strong>Product {{ n }}</strong>
+                    <small>₹1,299</small>
+                  </div>
+                </div>
+                <div class="pv-footer">Free delivery over ₹999</div>
+              </div>
+            </div>
+          </div>
+        </ng-container>
+
+        <!-- ─── 3. Modules ─────────────────────────────────────────────── -->
+        <ng-container *ngIf="step === 3">
+          <div class="module-summary">
+            <div>
+              <strong>{{ selectedModuleCount }} modules selected</strong>
+              <small>Core modules are always included. Dependencies are added automatically.</small>
+            </div>
+            <span class="module-count">{{ selectedModuleCount }}</span>
+          </div>
+
+          <div class="module-notice" *ngIf="moduleNotice">{{ moduleNotice }}</div>
+          <div class="module-warning" *ngIf="moduleWarning">{{ moduleWarning }}</div>
+
+          <div class="module-loading" *ngIf="moduleLoading">
+            <div class="module-skeleton" *ngFor="let n of [1, 2, 3, 4]"></div>
+          </div>
+
+          <div class="module-error" *ngIf="!moduleLoading && moduleError">
+            <span>{{ moduleError }}</span>
+            <button type="button" (click)="loadModules()">Retry</button>
+          </div>
+
+          <div class="module-groups" *ngIf="!moduleLoading && !moduleError">
+            <div class="module-group" *ngFor="let group of groupedModules">
+              <div class="group-head">
+                <h4>{{ group.name }}</h4>
+                <span>{{ group.modules.length }}</span>
+              </div>
+
+              <button
+                type="button"
+                class="module-row"
+                *ngFor="let mod of group.modules"
+                [class.is-selected]="isSelected(mod)"
+                [class.is-locked]="mod.is_core"
+                [class.is-planned]="!mod.is_built"
+                [attr.aria-pressed]="isSelected(mod)"
+                (click)="toggleModule(mod)"
+              >
+                <span class="module-check">{{ isSelected(mod) ? '✓' : '' }}</span>
+                <span class="module-copy">
+                  <span class="module-title">
+                    {{ mod.label }}
+                    <span class="tag" *ngIf="mod.is_core">Core</span>
+                    <span class="tag is-planned" *ngIf="!mod.is_built">Planned</span>
+                  </span>
+                  <small>{{ mod.description }}</small>
+                  <em *ngIf="mod.depends_on.length">Requires {{ requiresLabel(mod) }}</em>
+                </span>
+              </button>
+            </div>
+          </div>
+        </ng-container>
+
+        <!-- ─── 4. Owner ───────────────────────────────────────────────── -->
+        <ng-container *ngIf="step === 4">
+          <div class="section-note">The owner gets full access inside this shop. They can invite staff later.</div>
+
+          <div class="field-grid">
+            <div class="field">
+              <label for="owner_name">Owner name</label>
+              <input id="owner_name" type="text" formControlName="owner_name" placeholder="Asha Menon" [class.is-invalid]="isInvalid('owner_name')" />
+              <small class="field-error" *ngIf="isInvalid('owner_name')">Enter the owner's name.</small>
+            </div>
+
+            <div class="field">
+              <label for="owner_email">Owner email</label>
+              <input id="owner_email" type="email" formControlName="owner_email" placeholder="owner@shop.com" [class.is-invalid]="isInvalid('owner_email')" />
+              <small class="field-error" *ngIf="isInvalid('owner_email')">Enter a valid email address.</small>
+            </div>
+
+            <div class="field">
+              <label for="owner_phone">Owner phone <span>optional</span></label>
+              <input id="owner_phone" type="text" formControlName="owner_phone" placeholder="+91 98765 43210" />
+            </div>
+          </div>
+
+          <div class="subhead owner-mode-head">
+            <h4>How should the owner get access?</h4>
+            <p>An invite link is safer. A temporary password must be changed at first login.</p>
+          </div>
+
+          <div class="mode-grid">
+            <button type="button" class="mode-card" [class.is-selected]="form.controls.owner_mode.value === 'invite'" (click)="form.controls.owner_mode.setValue('invite'); onOwnerModeChange()">
+              <span class="mode-icon">✉</span>
+              <span><strong>Send invite link</strong><small>7-day link to set their own password.</small></span>
+              <span class="mode-radio"></span>
+            </button>
+
+            <button type="button" class="mode-card" [class.is-selected]="form.controls.owner_mode.value === 'password'" (click)="form.controls.owner_mode.setValue('password'); onOwnerModeChange()">
+              <span class="mode-icon">⌘</span>
+              <span><strong>Set temporary password</strong><small>You share it. They must change it at first login.</small></span>
+              <span class="mode-radio"></span>
+            </button>
+          </div>
+
+          <div class="field password-field" *ngIf="form.controls.owner_mode.value === 'password'">
+            <label for="owner_password">Temporary password</label>
+            <input id="owner_password" type="password" formControlName="owner_password" placeholder="At least 8 characters" [class.is-invalid]="isInvalid('owner_password')" />
+            <small class="field-error" *ngIf="isInvalid('owner_password')">Use at least 8 characters.</small>
+          </div>
+        </ng-container>
+
+        <!-- ─── 5. Route ───────────────────────────────────────────────── -->
+        <ng-container *ngIf="step === 5">
+          <div class="section-note">The subdomain is created now. A custom domain can be verified after launch.</div>
+
+          <div class="field">
+            <label for="subdomain">Subdomain</label>
+            <div class="input-suffix large">
+              <input id="subdomain" type="text" formControlName="subdomain" (input)="onSubdomainInput()" placeholder="glow-beauty" [class.is-invalid]="isInvalid('subdomain')" />
+              <span>.{{ rootDomain }}</span>
+            </div>
+            <small class="field-hint">This becomes the shop's public address and admin host.</small>
+            <small class="field-status" [class.is-checking]="subdomainStatus === 'checking'" [class.is-ok]="subdomainStatus === 'available'" [class.is-bad]="subdomainStatus === 'unavailable' || subdomainStatus === 'error'" *ngIf="subdomainStatus !== 'idle'">
+              {{ subdomainMessage }}
+            </small>
+            <small class="field-error" *ngIf="isInvalid('subdomain')">Use 3–40 lowercase letters, numbers, or hyphens.</small>
+          </div>
+
+          <div class="field">
+            <label for="custom_domain">Custom domain <span>optional</span></label>
+            <input id="custom_domain" type="text" formControlName="custom_domain" placeholder="shop.client.com" [class.is-invalid]="isInvalid('custom_domain')" />
+            <small class="field-hint">Leave blank to use only the platform subdomain.</small>
+            <small class="field-error" *ngIf="isInvalid('custom_domain')">Enter a valid domain like shop.client.com.</small>
+          </div>
+
+          <div class="dns-box">
+            <div class="dns-head">
+              <strong>DNS records for the custom domain</strong>
+              <span>Add these after the shop is created</span>
+            </div>
+            <div class="dns-row"><span>CNAME</span><code>shop.client.com → tenants.{{ rootDomain }}</code></div>
+            <div class="dns-row"><span>TXT</span><code>_platform-verify.shop.client.com → generated token</code></div>
+          </div>
+
+          <div class="url-preview">
+            <div><span>Storefront</span><strong>{{ storefrontUrl }}</strong></div>
+            <div><span>Admin</span><strong>{{ adminUrl }}</strong></div>
+            <div class="span-2" *ngIf="customDomainUrl"><span>Custom domain · pending</span><strong>{{ customDomainUrl }}</strong></div>
+          </div>
+        </ng-container>
+
+        <!-- ─── 6. Review ───────────────────────────────────────────────── -->
+        <ng-container *ngIf="step === 6">
+          <div class="section-note">Check everything. Creating the shop runs the provisioning service and cannot be undone from here.</div>
+
+          <div class="review-grid">
+            <article class="review-card">
+              <div class="review-head"><h4>Profile</h4><button type="button" (click)="goToStep(1)">Edit</button></div>
+              <dl>
+                <dt>Shop</dt><dd>{{ form.controls.name.value }}</dd>
+                <dt>Slug</dt><dd>{{ form.controls.slug.value }}</dd>
+                <dt>Email</dt><dd>{{ form.controls.email.value }}</dd>
+                <dt>Currency</dt><dd>{{ form.controls.currency.value }} · {{ form.controls.timezone.value }}</dd>
+              </dl>
+            </article>
+
+            <article class="review-card">
+              <div class="review-head"><h4>Design</h4><button type="button" (click)="goToStep(2)">Edit</button></div>
+              <dl>
+                <dt>Layout</dt><dd>{{ layoutName(form.controls.layout_template.value) }}</dd>
+                <dt>Main colour</dt>
+                <dd class="color-value"><span class="swatch" [style.background]="form.controls.primary.value"></span>{{ form.controls.primary.value }}</dd>
+                <dt>Buttons</dt><dd>{{ form.controls.button_shape.value }} · {{ form.controls.button_style.value }}</dd>
+              </dl>
+            </article>
+
+            <article class="review-card span-2">
+              <div class="review-head"><h4>Modules</h4><button type="button" (click)="goToStep(3)">Edit</button></div>
+              <div class="chip-row">
+                <span class="module-chip" *ngFor="let mod of selectedModuleList">{{ mod.label }}</span>
+              </div>
+            </article>
+
+            <article class="review-card">
+              <div class="review-head"><h4>Owner</h4><button type="button" (click)="goToStep(4)">Edit</button></div>
+              <dl>
+                <dt>Name</dt><dd>{{ form.controls.owner_name.value }}</dd>
+                <dt>Email</dt><dd>{{ form.controls.owner_email.value }}</dd>
+                <dt>Access</dt><dd>{{ form.controls.owner_mode.value === 'invite' ? 'Invite link' : 'Temporary password' }}</dd>
+              </dl>
+            </article>
+
+            <article class="review-card">
+              <div class="review-head"><h4>Route</h4><button type="button" (click)="goToStep(5)">Edit</button></div>
+              <dl>
+                <dt>Storefront</dt><dd class="break">{{ storefrontUrl }}</dd>
+                <dt>Admin</dt><dd class="break">{{ adminUrl }}</dd>
+                <dt *ngIf="customDomainUrl">Custom</dt><dd class="break" *ngIf="customDomainUrl">{{ customDomainUrl }} (pending verification)</dd>
+              </dl>
+            </article>
+          </div>
+
+          <div class="create-note">
+            <span class="create-note-icon">i</span>
+            <span>Provisioning creates the shop, theme, modules, branch, roles, owner, and subdomain in one transaction.</span>
+          </div>
+
+          <div class="submit-error" *ngIf="submitError">{{ submitError }}</div>
+        </ng-container>
+
+        <div class="wizard-actions">
+          <button class="btn-back" type="button" *ngIf="step > 1" (click)="back()" [disabled]="isSubmitting">Back</button>
+          <span class="action-spacer"></span>
+          <button
+            class="btn-continue"
+            type="button"
+            *ngIf="step < 6"
+            (click)="next()"
+            [disabled]="slugStatus === 'checking' || subdomainStatus === 'checking' || isSubmitting"
+          >
+            {{ step === 5 ? 'Review' : 'Continue' }}
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M5 12h14m0 0-6-6m6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </button>
+          <button
+            class="btn-create"
+            type="button"
+            *ngIf="step === 6"
+            (click)="createTenant()"
+            [disabled]="isSubmitting"
+          >
+            <span class="spinner" *ngIf="isSubmitting" aria-hidden="true"></span>
+            {{ submitting ? 'Creating shop…' : 'Create shop' }}
+          </button>
+        </div>
+      </form>
+    </section>
+
+    <aside class="summary-rail">
+      <div class="summary-card">
+        <div class="summary-title">Shop snapshot</div>
+        <dl class="summary-list">
+          <div class="summary-row">
+            <dt>Shop</dt>
+            <dd>{{ form.controls.name.value || 'Not set' }}</dd>
+          </div>
+          <div class="summary-row">
+            <dt>Slug</dt>
+            <dd>{{ form.controls.slug.value || '—' }}</dd>
+          </div>
+          <div class="summary-row">
+            <dt>Owner</dt>
+            <dd>{{ form.controls.owner_name.value || 'Not set' }}</dd>
+          </div>
+          <div class="summary-row">
+            <dt>Modules</dt>
+            <dd>{{ selectedModuleCount }}</dd>
+          </div>
+          <div class="summary-row">
+            <dt>Progress</dt>
+            <dd>{{ step }} / {{ steps.length }}</dd>
+          </div>
+        </dl>
+      </div>
+
+      <div class="summary-card summary-tip">
+        <div class="summary-title">Setup guide</div>
+        <p>Complete profile, design, modules, owner and route. Everything stays editable after launch.</p>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<!-- ─── Result ─────────────────────────────────────────────────────────── -->
+<div class="result-page" *ngIf="result as r">
+  <div class="result-card" [class.is-failed]="r.run.status === 'failed'">
+    <div class="result-icon" [class.is-failed]="r.run.status === 'failed'">
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path *ngIf="isCreated" d="m5 12 4 4L19 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+        <path *ngIf="isFailed" d="M12 8v5M12 16.5h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+        <circle *ngIf="isFailed" cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.7" />
+      </svg>
+    </div>
+
+    <p class="eyebrow">{{ isCreated ? 'Shop live' : 'Provisioning failed' }}</p>
+    <h2>{{ isCreated ? r.tenant.name + ' is ready.' : 'The shop could not be created.' }}</h2>
+    <p class="result-copy" *ngIf="isCreated">
+      The storefront, admin, owner, roles, branch, and modules are active.
+    </p>
+    <p class="result-copy" *ngIf="isFailed">
+      {{ submitError || 'A provisioning step failed. Fix the cause and retry; the transaction rollback leaves no partial data.' }}
+    </p>
+
+    <div class="result-urls" *ngIf="isCreated">
+      <div>
+        <span>Storefront</span>
+        <strong>{{ storefrontUrl }}</strong>
+        <button type="button" (click)="copy(storefrontUrl, 'storefront')">{{ copiedField === 'storefront' ? 'Copied' : 'Copy' }}</button>
+      </div>
+      <div>
+        <span>Admin</span>
+        <strong>{{ adminUrl }}</strong>
+        <button type="button" (click)="copy(adminUrl, 'admin')">{{ copiedField === 'admin' ? 'Copied' : 'Copy' }}</button>
+      </div>
+    </div>
+
+    <div class="invite-box" *ngIf="isCreated && invite?.url">
+      <div>
+        <span>Owner invite link</span>
+        <strong class="break">{{ invite?.url }}</strong>
+      </div>
+      <button type="button" (click)="copy(invite?.url || '', 'invite')">{{ copiedField === 'invite' ? 'Copied' : 'Copy invite' }}</button>
+    </div>
+
+    <div class="invite-box" *ngIf="isCreated && !invite?.url">
+      <div>
+        <span>Owner access</span>
+        <strong>Temporary password was set. The owner must change it at first login.</strong>
+      </div>
+    </div>
+
+    <div class="provision-list">
+      <div class="provision-row" *ngFor="let item of r.run.steps" [ngClass]="stepClass(item.status)">
+        <span class="provision-icon">{{ stepIcon(item.status) }}</span>
+        <span class="provision-copy">
+          <strong>{{ item.label }}</strong>
+          <small *ngIf="item.note">{{ item.note }}</small>
+        </span>
+        <span class="provision-status">{{ stepStatusLabel(item.status) }}</span>
+      </div>
+    </div>
+
+    <div class="result-note" *ngIf="r.modules_added?.length">
+      Added automatically: {{ modulesAddedText() }}
+    </div>
+
+    <div class="result-actions">
+      <button class="btn-create" type="button" *ngIf="isFailed" (click)="retryProvisioning()" [disabled]="retrying">
+        <span class="spinner" *ngIf="retrying" aria-hidden="true"></span>
+        {{ retrying ? 'Retrying…' : 'Retry provisioning' }}
+      </button>
+      <a class="btn-continue" routerLink="/platform/tenants">Go to shops</a>
+      <button class="btn-back" type="button" *ngIf="isCreated" (click)="resetWizard()">Create another</button>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,18 @@
+<div class="module-page" *ngIf="leaf">
+  <p class="eyebrow">{{ leaf.module.replace('_', ' ') }} module</p>
+  <h2>{{ leaf.label }}</h2>
+
+  <section class="module-card">
+    <span class="module-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" [innerHTML]="leaf.icon | trustSvg"></svg>
+    </span>
+    <div>
+      <strong>This screen is enabled for your shop</strong>
+      <p>
+        {{ leaf.label }} is not available yet. It will open here,
+        with your shop's data, as soon as it is ready. Nothing needs to be set up on your side.
+      </p>
+      <a class="back-link" [routerLink]="['/t', slug, 'dashboard']">← Back to dashboard</a>
+    </div>
+  </section>
+</div>

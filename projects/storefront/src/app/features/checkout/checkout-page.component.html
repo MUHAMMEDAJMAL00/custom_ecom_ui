@@ -1,0 +1,221 @@
+<app-shop-shell>
+  <div class="ms-container page-wrap">
+    <div class="page-head">
+      <div>
+        <h1>Checkout</h1>
+        <p>Confirm your address and payment method.</p>
+      </div>
+      <a routerLink="/cart" class="btn-plain"><i class="bi bi-arrow-left"></i> Back to cart</a>
+    </div>
+
+    @if (!(cart.loaded$ | async)) {
+      <div class="loading-row"><span class="shop-loader"></span></div>
+    } @else if (!lines.length) {
+      <div class="empty-state">
+        <i class="bi bi-bag"></i>
+        <h2>Your cart is empty</h2>
+        <p>Add products before going to checkout.</p>
+        <a class="btn-brand" routerLink="/catalog">Browse products</a>
+      </div>
+    } @else {
+      @if (error) {
+        <div class="form-error page-alert"><i class="bi bi-exclamation-circle"></i> {{ error }}</div>
+      }
+
+      <div class="checkout-grid">
+        <div class="checkout-main">
+          <section class="panel">
+            <div class="panel__head">
+              <h2 class="panel__title">Delivery address</h2>
+              @if (!showAddressForm) {
+                <button class="btn-plain" type="button" (click)="startAddress()"><i class="bi bi-plus-lg"></i> Add address</button>
+              }
+            </div>
+
+            @if (loadingAddresses) {
+              <div class="loading-row"><span class="shop-loader"></span></div>
+            } @else if (addresses.length) {
+              <div class="checkout-addresses">
+                @for (address of addresses; track address.id) {
+                  <label class="checkout-address" [class.is-selected]="selectedId === address.id">
+                    <input type="radio" name="address" [value]="address.id" [checked]="selectedId === address.id" (change)="select(address)" />
+                    <span class="checkout-address__body">
+                      <span class="checkout-address__head">
+                        <strong>{{ address.name }}</strong>
+                        <span class="address-type">{{ address.address_type }}</span>
+                        @if (address.is_default) {
+                          <span class="status-chip status-chip--confirmed">Default</span>
+                        }
+                      </span>
+                      <span class="checkout-address__text">
+                        {{ address.full_address }}, {{ address.city }}, {{ address.state }} {{ address.postal_code }}, {{ address.country }}
+                      </span>
+                      <span class="checkout-address__phone"><i class="bi bi-telephone"></i> {{ address.phone }}</span>
+                    </span>
+                  </label>
+                }
+              </div>
+            }
+
+            @if (showAddressForm) {
+              <div class="checkout-new-address">
+                <h3>New address</h3>
+                @if (addressError) {
+                  <div class="form-error"><i class="bi bi-exclamation-circle"></i> {{ addressError }}</div>
+                }
+                <form class="shop-form" (submit)="saveAddress(); $event.preventDefault()">
+                  <div class="field-row">
+                    <label class="field">
+                      <span>Full name</span>
+                      <input type="text" name="ship_name" [(ngModel)]="addressDraft.name" autocomplete="name" />
+                    </label>
+                    <label class="field">
+                      <span>Phone</span>
+                      <input type="tel" name="ship_phone" [(ngModel)]="addressDraft.phone" autocomplete="tel" />
+                    </label>
+                  </div>
+                  <label class="field">
+                    <span>Address</span>
+                    <textarea name="ship_address" [(ngModel)]="addressDraft.full_address" autocomplete="street-address"></textarea>
+                  </label>
+                  <div class="field-row">
+                    <label class="field">
+                      <span>City</span>
+                      <input type="text" name="ship_city" [(ngModel)]="addressDraft.city" autocomplete="address-level2" />
+                    </label>
+                    <label class="field">
+                      <span>State</span>
+                      <input type="text" name="ship_state" [(ngModel)]="addressDraft.state" autocomplete="address-level1" />
+                    </label>
+                  </div>
+                  <div class="field-row">
+                    <label class="field">
+                      <span>PIN code</span>
+                      <input type="text" name="ship_pin" [(ngModel)]="addressDraft.postal_code" maxlength="6" inputmode="numeric" autocomplete="postal-code" />
+                    </label>
+                    <label class="field">
+                      <span>Country</span>
+                      <input type="text" name="ship_country" [(ngModel)]="addressDraft.country" autocomplete="country-name" />
+                    </label>
+                  </div>
+                  <div class="checkout-new-address__actions">
+                    <button class="btn-plain" type="button" (click)="cancelAddress()" [disabled]="savingAddress">Cancel</button>
+                    <button class="btn-outline-brand" type="submit" [disabled]="savingAddress">
+                      {{ savingAddress ? 'Saving…' : 'Save address' }}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            }
+          </section>
+
+          <section class="panel">
+            <div class="panel__head">
+              <h2 class="panel__title">Payment method</h2>
+            </div>
+            <div class="pay-options">
+              <label class="pay-option" [class.is-selected]="payment === 'cod'">
+                <input type="radio" name="payment" value="cod" [(ngModel)]="payment" />
+                <span class="pay-option__icon"><i class="bi bi-cash-coin"></i></span>
+                <span class="pay-option__body">
+                  <strong>Cash on delivery</strong>
+                  <span>Pay the courier when your order arrives.</span>
+                </span>
+              </label>
+              @if (onlineEnabled) {
+                <label class="pay-option" [class.is-selected]="payment === 'online'">
+                  <input type="radio" name="payment" value="online" [(ngModel)]="payment" />
+                  <span class="pay-option__icon"><i class="bi bi-credit-card"></i></span>
+                  <span class="pay-option__body">
+                    <strong>Pay online</strong>
+                    <span>Secure card, UPI or net banking through Razorpay.</span>
+                  </span>
+                </label>
+              }
+            </div>
+          </section>
+        </div>
+
+        <aside class="summary-card">
+          <h2 class="summary-card__title">Order summary</h2>
+
+          <div class="checkout-lines">
+            @for (line of lines; track line.product_id + ':' + line.variant_id) {
+              <div class="checkout-line">
+                <img [src]="image(line)" [alt]="line.name" />
+                <div>
+                  <span>{{ line.name }}</span>
+                  @if (line.variant_name) {
+                    <small>{{ line.variant_name }}</small>
+                  }
+                  <small>Qty {{ line.quantity }}</small>
+                </div>
+                <strong>{{ line.price * line.quantity | currency: currency : 'symbol' : '1.0-2' }}</strong>
+              </div>
+            }
+          </div>
+
+          @if (discountsEnabled) {
+            <div class="coupon">
+              @if (!appliedCoupon) {
+                <label class="field">
+                  <span>Coupon code</span>
+                  <div class="coupon__row">
+                    <input type="text" name="coupon" [(ngModel)]="couponInput" placeholder="Enter code" />
+                    <button class="btn-outline-brand" type="button" (click)="applyCoupon()">Apply</button>
+                  </div>
+                </label>
+              } @else {
+                <div class="coupon__applied">
+                  <span><i class="bi bi-ticket-perforated"></i> {{ appliedCoupon }}</span>
+                  <button class="btn-plain" type="button" (click)="removeCoupon()">Remove</button>
+                </div>
+              }
+            </div>
+          }
+
+          @if (quoteError) {
+            <div class="form-error"><i class="bi bi-exclamation-circle"></i> {{ quoteError }}</div>
+          }
+
+          <div class="summary-card__row">
+            <span>Subtotal</span>
+            <strong>{{ subtotal | currency: currency : 'symbol' : '1.0-2' }}</strong>
+          </div>
+          @if (quote?.coupon) {
+            <div class="summary-card__row summary-card__row--discount">
+              <span>{{ quote?.coupon?.name }}</span>
+              <strong>− {{ quote?.discount | currency: currency : 'symbol' : '1.0-2' }}</strong>
+            </div>
+          }
+          <div class="summary-card__row">
+            <span>Tax</span>
+            <strong>{{ (quote?.tax ?? 0) | currency: currency : 'symbol' : '1.0-2' }}</strong>
+          </div>
+          <div class="summary-card__row">
+            <span>Delivery</span>
+            <strong>{{ (quote?.shipping ?? 0) | currency: currency : 'symbol' : '1.0-2' }}</strong>
+          </div>
+          @if (quote && quote.round_off !== 0) {
+            <div class="summary-card__row">
+              <span>Round off</span>
+              <strong>{{ quote.round_off | currency: currency : 'symbol' : '1.0-2' }}</strong>
+            </div>
+          }
+          <div class="summary-card__total">
+            <span>Total</span>
+            <strong>{{ quoteLoading ? '…' : (total | currency: currency : 'symbol' : '1.0-2') }}</strong>
+          </div>
+
+          <button class="btn-brand checkout-place" type="button" (click)="placeOrder()" [disabled]="placing || quoteLoading || !quote || !selectedId">
+            <i class="bi" [ngClass]="payment === 'online' ? 'bi-credit-card' : 'bi-bag-check'"></i>
+            {{ placing ? 'Placing order…' : (payment === 'online' ? 'Pay and place order' : 'Place order') }}
+          </button>
+          <p class="summary-card__note">
+            The total is calculated by the shop from live prices, tax and the delivery address.
+          </p>
+        </aside>
+      </div>
+    }
+  </div>
+</app-shop-shell>

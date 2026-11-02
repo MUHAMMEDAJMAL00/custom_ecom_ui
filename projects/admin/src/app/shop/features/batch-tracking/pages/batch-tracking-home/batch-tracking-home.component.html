@@ -1,0 +1,111 @@
+<div class="page-wrap">
+  <div class="page-header">
+    <div class="page-header-left">
+      <div class="page-title-main">Batch &amp; Expiry Tracking</div>
+      <div class="page-breadcrumb">
+        <a [routerLink]="'/dashboard' | shopUrl">Dashboard</a>
+        <span class="sep">›</span>
+        <span class="current">Batch Tracking</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="stat-cards">
+    <div class="stat-card stat-card--teal">
+      <div class="stat-card-icon">📦</div>
+      <div class="stat-card-info">
+        <div class="stat-card-value">{{ statTotal }}</div>
+        <div class="stat-card-label">Total Batches</div>
+      </div>
+    </div>
+    <div class="stat-card stat-card--dark">
+      <div class="stat-card-icon">✅</div>
+      <div class="stat-card-info">
+        <div class="stat-card-value">{{ statActive }}</div>
+        <div class="stat-card-label">Active</div>
+      </div>
+    </div>
+    <div class="stat-card stat-card--orange">
+      <div class="stat-card-icon">⚠️</div>
+      <div class="stat-card-info">
+        <div class="stat-card-value">{{ statExpiring }}</div>
+        <div class="stat-card-label">Expiring Soon</div>
+      </div>
+    </div>
+    <div class="stat-card stat-card--red">
+      <div class="stat-card-icon">⛔</div>
+      <div class="stat-card-info">
+        <div class="stat-card-value">{{ statExpired }}</div>
+        <div class="stat-card-label">Expired</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="toolbar">
+      <div class="toolbar-left">
+        <div class="search-box">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+          </svg>
+          <input type="text" placeholder="Search product or batch no…" autocomplete="off" [value]="search"
+                 (input)="onSearchInput($any($event.target).value)" />
+        </div>
+        <select class="filter-select" [(ngModel)]="statusFilter" (change)="onStatusFilterChange()">
+          <option value="">All Statuses</option>
+          <option value="active">Active</option>
+          <option value="expiring">Expiring Soon</option>
+          <option value="expired">Expired</option>
+        </select>
+      </div>
+      <div class="toolbar-right">
+        <button class="btn btn-icon-tool" title="Refresh" (click)="load()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="23 4 23 10 17 10" /><polyline points="1 20 1 14 7 14" />
+            <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15" />
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table class="pos-table">
+        <thead>
+          <tr><th>#</th><th>Product</th><th>SKU</th><th>Batch No</th><th>Mfg. Date</th><th>Expiry Date</th><th>Qty</th><th>Status</th></tr>
+        </thead>
+        <tbody>
+          <tr *ngIf="loading"><td colspan="8" class="tbl-empty"><span class="pos-loader"><span></span><span></span><span></span></span></td></tr>
+          <tr *ngIf="!loading && errorMessage"><td colspan="8" class="tbl-empty" style="color: var(--danger)">{{ errorMessage }}</td></tr>
+          <tr *ngIf="!loading && !errorMessage && !rows.length"><td colspan="8" class="tbl-empty">No batches found.</td></tr>
+          <tr *ngFor="let b of rows; let i = index" [hidden]="loading" [ngClass]="rowClass(b)">
+            <td>{{ (page - 1) * limit + i + 1 }}</td>
+            <td>{{ b.Product?.name || '—' }}</td>
+            <td><span style="color: var(--text-secondary); font-size: 0.8rem">{{ b.Product?.sku || '—' }}</span></td>
+            <td><strong>{{ b.batch_number || '—' }}</strong></td>
+            <td>
+              <span *ngIf="!(b.manufacturing_date || b.createdAt)" style="color: #9c8b91">—</span>
+              <ng-container *ngIf="b.manufacturing_date || b.createdAt">{{ (b.manufacturing_date || b.createdAt) | date: 'd MMM y' }}</ng-container>
+            </td>
+            <td>
+              <span *ngIf="!b.expiry_date" style="color: #9c8b91">—</span>
+              <ng-container *ngIf="b.expiry_date">{{ b.expiry_date | date: 'd MMM y' }}</ng-container>
+            </td>
+            <td>{{ quantityDisplay(b) }}</td>
+            <td><span class="badge" [ngClass]="statusBadgeClass(getStatus(b.expiry_date))">{{ statusLabel(getStatus(b.expiry_date)) }}</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="pagination-bar">
+      <div class="pagination-info">
+        Row Per Page
+        <select [ngModel]="limit" (ngModelChange)="onLimitChange($event)">
+          <option [ngValue]="20">20</option><option [ngValue]="10">10</option><option [ngValue]="25">25</option><option [ngValue]="50">50</option>
+        </select>
+        Entries
+      </div>
+      <app-pagination [currentPage]="page" [totalPages]="totalPages" (pageChange)="goToPage($event)"></app-pagination>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,88 @@
+<div class="page-wrap">
+  <div class="page-header">
+    <div class="page-header-left">
+      <div class="page-title-main">Assets Register</div>
+      <div class="page-breadcrumb"><a [routerLink]="'/dashboard' | shopUrl">Dashboard</a><span class="sep">›</span><span class="current">Assets</span></div>
+    </div>
+    <div class="page-header-actions">
+      <button class="btn btn-icon-tool" title="Refresh" (click)="load()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg></button>
+      <button class="btn btn-primary" (click)="openAdd()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>Add Asset</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="toolbar">
+      <div class="toolbar-left">
+        <div class="search-box"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input type="text" placeholder="Search assets…" autocomplete="off" [(ngModel)]="search" (ngModelChange)="load()" /></div>
+      </div>
+      <div class="toolbar-right">
+        <select class="filter-select" [(ngModel)]="filterStatus" (change)="load()"><option value="">All Status</option><option value="Active">Active</option><option value="Disposed">Disposed</option></select>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table class="pos-table">
+        <thead><tr><th>#</th><th>Asset Name</th><th>Category</th><th>Purchase Date</th><th>Purchase Value</th><th>Current Book Value</th><th>Status</th><th>Actions</th></tr></thead>
+        <tbody>
+          <tr *ngIf="loading"><td colspan="8" class="tbl-empty"><span class="pos-loader"><span></span><span></span><span></span></span></td></tr>
+          <tr *ngIf="!loading && !assets.length"><td colspan="8" class="tbl-empty">No assets found</td></tr>
+          <tr *ngFor="let a of assets; let i = index">
+            <td>{{ (page - 1) * limit + i + 1 }}</td>
+            <td><strong>{{ a.name }}</strong></td>
+            <td>{{ a.category || '—' }}</td>
+            <td>{{ a.purchase_date || '—' }}</td>
+            <td>{{ formatCurrency(a.purchase_value) }}</td>
+            <td>{{ formatCurrency(a.current_book_value) }}</td>
+            <td><span class="badge" [ngClass]="a.status === 'Active' ? 'badge-success' : 'badge-cancelled'">{{ a.status }}</span></td>
+            <td><app-row-actions [showView]="true" [showEdit]="true" (view)="openView(a)" (edit)="openEdit(a)"></app-row-actions></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="pagination-bar">
+      <div class="pagination-info">Row Per Page <select [ngModel]="limit" (ngModelChange)="limit = $event; load(1)"><option [ngValue]="20">20</option><option [ngValue]="10">10</option><option [ngValue]="50">50</option></select> Entries</div>
+      <app-pagination [currentPage]="page" [totalPages]="total" (pageChange)="load($event)"></app-pagination>
+    </div>
+  </div>
+</div>
+
+<app-drawer [open]="drawerOpen" [title]="drawerMode === 'view' ? ('Asset — ' + (viewingAsset?.name || '')) : (editId ? 'Edit Asset' : 'Add Asset')"
+            [showFooter]="drawerMode === 'form'" [saving]="saving"
+            [saveLabel]="editId ? 'Update Asset' : 'Save Asset'"
+            (closed)="drawerOpen = false" (saveClicked)="save()">
+
+  <!-- View -->
+  <ng-container *ngIf="drawerMode === 'view' && viewingAsset as a">
+    <div class="detail-grid">
+      <div class="detail-item"><label>Asset Name</label><span><strong>{{ a.name }}</strong></span></div>
+      <div class="detail-item"><label>Category</label><span>{{ a.category || '—' }}</span></div>
+      <div class="detail-item"><label>Purchase Date</label><span>{{ a.purchase_date || '—' }}</span></div>
+      <div class="detail-item"><label>Purchase Value</label><span>{{ formatCurrency(a.purchase_value) }}</span></div>
+      <div class="detail-item"><label>Depreciation Rate</label><span>{{ a.depreciation_rate }}%</span></div>
+      <div class="detail-item"><label>Accumulated Depreciation</label><span>{{ formatCurrency(a.accumulated_depreciation) }}</span></div>
+      <div class="detail-item"><label>Current Book Value</label><span><strong>{{ formatCurrency(a.current_book_value) }}</strong></span></div>
+      <div class="detail-item"><label>Status</label><span>{{ a.status }}</span></div>
+      <div class="detail-item col-span-2" *ngIf="a.notes"><label>Notes</label><span>{{ a.notes }}</span></div>
+    </div>
+    <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border-light)">
+      <strong>Post Depreciation</strong>
+      <div class="form-grid" style="margin-top:10px">
+        <div class="form-group"><label class="form-label">Depreciation Amount</label><input type="number" class="form-control" min="0.01" step="0.01" placeholder="0.00" [(ngModel)]="deprAmount" /></div>
+        <div class="form-group"><label class="form-label">Date</label><input type="date" class="form-control" [(ngModel)]="deprDate" /></div>
+      </div>
+      <button class="btn btn-primary" style="margin-top:8px" (click)="postDepreciation()" [disabled]="saving">{{ saving ? 'Posting…' : 'Post Depreciation Entry' }}</button>
+    </div>
+  </ng-container>
+
+  <!-- Form -->
+  <ng-container *ngIf="drawerMode === 'form'">
+    <div class="form-grid">
+      <div class="form-group col-span-2"><label class="form-label">Asset Name <span class="req">*</span></label><input type="text" class="form-control" [(ngModel)]="formName" placeholder="e.g. Office Computer" /></div>
+      <div class="form-group"><label class="form-label">Category</label><input type="text" class="form-control" [(ngModel)]="formCategory" placeholder="e.g. Equipment" /></div>
+      <div class="form-group"><label class="form-label">Purchase Date</label><input type="date" class="form-control" [(ngModel)]="formPurchaseDate" /></div>
+      <div class="form-group"><label class="form-label">Purchase Value</label><input type="number" class="form-control" min="0" step="0.01" [(ngModel)]="formPurchaseValue" placeholder="0.00" /></div>
+      <div class="form-group"><label class="form-label">Depreciation Rate (%)</label><input type="number" class="form-control" min="0" max="100" step="0.01" [(ngModel)]="formDeprRate" placeholder="0" /></div>
+      <div class="form-group" *ngIf="editId"><label class="form-label">Status</label><select class="form-control" [(ngModel)]="formStatus"><option value="Active">Active</option><option value="Disposed">Disposed</option></select></div>
+      <div class="form-group col-span-2"><label class="form-label">Notes</label><textarea class="form-control" rows="2" [(ngModel)]="formNotes"></textarea></div>
+    </div>
+  </ng-container>
+</app-drawer>

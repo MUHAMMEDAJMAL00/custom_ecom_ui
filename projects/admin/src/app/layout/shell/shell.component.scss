@@ -1,0 +1,39 @@
+/* App shell — MySkin white canvas */
+
+.shell {
+  min-height: 100vh;
+}
+
+.main {
+  min-height: 100vh;
+  margin-left: 196px;
+  background: var(--surface);
+}
+
+.content {
+  width: 100%;
+  padding: 8px 20px 24px;
+  margin: 0 auto;
+  animation: fadeIn 0.2s ease both;
+}
+
+/* Scrim (mobile overlay) */
+.sidebar-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 1035;
+  background: rgba(42, 26, 32, 0.5);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  animation: fadeIn 0.2s ease;
+}
+
+@media (max-width: 991.98px) {
+  .main {
+    margin-left: 0;
+  }
+
+  .content {
+    padding: 16px 16px 40px;
+  }
+}

@@ -1,0 +1,356 @@
+<div class="page-wrap">
+  <div class="page-header">
+    <div class="page-header-left">
+      <div class="page-title-main">Home Sections</div>
+      <div class="page-breadcrumb">
+        <a [routerLink]="'/dashboard' | shopUrl">Dashboard</a>
+        <span class="sep">›</span>
+        <span>Website</span>
+        <span class="sep">›</span>
+        <span class="current">Home Sections</span>
+      </div>
+    </div>
+    <div class="page-header-actions">
+      <a class="btn btn-outline" [href]="siteUrl" target="_blank" rel="noopener" title="Open the website home page">
+        <i class="bi bi-box-arrow-up-right"></i> View website
+      </a>
+      <button class="btn btn-outline" (click)="load()" title="Refresh">
+        <i class="bi bi-arrow-clockwise"></i>
+      </button>
+    </div>
+  </div>
+
+  <div *ngIf="loading && !sections.length" class="card hs-empty"><span class="pos-loader"><span></span><span></span><span></span></span></div>
+  <div *ngIf="!loading && errorMessage" class="card hs-empty hs-error">{{ errorMessage }}</div>
+
+  <div class="hs-layout" *ngIf="sections.length">
+    <!-- Section rail: same order as the website home page -->
+    <aside class="hs-rail card">
+      <div class="hs-rail-head">
+        <span>Home page, top to bottom</span>
+      </div>
+      <button type="button" *ngFor="let s of sections; let i = index" class="hs-tab"
+              [class.active]="s.section_key === activeKey" [class.off]="!s.is_active" (click)="select(s.section_key)">
+        <span class="hs-tab-num">{{ i + 1 }}</span>
+        <span class="hs-tab-icon"><i class="bi" [ngClass]="iconOf(s.section_key)"></i></span>
+        <span class="hs-tab-text">
+          <span class="hs-tab-name">{{ s.name }}</span>
+          <span class="hs-tab-meta">
+            <span class="hs-dot" [class.off]="!s.is_active"></span>{{ s.is_active ? 'Visible' : 'Hidden' }}<ng-container *ngIf="s.items.length"> · {{ s.items.length }} card{{ s.items.length === 1 ? '' : 's' }}</ng-container>
+          </span>
+        </span>
+      </button>
+    </aside>
+
+    <div class="hs-main" *ngIf="active as s">
+      <!-- Section heading -->
+      <div class="card hs-card">
+        <div class="hs-card-head">
+          <div class="hs-title-wrap">
+            <span class="hs-title-icon"><i class="bi" [ngClass]="config.icon"></i></span>
+            <div>
+              <div class="hs-card-title">{{ s.name }}</div>
+              <div class="hs-card-hint">{{ config.hint }}</div>
+            </div>
+          </div>
+          <label class="hs-switch" [class.on]="sectionForm.is_active === 1">
+            <input type="checkbox" [checked]="sectionForm.is_active === 1" (change)="sectionForm.is_active = $any($event.target).checked ? 1 : 0" />
+            <span class="hs-switch-track"><span class="hs-switch-knob"></span></span>
+            <span class="hs-switch-label">{{ sectionForm.is_active === 1 ? 'Visible on website' : 'Hidden from website' }}</span>
+          </label>
+        </div>
+
+        <div class="hs-editor">
+          <div class="hs-fields" *ngIf="config.fields.length; else noFields">
+            <div class="form-grid">
+              <div class="form-group" *ngIf="has('eyebrow')">
+                <label class="form-label">{{ label('eyebrow') }}</label>
+                <input class="form-control" [(ngModel)]="sectionForm.eyebrow" maxlength="80" />
+              </div>
+              <div class="form-group" [class.col-span-2]="!has('cta_label')" *ngIf="has('title')">
+                <label class="form-label">{{ label('title') }}</label>
+                <input class="form-control" [(ngModel)]="sectionForm.title" maxlength="120" />
+              </div>
+              <div class="form-group" *ngIf="has('cta_label')">
+                <label class="form-label">{{ label('cta_label') }}</label>
+                <input class="form-control" [(ngModel)]="sectionForm.cta_label" maxlength="40" />
+              </div>
+              <div class="form-group col-span-2" *ngIf="has('subtitle')">
+                <label class="form-label">{{ label('subtitle') }}</label>
+                <input class="form-control" [(ngModel)]="sectionForm.subtitle" maxlength="200" />
+              </div>
+              <div class="form-group col-span-2" *ngIf="has('highlight')">
+                <label class="form-label">{{ label('highlight') }}</label>
+                <input class="form-control" [(ngModel)]="sectionForm.highlight" maxlength="120" />
+              </div>
+              <ng-container *ngIf="has('link')">
+                <div class="form-group">
+                  <label class="form-label">Opens category</label>
+                  <select class="form-control" [(ngModel)]="sectionForm.category_id" (ngModelChange)="$event && (sectionForm.link_url = '')">
+                    <option [ngValue]="null">— None —</option>
+                    <option *ngFor="let c of categories" [ngValue]="c.id">{{ c.name }}</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">…or link</label>
+                  <input class="form-control" [(ngModel)]="sectionForm.link_url" placeholder="#value, /catalog/brands, https://…"
+                         (input)="sectionForm.category_id = null" maxlength="300" />
+                </div>
+              </ng-container>
+              <div class="form-group col-span-2" *ngIf="has('image_url')">
+                <label class="form-label">Image</label>
+                <div class="hs-upload">
+                  <div class="hs-upload-img">
+                    <img *ngIf="sectionForm.image_url" [src]="images.imageSrc(sectionForm.image_url)" alt="" />
+                    <i *ngIf="!sectionForm.image_url" class="bi bi-image"></i>
+                  </div>
+                  <div class="hs-upload-actions">
+                    <label class="btn btn-outline btn-sm">
+                      <i class="bi bi-upload"></i> {{ uploading === 'section' ? 'Uploading…' : (sectionForm.image_url ? 'Replace' : 'Upload') }}
+                      <input type="file" accept="image/png,image/jpeg,image/webp,image/gif" hidden (change)="onImageSelected($event, 'section')" [disabled]="uploading !== null" />
+                    </label>
+                    <button type="button" class="btn btn-outline btn-sm" *ngIf="sectionForm.image_url" (click)="sectionForm.image_url = ''">Remove</button>
+                    <small class="form-hint">PNG, JPG or WebP · up to 5 MB</small>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <ng-template #noFields>
+            <div class="hs-fields hs-nofields">This section has no heading — just turn it on or off and manage its cards below.</div>
+          </ng-template>
+
+          <!-- Live preview of the heading as the website shows it -->
+          <div class="hs-preview-box">
+            <div class="hs-preview-label"><i class="bi bi-eye"></i> Preview</div>
+            <div class="hs-preview" [ngClass]="'hs-preview--' + activeKey" [class.is-off]="sectionForm.is_active !== 1">
+              <ng-container [ngSwitch]="activeKey">
+                <div *ngSwitchCase="'hot_offers'" class="pv-hot">
+                  <div>
+                    <div class="pv-eyebrow">{{ sectionForm.eyebrow }}</div>
+                    <div class="pv-big">{{ sectionForm.title || 'Title' }}</div>
+                    <div class="pv-sub">{{ sectionForm.highlight }}</div>
+                    <span class="pv-btn" *ngIf="sectionForm.cta_label">{{ sectionForm.cta_label }}</span>
+                  </div>
+                  <img *ngIf="sectionForm.image_url" [src]="images.imageSrc(sectionForm.image_url)" alt="" />
+                </div>
+                <div *ngSwitchCase="'luxe'" class="pv-luxe">
+                  <div class="pv-big">{{ sectionForm.title || 'Title' }}</div>
+                  <div class="pv-caps">{{ sectionForm.subtitle }}</div>
+                  <div class="pv-rewards" *ngIf="sectionForm.highlight">{{ sectionForm.highlight }}</div>
+                </div>
+                <div *ngSwitchCase="'trending'" class="pv-trend">
+                  <div>
+                    <div class="pv-mid">{{ sectionForm.title }}<br />{{ sectionForm.subtitle }}</div>
+                    <div class="pv-offer">{{ sectionForm.highlight }}</div>
+                  </div>
+                </div>
+                <div *ngSwitchDefault class="pv-head">
+                  <span class="pv-line"></span>
+                  <span class="pv-title">{{ sectionForm.title || s.name }}</span>
+                  <span class="pv-line"></span>
+                  <span class="pv-viewall" *ngIf="sectionForm.cta_label">{{ sectionForm.cta_label }} →</span>
+                </div>
+              </ng-container>
+              <div class="pv-cards" *ngIf="orderedItems.length && activeKey !== 'hot_offers'">
+                <ng-container *ngFor="let item of orderedItems | slice: 0:5">
+                  <div class="pv-card" *ngIf="item.is_active" [style.background]="item.tint || null">
+                    <img *ngIf="item.image_url" [src]="images.imageSrc(item.image_url)" alt="" />
+                    <i *ngIf="item.icon" class="bi" [ngClass]="item.icon"></i>
+                    <span>{{ item.title }}</span>
+                  </div>
+                </ng-container>
+              </div>
+              <div class="pv-off-badge" *ngIf="sectionForm.is_active !== 1"><i class="bi bi-eye-slash"></i> Hidden on website</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="hs-savebar" [class.dirty]="sectionDirty">
+          <span class="hs-savebar-msg">
+            <ng-container *ngIf="sectionDirty"><i class="bi bi-circle-fill"></i> Unsaved changes</ng-container>
+            <ng-container *ngIf="!sectionDirty"><i class="bi bi-check2-circle"></i> All changes saved</ng-container>
+          </span>
+          <div class="hs-savebar-actions">
+            <button class="btn btn-outline" *ngIf="sectionDirty" (click)="resetSection()" [disabled]="savingSection">Discard</button>
+            <button class="btn btn-primary" (click)="saveSection()" [disabled]="!sectionDirty || savingSection || uploading !== null">
+              {{ savingSection ? 'Saving…' : 'Save section' }}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Cards -->
+      <div class="card hs-card" *ngIf="config.items as cfg">
+        <div class="hs-card-head">
+          <div>
+            <div class="hs-card-title">{{ cfg.noun }}s <span class="hs-count">{{ shownCount }} shown / {{ s.items.length }}</span></div>
+            <div class="hs-card-hint">Use the arrows to change the order. Hidden cards stay saved but don't show on the website.</div>
+          </div>
+          <button class="btn btn-primary" (click)="openAddItem()"><i class="bi bi-plus-lg"></i> Add {{ cfg.noun.toLowerCase() }}</button>
+        </div>
+
+        <div class="hs-empty-cards" *ngIf="!s.items.length">
+          <i class="bi bi-collection"></i>
+          <p>No {{ cfg.noun.toLowerCase() }}s yet.</p>
+          <button class="btn btn-outline" (click)="openAddItem()">Add the first one</button>
+        </div>
+
+        <div class="hs-grid-cards" [class.compact]="!hasItem('image_url')">
+          <div class="hs-item" *ngFor="let item of orderedItems; let first = first; let last = last" [class.off]="!item.is_active">
+            <div class="hs-item-media" *ngIf="hasItem('image_url') || hasItem('icon') || hasItem('tint')" [style.background]="item.tint || null">
+              <img *ngIf="item.image_url" [src]="images.imageSrc(item.image_url)" alt="" />
+              <i *ngIf="!item.image_url && item.icon" class="bi hs-item-icon" [ngClass]="item.icon"></i>
+              <i *ngIf="!item.image_url && !item.icon && hasItem('image_url')" class="bi bi-image hs-item-noimg"></i>
+              <span class="hs-item-style" *ngIf="item.style">{{ item.style }}</span>
+              <span class="hs-item-hidden" *ngIf="!item.is_active"><i class="bi bi-eye-slash"></i> Hidden</span>
+            </div>
+            <div class="hs-item-body">
+              <span class="hs-item-eyebrow" *ngIf="item.eyebrow">{{ item.eyebrow }}</span>
+              <span class="hs-item-title">{{ item.title }}</span>
+              <span class="hs-item-sub" *ngIf="item.subtitle">{{ item.subtitle }}</span>
+              <span class="hs-item-link" *ngIf="hasItem('link') || hasItem('product_id')"><i class="bi bi-link-45deg"></i> {{ linkLabel(item) }}</span>
+            </div>
+            <div class="hs-item-actions">
+              <div class="hs-move">
+                <button type="button" title="Move up" [disabled]="first || reordering" (click)="moveItem(item, -1)"><i class="bi bi-arrow-up"></i></button>
+                <button type="button" title="Move down" [disabled]="last || reordering" (click)="moveItem(item, 1)"><i class="bi bi-arrow-down"></i></button>
+              </div>
+              <div class="hs-item-btns">
+                <button type="button" [title]="item.is_active ? 'Hide' : 'Show'" (click)="toggleItem(item)">
+                  <i class="bi" [ngClass]="item.is_active ? 'bi-eye' : 'bi-eye-slash'"></i>
+                </button>
+                <button type="button" title="Edit" (click)="openEditItem(item)"><i class="bi bi-pencil"></i></button>
+                <button type="button" title="Delete" class="danger" (click)="confirmDeleteItem(item)"><i class="bi bi-trash"></i></button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<app-drawer [open]="itemDrawerOpen" [title]="(editItemId !== null ? 'Edit ' : 'Add ') + (config.items?.noun || 'card')"
+            [saveLabel]="editItemId !== null ? 'Update' : 'Save'" [saving]="savingItem || uploading !== null"
+            [showFooter]="true" (closed)="closeItemDrawer()" (saveClicked)="saveItem()">
+  <div class="pf-form" *ngIf="itemDrawerOpen">
+    <div class="pf-section" *ngIf="hasItem('image_url')">
+      <div class="pf-section-header"><span class="pf-section-title">Image</span></div>
+      <div class="pf-section-body">
+        <div class="hs-upload hs-upload--big">
+          <div class="hs-upload-img" [style.background]="itemForm.tint || null">
+            <img *ngIf="itemForm.image_url" [src]="images.imageSrc(itemForm.image_url)" alt="" />
+            <i *ngIf="!itemForm.image_url" class="bi bi-image"></i>
+          </div>
+          <div class="hs-upload-actions">
+            <label class="btn btn-outline btn-sm">
+              <i class="bi bi-upload"></i> {{ uploading === 'item' ? 'Uploading…' : (itemForm.image_url ? 'Replace' : 'Upload image') }}
+              <input type="file" accept="image/png,image/jpeg,image/webp,image/gif" hidden (change)="onImageSelected($event, 'item')" [disabled]="uploading !== null" />
+            </label>
+            <button type="button" class="btn btn-outline btn-sm" *ngIf="itemForm.image_url" (click)="itemForm.image_url = ''">Remove</button>
+            <small class="form-hint">PNG, JPG or WebP · up to 5 MB</small>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="pf-section">
+      <div class="pf-section-header"><span class="pf-section-title">Content</span></div>
+      <div class="pf-section-body">
+        <div class="form-grid">
+          <div class="form-group" *ngIf="hasItem('eyebrow')">
+            <label class="form-label">{{ itemLabel('eyebrow') }}</label>
+            <input class="form-control" [(ngModel)]="itemForm.eyebrow" [placeholder]="placeholder('eyebrow')" maxlength="80" />
+          </div>
+          <div class="form-group" *ngIf="hasItem('title')">
+            <label class="form-label">{{ itemLabel('title') }} <span class="req" *ngIf="!(hasItem('image_url') && !hasItem('subtitle'))">*</span></label>
+            <input class="form-control" [(ngModel)]="itemForm.title" [placeholder]="placeholder('title')" maxlength="120" />
+          </div>
+          <div class="form-group col-span-2" *ngIf="hasItem('subtitle')">
+            <label class="form-label">{{ itemLabel('subtitle') }}</label>
+            <input class="form-control" [(ngModel)]="itemForm.subtitle" [placeholder]="placeholder('subtitle')" maxlength="200" />
+          </div>
+          <div class="form-group" *ngIf="hasItem('icon')">
+            <label class="form-label">Icon</label>
+            <div class="hs-icon-input">
+              <span class="hs-icon-preview"><i class="bi" [ngClass]="itemForm.icon || 'bi-question'"></i></span>
+              <input class="form-control" [(ngModel)]="itemForm.icon" [placeholder]="placeholder('icon')" maxlength="60" />
+            </div>
+            <div class="hs-icon-picks">
+              <button type="button" *ngFor="let ic of ['bi-truck', 'bi-arrow-repeat', 'bi-patch-check', 'bi-shield-lock', 'bi-stars', 'bi-gift', 'bi-heart', 'bi-percent']"
+                      [class.on]="itemForm.icon === ic" (click)="itemForm.icon = ic" [title]="ic"><i class="bi" [ngClass]="ic"></i></button>
+            </div>
+          </div>
+          <div class="form-group col-span-2" *ngIf="hasItem('style')">
+            <label class="form-label">Card style</label>
+            <div class="hs-segment">
+              <button type="button" *ngFor="let st of ['round', 'wide', 'model']" [class.on]="itemForm.style === st" (click)="itemForm.style = st">
+                <i class="bi" [ngClass]="st === 'round' ? 'bi-circle' : st === 'wide' ? 'bi-aspect-ratio' : 'bi-person-square'"></i>
+                {{ st === 'round' ? 'Round' : st === 'wide' ? 'Wide' : 'Model photo' }}
+              </button>
+            </div>
+          </div>
+          <div class="form-group" *ngIf="hasItem('tint')">
+            <label class="form-label">Background colour</label>
+            <div class="hs-color">
+              <input type="color" [value]="itemForm.tint || '#fde3e3'" (input)="itemForm.tint = $any($event.target).value" />
+              <input class="form-control" [(ngModel)]="itemForm.tint" placeholder="#fde3e3" maxlength="9" />
+            </div>
+            <div class="hs-swatches">
+              <button type="button" *ngFor="let c of ['#fde3e3', '#fbe4f1', '#e3ecfb', '#fdeadf', '#e6f4ea', '#f3e8ff']"
+                      [style.background]="c" [class.on]="itemForm.tint === c" (click)="itemForm.tint = c" [title]="c"></button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="pf-section" *ngIf="hasItem('link') || hasItem('product_id')">
+      <div class="pf-section-header"><span class="pf-section-title">Opens when clicked</span></div>
+      <div class="pf-section-body">
+        <div class="form-grid">
+          <div class="form-group col-span-2" *ngIf="hasItem('product_id')">
+            <label class="form-label">Product ID</label>
+            <input type="number" class="form-control" [(ngModel)]="itemForm.product_id" min="1" placeholder="e.g. 40" />
+            <small class="form-hint">Opens that product. Leave empty to use the category or link below.</small>
+          </div>
+          <ng-container *ngIf="hasItem('link')">
+            <div class="form-group col-span-2">
+              <label class="form-label">Category</label>
+              <select class="form-control" [(ngModel)]="itemForm.category_id" (ngModelChange)="$event && (itemForm.link_url = '')">
+                <option [ngValue]="null">— None —</option>
+                <option *ngFor="let c of categories" [ngValue]="c.id">{{ c.name }}</option>
+              </select>
+            </div>
+            <div class="form-group col-span-2">
+              <label class="form-label">…or link</label>
+              <input class="form-control" [(ngModel)]="itemForm.link_url" placeholder="#value, /catalog/brands, https://…"
+                     (input)="itemForm.category_id = null" maxlength="300" />
+              <small class="form-hint">#value and #brands scroll the home page.</small>
+            </div>
+          </ng-container>
+        </div>
+      </div>
+    </div>
+
+    <div class="pf-section">
+      <div class="pf-section-header"><span class="pf-section-title">Display</span></div>
+      <div class="pf-section-body">
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label">Order</label>
+            <input type="number" class="form-control" [(ngModel)]="itemForm.sort_order" min="0" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Status</label>
+            <div class="hs-segment">
+              <button type="button" [class.on]="itemForm.is_active === 1" (click)="itemForm.is_active = 1"><i class="bi bi-eye"></i> Shown</button>
+              <button type="button" [class.on]="itemForm.is_active === 0" (click)="itemForm.is_active = 0"><i class="bi bi-eye-slash"></i> Hidden</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</app-drawer>

@@ -1,0 +1,13 @@
+<div class="_pc" [class.open]="open" *ngIf="current as c">
+  <div class="_pc-bd" (click)="cancel()"></div>
+  <div class="_pc-box">
+    <div class="_pc-ico">🗑️</div>
+    <div class="_pc-ttl">{{ c.title || 'Are you sure?' }}</div>
+    <div class="_pc-msg">{{ c.message }}</div>
+    <div class="_pc-note" *ngIf="c.note">{{ c.note }}</div>
+    <div class="_pc-acts">
+      <button class="_pcb _pccancel" (click)="cancel()">Cancel</button>
+      <button class="_pcb _pcdanger" (click)="confirm()">{{ c.confirmLabel || 'Confirm' }}</button>
+    </div>
+  </div>
+</div>

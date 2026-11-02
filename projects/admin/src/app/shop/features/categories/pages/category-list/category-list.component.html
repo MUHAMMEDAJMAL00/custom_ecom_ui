@@ -1,0 +1,215 @@
+<div class="page-wrap">
+  <div class="page-header">
+    <div class="page-header-left">
+      <div class="page-title-main">Categories</div>
+      <div class="page-breadcrumb">
+        <a [routerLink]="'/dashboard' | shopUrl">Dashboard</a>
+        <span class="sep">›</span>
+        <span class="current">Categories</span>
+      </div>
+    </div>
+    <div class="page-header-actions">
+      <button class="btn btn-outline" (click)="load()" title="Refresh">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="23 4 23 10 17 10" /><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10" />
+        </svg>
+      </button>
+      <button class="btn btn-primary" (click)="openAdd()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="16" /><line x1="8" y1="12" x2="16" y2="12" />
+        </svg>
+        Add Category
+      </button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="toolbar">
+      <div class="toolbar-left">
+        <div class="search-box">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+          </svg>
+          <input type="text" placeholder="Search by name…" autocomplete="off" [value]="search"
+                 (input)="onSearchInput($any($event.target).value)" />
+        </div>
+      </div>
+      <div class="toolbar-right">
+        <select class="filter-select" [(ngModel)]="statusFilter" (change)="onFilterChange()">
+          <option value="">All Statuses</option>
+          <option value="1">Active</option>
+          <option value="0">Inactive</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table class="pos-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Name</th>
+            <th>Status</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngIf="loading">
+            <td colspan="4" class="tbl-empty">
+              <span class="pos-loader"><span></span><span></span><span></span></span>
+            </td>
+          </tr>
+          <tr *ngIf="!loading && errorMessage">
+            <td colspan="4" class="tbl-empty" style="color: #ef4444">{{ errorMessage }}</td>
+          </tr>
+          <tr *ngIf="!loading && !errorMessage && !categories.length">
+            <td colspan="4" class="tbl-empty">No categories found</td>
+          </tr>
+          <tr *ngFor="let c of categories; let i = index" [hidden]="loading" [style.background]="c.parent_id ? '#fdf4f5' : null">
+            <td class="cell-num">{{ (page - 1) * limit + i + 1 }}</td>
+            <td>
+              <div class="cell-cat-name" [style.padding-left.px]="c.parent_id ? 24 : 0">
+                <span *ngIf="c.parent_id" style="color: #efd6da; margin-right: 6px; font-size: 13px">└─</span>
+                <div class="cat-icon" [class.cat-icon-sm]="!!c.parent_id">
+                  <img *ngIf="c.image_url" [src]="c.image_url" alt="" />
+                  <span *ngIf="!c.image_url">{{ (c.name || '?').charAt(0).toUpperCase() }}</span>
+                </div>
+                <div>
+                  <span [style.font-weight]="c.parent_id ? 400 : 600">{{ c.name }}</span>
+                  <span *ngIf="c.children?.length" style="margin-left: 6px" class="inline-pill">{{ c.children!.length }} sub</span>
+                </div>
+              </div>
+            </td>
+            <td><span class="badge" [ngClass]="c.is_active ? 'badge-active' : 'badge-inactive'">{{ c.is_active ? 'active' : 'inactive' }}</span></td>
+            <td>
+              <app-row-actions [showView]="true" [showEdit]="true" [showDelete]="true"
+                (view)="openView(c)" (edit)="openEdit(c)" (delete)="confirmDelete(c)"></app-row-actions>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="pagination-bar">
+      <div class="pagination-info">
+        Row Per Page
+        <select [ngModel]="limit" (ngModelChange)="onLimitChange($event)">
+          <option [ngValue]="20">20</option>
+          <option [ngValue]="10">10</option>
+          <option [ngValue]="25">25</option>
+          <option [ngValue]="50">50</option>
+        </select>
+        Entries
+      </div>
+      <app-pagination [currentPage]="page" [totalPages]="totalPages" (pageChange)="load($event)"></app-pagination>
+    </div>
+  </div>
+</div>
+
+<app-drawer [open]="drawerMode !== null" [title]="drawerTitle" [saveLabel]="editId !== null ? 'Update Category' : 'Save Category'"
+            [saving]="saving" [showFooter]="drawerMode === 'form'" (closed)="closeDrawer()" (saveClicked)="handleSave()">
+
+  <form *ngIf="drawerMode === 'form'" [formGroup]="form" class="pf-form">
+    <div class="pf-section">
+      <div class="pf-section-header"><span class="pf-section-title">Basic Information</span></div>
+      <div class="pf-section-body">
+        <div class="form-grid">
+          <div class="form-group col-span-2">
+            <label class="form-label">Name <span class="req">*</span></label>
+            <input type="text" class="form-control" formControlName="name" placeholder="Category name" autocomplete="off"
+                   (input)="onNameInput($any($event.target).value)" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Status</label>
+            <select class="form-control" formControlName="is_active">
+              <option [ngValue]="1">Active</option>
+              <option [ngValue]="0">Inactive</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Sort Order</label>
+            <input type="number" class="form-control" formControlName="sort_order" min="0" placeholder="0" />
+          </div>
+          <div class="form-group col-span-2">
+            <label class="form-label">Slug <span class="req">*</span></label>
+            <input type="text" class="form-control" formControlName="slug" placeholder="e.g. fresh-produce" autocomplete="off" />
+            <small class="form-hint">Lowercase letters, numbers and hyphens only. Auto-generated from name.</small>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="pf-section">
+      <div class="pf-section-header"><span class="pf-section-title">Hierarchy</span></div>
+      <div class="pf-section-body">
+        <div class="form-grid cols-1">
+          <div class="form-group">
+            <label class="form-label">Parent Category</label>
+            <select class="form-control" formControlName="parent_id">
+              <option value="">None (top-level)</option>
+              <option *ngFor="let opt of parentOptions(editId)" [value]="opt.id">
+                {{ opt.name }}{{ !opt.is_active ? ' (inactive)' : '' }}
+              </option>
+            </select>
+            <small class="form-hint">Leave as "None" to make this a top-level category.</small>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="pf-section">
+      <div class="pf-section-header"><span class="pf-section-title">Notes</span></div>
+      <div class="pf-section-body">
+        <div class="form-grid cols-1">
+          <div class="form-group">
+            <label class="form-label">Description</label>
+            <textarea class="form-control" formControlName="description" rows="3" placeholder="Optional description"></textarea>
+          </div>
+        </div>
+      </div>
+    </div>
+  </form>
+
+  <div *ngIf="drawerMode === 'view' && viewingCategory as c">
+    <div class="view-hero">
+      <div class="view-hero-avatar">
+        <img *ngIf="c.image_url" [src]="c.image_url" style="width: 100%; height: 100%; object-fit: cover; display: block" alt="" />
+        <span *ngIf="!c.image_url">{{ (c.name || '?').charAt(0).toUpperCase() }}</span>
+      </div>
+      <div class="view-hero-info">
+        <div class="view-hero-name">{{ c.name }}</div>
+        <div class="view-hero-slug"><code>{{ c.slug }}</code></div>
+        <div class="view-hero-parent" *ngIf="c.parent">› {{ c.parent.name }}</div>
+        <div class="view-hero-toplevel" *ngIf="!c.parent">Top-level category</div>
+      </div>
+      <div class="view-hero-badge">
+        <span class="vbadge" [ngClass]="c.is_active ? 'vbadge-active' : 'vbadge-inactive'">● {{ c.is_active ? 'Active' : 'Inactive' }}</span>
+      </div>
+    </div>
+
+    <div class="view-stats-bar">
+      <div class="view-stat-item"><span class="view-stat-num">{{ c.children?.length || 0 }}</span><span class="view-stat-lbl">Sub-categories</span></div>
+      <div class="view-stat-divider"></div>
+      <div class="view-stat-item"><span class="view-stat-num">{{ c.sort_order || 0 }}</span><span class="view-stat-lbl">Sort Order</span></div>
+      <div class="view-stat-divider"></div>
+      <div class="view-stat-item"><span class="view-stat-num">#{{ c.id }}</span><span class="view-stat-lbl">ID</span></div>
+    </div>
+
+    <div class="view-fields">
+      <div class="view-field">
+        <div class="view-field-lbl">Sub-categories</div>
+        <div class="view-field-val">
+          <span *ngIf="!c.children?.length" class="view-empty">No sub-categories</span>
+          <span *ngFor="let ch of c.children" class="view-child-tag">{{ ch.name }}</span>
+        </div>
+      </div>
+      <div class="view-field">
+        <div class="view-field-lbl">Description</div>
+        <div class="view-field-val">
+          <p *ngIf="c.description" class="view-desc-text">{{ c.description }}</p>
+          <span *ngIf="!c.description" class="view-empty">No description provided</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</app-drawer>

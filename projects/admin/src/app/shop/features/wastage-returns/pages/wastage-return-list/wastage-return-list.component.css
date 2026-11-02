@@ -1,0 +1,108 @@
+.main-layout {
+  display: flex;
+  gap: 24px;
+  align-items: flex-start;
+}
+.log-area { flex: 1; min-width: 0; }
+.action-panel { width: 380px; flex-shrink: 0; }
+
+/* Mode selector */
+.mode-selector {
+  display: flex;
+  background: #f6e7e9;
+  padding: 4px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  gap: 4px;
+}
+.mode-btn {
+  flex: 1;
+  padding: 8px;
+  border: none;
+  background: transparent;
+  color: #6b5a60;
+  font-weight: 600;
+  font-size: 0.85rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.mode-btn.active {
+  background: #fff;
+  color: #5a0614;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+.mode-btn.active:first-child { color: #dc2626; }
+.mode-btn.active:last-child { color: #2563eb; }
+
+.btn-save {
+  width: 100%;
+  margin-top: 16px;
+  padding: 12px;
+  background: #c8102e;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.btn-save:hover { background: #3a7e67; }
+.btn-save:disabled { opacity: 0.6; cursor: not-allowed; }
+
+/* Product cell in table */
+.product-cell { display: flex; flex-direction: column; gap: 1px; }
+.product-name { font-weight: 600; font-size: 0.84rem; color: #2a1a20; }
+.product-sku { font-size: 0.72rem; color: #9c8b91; font-family: monospace; }
+
+.status-pill {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.status-dead { background: #fef2f2; color: #dc2626; }
+
+/* Barcode input */
+.barcode-icon {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  opacity: .45;
+}
+.barcode-input { padding-left: 32px !important; font-family: monospace; letter-spacing: .04em; }
+
+/* SSD */
+.ssd-wrap { position: relative; }
+.ssd-dropdown {
+  position: absolute;
+  top: calc(100% + 2px);
+  left: 0; right: 0;
+  background: #fff;
+  border: 1px solid #efd6da;
+  border-radius: 8px;
+  box-shadow: 0 8px 28px rgba(0,0,0,.14);
+  max-height: 230px;
+  overflow-y: auto;
+  z-index: 9999;
+}
+.ssd-item {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 12px; cursor: pointer; font-size: 0.83rem;
+  border-bottom: 1px solid #f6e7e9; transition: background .1s;
+}
+.ssd-item:last-child { border-bottom: none; }
+.ssd-item:hover { background: #f0fdf4; }
+.ssd-name { font-weight: 500; color: #2a1a20; flex: 1; }
+.ssd-sku { font-size: 0.72rem; color: #9c8b91; font-family: monospace; margin-left: 8px; }
+
+.stock-hint { font-size: 0.75rem; margin-top: 4px; color: #6b5a60; }
+.loss-hint { font-size: 0.75rem; margin-top: 4px; color: #e11d48; font-weight: 600; }
+.loss-hint.refund { color: #4f46e5; }

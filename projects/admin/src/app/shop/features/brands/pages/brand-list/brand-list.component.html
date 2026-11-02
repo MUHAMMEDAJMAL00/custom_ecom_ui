@@ -1,0 +1,188 @@
+<div class="page-wrap">
+  <div class="page-header">
+    <div class="page-header-left">
+      <div class="page-title-main">Brands</div>
+      <div class="page-breadcrumb">
+        <a [routerLink]="'/dashboard' | shopUrl">Dashboard</a>
+        <span class="sep">›</span>
+        <span class="current">Brands</span>
+      </div>
+    </div>
+    <div class="page-header-actions">
+      <button class="btn btn-outline" (click)="load()" title="Refresh">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="23 4 23 10 17 10" /><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10" />
+        </svg>
+      </button>
+      <button class="btn btn-primary" (click)="openAdd()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="16" /><line x1="8" y1="12" x2="16" y2="12" />
+        </svg>
+        Add Brand
+      </button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="toolbar">
+      <div class="toolbar-left">
+        <div class="search-box">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+          </svg>
+          <input type="text" placeholder="Search by name…" autocomplete="off" [value]="search"
+                 (input)="onSearchInput($any($event.target).value)" />
+        </div>
+      </div>
+      <div class="toolbar-right">
+        <select class="filter-select" [(ngModel)]="statusFilter" (change)="load(1)">
+          <option value="">All Statuses</option>
+          <option value="1">Active</option>
+          <option value="0">Inactive</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table class="pos-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Brand</th>
+            <th>Slug</th>
+            <th>Products</th>
+            <th>Status</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngIf="loading">
+            <td colspan="6" class="tbl-empty"><span class="pos-loader"><span></span><span></span><span></span></span></td>
+          </tr>
+          <tr *ngIf="!loading && errorMessage">
+            <td colspan="6" class="tbl-empty" style="color: #ef4444">{{ errorMessage }}</td>
+          </tr>
+          <tr *ngIf="!loading && !errorMessage && !brands.length">
+            <td colspan="6" class="tbl-empty">No brands found</td>
+          </tr>
+          <tr *ngFor="let b of brands; let i = index" [hidden]="loading">
+            <td class="cell-num">{{ (page - 1) * limit + i + 1 }}</td>
+            <td>
+              <div class="cell-brand">
+                <div class="brand-logo">
+                  <img *ngIf="b.logo_url" [src]="brandsService.logoSrc(b.logo_url)" alt="" />
+                  <span *ngIf="!b.logo_url">{{ (b.name || '?').charAt(0).toUpperCase() }}</span>
+                </div>
+                <span class="brand-name">{{ b.name }}</span>
+              </div>
+            </td>
+            <td><code>{{ b.slug }}</code></td>
+            <td>{{ b.product_count || 0 }}</td>
+            <td><span class="badge" [ngClass]="b.is_active ? 'badge-active' : 'badge-inactive'">{{ b.is_active ? 'active' : 'inactive' }}</span></td>
+            <td>
+              <app-row-actions [showView]="true" [showEdit]="true" [showDelete]="true"
+                (view)="openView(b)" (edit)="openEdit(b)" (delete)="confirmDelete(b)"></app-row-actions>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="pagination-bar">
+      <div class="pagination-info">
+        Row Per Page
+        <select [ngModel]="limit" (ngModelChange)="onLimitChange($event)">
+          <option [ngValue]="20">20</option>
+          <option [ngValue]="10">10</option>
+          <option [ngValue]="50">50</option>
+        </select>
+        Entries
+      </div>
+      <app-pagination [currentPage]="page" [totalPages]="totalPages" (pageChange)="load($event)"></app-pagination>
+    </div>
+  </div>
+</div>
+
+<app-drawer [open]="drawerMode !== null" [title]="drawerTitle" [saveLabel]="editId !== null ? 'Update Brand' : 'Save Brand'"
+            [saving]="saving || uploading" [showFooter]="drawerMode === 'form'" (closed)="closeDrawer()" (saveClicked)="handleSave()">
+
+  <form *ngIf="drawerMode === 'form'" [formGroup]="form" class="pf-form">
+    <div class="pf-section">
+      <div class="pf-section-header"><span class="pf-section-title">Basic Information</span></div>
+      <div class="pf-section-body">
+        <div class="form-grid">
+          <div class="form-group col-span-2">
+            <label class="form-label">Name <span class="req">*</span></label>
+            <input type="text" class="form-control" formControlName="name" placeholder="Brand name" autocomplete="off"
+                   (input)="onNameInput($any($event.target).value)" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Status</label>
+            <select class="form-control" formControlName="is_active">
+              <option [ngValue]="1">Active</option>
+              <option [ngValue]="0">Inactive</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Sort Order</label>
+            <input type="number" class="form-control" formControlName="sort_order" min="0" placeholder="0" />
+          </div>
+          <div class="form-group col-span-2">
+            <label class="form-label">Slug <span class="req">*</span></label>
+            <input type="text" class="form-control" formControlName="slug" placeholder="e.g. glow-edit" autocomplete="off" />
+            <small class="form-hint">Used in the brand page address on the website. Auto-generated from the name.</small>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="pf-section">
+      <div class="pf-section-header"><span class="pf-section-title">Logo</span></div>
+      <div class="pf-section-body">
+        <div class="logo-field">
+          <div class="logo-preview">
+            <img *ngIf="form.value.logo_url" [src]="brandsService.logoSrc(form.value.logo_url)" alt="Logo preview" />
+            <span *ngIf="!form.value.logo_url">No logo</span>
+          </div>
+          <div class="logo-actions">
+            <label class="btn btn-outline">
+              {{ uploading ? 'Uploading…' : 'Upload logo' }}
+              <input type="file" accept="image/png,image/jpeg,image/webp,image/gif" hidden (change)="onLogoSelected($event)" [disabled]="uploading" />
+            </label>
+            <button type="button" class="btn btn-outline" *ngIf="form.value.logo_url" (click)="clearLogo()">Remove</button>
+            <small class="form-hint">PNG, JPG, WEBP or GIF, up to 2 MB. A square image works best.</small>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="pf-section">
+      <div class="pf-section-header"><span class="pf-section-title">About</span></div>
+      <div class="pf-section-body">
+        <div class="form-grid cols-1">
+          <div class="form-group">
+            <label class="form-label">Description</label>
+            <textarea class="form-control" formControlName="description" rows="3" placeholder="Shown on the brand page"></textarea>
+          </div>
+        </div>
+      </div>
+    </div>
+  </form>
+
+  <div *ngIf="drawerMode === 'view' && viewingBrand as b" class="brand-view">
+    <div class="brand-view-hero">
+      <div class="brand-logo brand-logo-lg">
+        <img *ngIf="b.logo_url" [src]="brandsService.logoSrc(b.logo_url)" alt="" />
+        <span *ngIf="!b.logo_url">{{ (b.name || '?').charAt(0).toUpperCase() }}</span>
+      </div>
+      <div>
+        <div class="brand-view-name">{{ b.name }}</div>
+        <code>{{ b.slug }}</code>
+      </div>
+      <span class="badge" [ngClass]="b.is_active ? 'badge-active' : 'badge-inactive'">{{ b.is_active ? 'Active' : 'Inactive' }}</span>
+    </div>
+    <div class="brand-view-row"><span>Products</span><strong>{{ b.product_count || 0 }}</strong></div>
+    <div class="brand-view-row"><span>Sort order</span><strong>{{ b.sort_order || 0 }}</strong></div>
+    <div class="brand-view-row"><span>Description</span><strong>{{ b.description || '—' }}</strong></div>
+  </div>
+</app-drawer>

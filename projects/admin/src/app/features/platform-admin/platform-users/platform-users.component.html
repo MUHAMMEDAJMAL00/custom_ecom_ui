@@ -1,0 +1,167 @@
+<div class="admin-page">
+  <div class="page-head">
+    <div>
+      <p class="eyebrow">Administration</p>
+      <h2>Platform users</h2>
+      <p>Super Admin accounts that can sign in to this control plane.</p>
+    </div>
+    <div class="head-actions">
+      <div class="stat-chips">
+        <span><strong>{{ users.length }}</strong> users</span>
+        <span><strong>{{ ownerCount }}</strong> owners</span>
+        <span><strong>{{ activeCount }}</strong> active</span>
+      </div>
+      <button class="btn-primary" type="button" (click)="openCreate()">Add user</button>
+    </div>
+  </div>
+
+  <div class="success-box" *ngIf="successMessage">{{ successMessage }}</div>
+  <div class="error-box" *ngIf="errorMessage">{{ errorMessage }}</div>
+
+  <form class="create-card" *ngIf="showCreate" (ngSubmit)="create()">
+    <div class="card-head">
+      <div>
+        <h3>Add platform user</h3>
+        <p>They can sign in immediately with this temporary password.</p>
+      </div>
+      <button class="icon-btn" type="button" (click)="cancelCreate()" aria-label="Close">×</button>
+    </div>
+
+    <div class="create-grid">
+      <label class="field">
+        <span>Name</span>
+        <input type="text" [(ngModel)]="draft.name" name="name" required />
+      </label>
+
+      <label class="field">
+        <span>Email</span>
+        <input type="email" [(ngModel)]="draft.email" name="email" required />
+      </label>
+
+      <label class="field">
+        <span>Role</span>
+        <select [(ngModel)]="draft.role_id" name="role_id">
+          <option *ngFor="let role of roles" [value]="role.id">{{ role.label }}</option>
+        </select>
+      </label>
+
+      <label class="field">
+        <span>Temporary password</span>
+        <input type="password" [(ngModel)]="draft.password" name="password" placeholder="Min. 8 characters" required />
+      </label>
+    </div>
+
+    <div class="create-actions">
+      <button class="btn-back" type="button" (click)="cancelCreate()">Cancel</button>
+      <button class="btn-primary" type="submit" [disabled]="saving">
+        {{ saving ? 'Creating…' : 'Create user' }}
+      </button>
+    </div>
+  </form>
+
+  <div class="admin-card">
+    <div class="card-head">
+      <h3>Users</h3>
+      <p>Only owners can manage platform users. The last active owner cannot be disabled.</p>
+    </div>
+
+    <div class="empty-state" *ngIf="loading">
+      <span class="pos-loader"><span></span><span></span><span></span></span>
+    </div>
+
+    <div class="table-wrap" *ngIf="!loading">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>User</th>
+            <th>Role</th>
+            <th>Status</th>
+            <th>Last login</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let user of users">
+            <td>
+              <div class="user-cell">
+                <span class="avatar">{{ user.name.charAt(0) }}</span>
+                <span>
+                  <strong>
+                    {{ user.name }}
+                    <em *ngIf="(currentUser$ | async)?.id === user.id">You</em>
+                  </strong>
+                  <small>{{ user.email }}</small>
+                </span>
+              </div>
+            </td>
+            <td>
+              <select
+                class="role-select"
+                [value]="user.role_id"
+                (change)="changeRole(user, $any($event.target).value)"
+                [disabled]="user.id === (currentUser$ | async)?.id"
+              >
+                <option *ngFor="let role of roles" [value]="role.id">{{ role.label }}</option>
+              </select>
+            </td>
+            <td>
+              <span class="status-chip" [class.is-disabled]="user.status !== 'active'">
+                {{ user.status === 'active' ? 'Active' : 'Disabled' }}
+              </span>
+            </td>
+            <td class="muted">{{ user.last_login_at ? (user.last_login_at | date: 'MMM d, y HH:mm') : 'Never' }}</td>
+            <td>
+              <div class="row-actions">
+                <button class="link-btn" type="button" (click)="openReset(user)">Reset password</button>
+                <button
+                  class="link-btn"
+                  type="button"
+                  (click)="toggleStatus(user)"
+                  [disabled]="user.id === (currentUser$ | async)?.id"
+                >
+                  {{ user.status === 'active' ? 'Disable' : 'Enable' }}
+                </button>
+                <button
+                  class="link-btn is-danger"
+                  type="button"
+                  (click)="deleteUser(user)"
+                  [disabled]="user.id === (currentUser$ | async)?.id"
+                >Delete</button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" *ngIf="resetTarget as target" (click)="cancelReset()">
+    <div class="modal-card" (click)="$event.stopPropagation()">
+      <div class="modal-head">
+        <div>
+          <p class="eyebrow">Reset password</p>
+          <h3>{{ target.name }}</h3>
+        </div>
+        <button type="button" class="icon-btn" (click)="cancelReset()" aria-label="Close">×</button>
+      </div>
+
+      <p class="modal-copy">
+        Set a temporary password for <strong>{{ target.email }}</strong>. Existing sessions will be revoked.
+      </p>
+
+      <label class="field">
+        <span>New password</span>
+        <input type="password" [(ngModel)]="resetPassword" placeholder="Min. 8 characters" />
+      </label>
+
+      <div class="role-error" *ngIf="resetError">{{ resetError }}</div>
+
+      <div class="modal-actions">
+        <button class="btn-back" type="button" (click)="cancelReset()" [disabled]="resetting">Cancel</button>
+        <button class="btn-primary" type="button" (click)="confirmReset()" [disabled]="resetting">
+          {{ resetting ? 'Resetting…' : 'Reset password' }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,214 @@
+<div class="domain-page" *ngIf="!loading && tenant as t; else loadingTpl">
+  <div class="page-head">
+    <div>
+      <p class="eyebrow">Domains</p>
+      <h2>{{ t.name }}</h2>
+      <p>Manage the public addresses for this shop. DNS and SSL are separate from the shop record.</p>
+    </div>
+    <div class="head-actions">
+      <span class="slug-pill">{{ t.slug }}</span>
+      <a class="back-btn" routerLink="/platform/tenants" title="Back to shops">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M19 12H5m0 0 6-6m-6 6 6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+        Back
+      </a>
+    </div>
+  </div>
+
+  <div class="info-banner">
+    <span class="info-icon">i</span>
+    <div>
+      <strong>Local vs public</strong>
+      <p>
+        Locally the shop opens at <code>/t/{{ t.slug }}/login</code>.
+        A public domain starts working only after DNS points to the platform and SSL is issued.
+      </p>
+    </div>
+  </div>
+
+  <div class="grid">
+    <div class="main-stack">
+      <section class="panel">
+        <div class="panel-head">
+          <div>
+            <h3>Public addresses</h3>
+            <p>The platform subdomain is always available. Custom domains need verification.</p>
+          </div>
+          <span class="count-pill">{{ t.domains.length }}</span>
+        </div>
+
+        <div class="error-banner" *ngIf="errorMessage">
+          <span>{{ errorMessage }}</span>
+          <button type="button" (click)="load()">Retry</button>
+        </div>
+
+        <div class="success-banner" *ngIf="successMessage">{{ successMessage }}</div>
+        <div class="error-banner" *ngIf="actionError">{{ actionError }}</div>
+
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Domain</th>
+                <th>Type</th>
+                <th>Verification</th>
+                <th>SSL</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let domain of t.domains">
+                <td>
+                  <div class="domain-cell">
+                    <strong>{{ domain.domain }}</strong>
+                    <span class="primary-tag" *ngIf="domain.is_primary">Primary</span>
+                  </div>
+                </td>
+                <td class="muted">{{ domain.type === 'subdomain' ? 'Platform subdomain' : 'Custom domain' }}</td>
+                <td>
+                  <span class="status-chip" [class.is-verified]="domain.verified_at">
+                    {{ statusLabel(domain) }}
+                  </span>
+                </td>
+                <td class="muted capitalize">{{ domain.ssl_status }}</td>
+                <td class="actions">
+                  <button
+                    type="button"
+                    *ngIf="!domain.verified_at && domain.type !== 'subdomain'"
+                    [disabled]="actionId === domain.id"
+                    (click)="verify(domain)"
+                  >
+                    Verify
+                  </button>
+                  <button
+                    type="button"
+                    *ngIf="domain.verified_at && !domain.is_primary"
+                    [disabled]="actionId === domain.id"
+                    (click)="makePrimary(domain)"
+                  >
+                    Make primary
+                  </button>
+                  <button
+                    type="button"
+                    class="danger"
+                    *ngIf="domain.type !== 'subdomain' && !domain.is_primary"
+                    [disabled]="actionId === domain.id"
+                    (click)="remove(domain)"
+                  >
+                    Remove
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="panel" *ngIf="customDomains.length">
+        <div class="panel-head">
+          <div>
+            <h3>DNS records</h3>
+            <p>Add these at the client's DNS provider, then click Verify.</p>
+          </div>
+        </div>
+
+        <div class="dns-block" *ngFor="let domain of customDomains">
+          <div class="dns-domain">
+            <strong>{{ domain.domain }}</strong>
+            <span *ngIf="domain.verified_at" class="status-chip is-verified">Verified</span>
+            <span *ngIf="!domain.verified_at" class="status-chip">Pending</span>
+          </div>
+          <div class="dns-row" *ngFor="let record of dnsRecords(domain)">
+            <span class="dns-type">{{ record.type }}</span>
+            <code>{{ record.name }}</code>
+            <span class="dns-arrow">→</span>
+            <code>{{ record.value }}</code>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <div>
+            <h3>Add a custom domain</h3>
+            <p>Example: <code>shop.client.com</code>. Do not include https:// or a path.</p>
+          </div>
+        </div>
+
+        <form class="add-form" [formGroup]="form" (ngSubmit)="addDomain()" novalidate>
+          <div class="field">
+            <input
+              id="domain"
+              type="text"
+              formControlName="domain"
+              placeholder="shop.client.com"
+              [class.is-invalid]="isInvalid()"
+            />
+            <small class="field-error" *ngIf="isInvalid()">Enter a valid domain like shop.client.com.</small>
+          </div>
+          <button class="add-btn" type="submit" [disabled]="adding">
+            {{ adding ? 'Adding…' : 'Add domain' }}
+          </button>
+        </form>
+
+        <p class="hint">
+          The platform subdomain <code>{{ subdomain?.domain }}</code> cannot be removed.
+          A custom domain becomes the public address only after verification.
+        </p>
+      </section>
+    </div>
+
+    <aside class="side-stack">
+      <section class="panel">
+        <div class="panel-head">
+          <div>
+            <h3>Going live checklist</h3>
+            <p>What still has to happen outside this screen.</p>
+          </div>
+        </div>
+
+        <ol class="checklist">
+          <li>
+            <span class="step">1</span>
+            <div><strong>Add the domain</strong><p>Enter the client's domain here.</p></div>
+          </li>
+          <li>
+            <span class="step">2</span>
+            <div><strong>Point DNS</strong><p>CNAME to <code>tenants.{{ rootDomain }}</code> and add the TXT record.</p></div>
+          </li>
+          <li>
+            <span class="step">3</span>
+            <div><strong>Verify ownership</strong><p>Click Verify after DNS propagates.</p></div>
+          </li>
+          <li>
+            <span class="step">4</span>
+            <div><strong>Issue SSL</strong><p>SSL issuance is automated at deployment. <code>ssl_status</code> is shown in the table.</p></div>
+          </li>
+          <li>
+            <span class="step">5</span>
+            <div><strong>Serve the storefront</strong><p>The storefront deployment must accept the host and load the shop.</p></div>
+          </li>
+        </ol>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <div><h3>Current public base</h3></div>
+        </div>
+        <div class="public-box">
+          <span>{{ primaryDomain?.domain || 'No primary domain' }}</span>
+          <strong>{{ publicBase || '—' }}</strong>
+          <small>{{ primaryDomain?.ssl_status === 'active' ? 'SSL active' : 'SSL not active yet' }}</small>
+        </div>
+      </section>
+    </aside>
+  </div>
+</div>
+
+<ng-template #loadingTpl>
+  <div class="page-loading">
+    <span class="spinner"></span>
+    Loading domains…
+  </div>
+</ng-template>

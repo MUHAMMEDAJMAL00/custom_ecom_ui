@@ -1,0 +1,120 @@
+// Remaps every Bootstrap button variant onto the MySkin language:
+// rounded pills, crimson fills, blush outlines.
+// Destructive actions (btn-danger / btn-outline-danger) keep red on purpose.
+
+.btn {
+  font-family: var(--font-body);
+  font-weight: 500;
+  font-size: 0.85rem;
+  letter-spacing: var(--track-nav);
+  border-radius: var(--btn-radius, var(--radius-full));
+  padding: 0.7rem 1.75rem;
+  transition: background-color var(--transition), border-color var(--transition), color var(--transition),
+    box-shadow var(--transition);
+}
+
+.btn-sm {
+  padding: 0.45rem 1.1rem;
+  font-size: 0.78rem;
+}
+
+.btn-lg {
+  padding: 0.9rem 2.4rem;
+  font-size: 0.95rem;
+}
+
+// Primary actions — crimson fill
+.btn-primary,
+.btn-warning,
+.btn-success {
+  background: var(--brand-gradient);
+  border-color: var(--brand-dark);
+  color: var(--text-on-brand);
+}
+
+.btn-primary:hover,
+.btn-warning:hover,
+.btn-success:hover {
+  background: var(--brand-gradient-hover);
+  border-color: var(--brand-dark);
+  color: var(--text-on-brand);
+  box-shadow: var(--shadow-brand);
+}
+
+// Secondary / outline actions — crimson outline, fills on hover
+.btn-outline,
+.btn-outline-secondary,
+.btn-outline-dark,
+.btn-outline-primary,
+.btn-outline-info {
+  background: transparent;
+  border-color: var(--brand-primary);
+  color: var(--brand-primary);
+}
+
+.btn-outline:hover,
+.btn-outline-secondary:hover,
+.btn-outline-dark:hover,
+.btn-outline-primary:hover,
+.btn-outline-info:hover {
+  background-color: var(--brand-primary);
+  border-color: var(--brand-primary);
+  color: var(--text-on-brand);
+}
+
+// Low-emphasis actions (Cancel / Close)
+.btn-ghost,
+.btn-secondary {
+  background: transparent;
+  border-color: transparent;
+  color: var(--text-secondary);
+}
+
+.btn-ghost:hover,
+.btn-secondary:hover {
+  background: var(--brand-light);
+  border-color: transparent;
+  color: var(--text-primary);
+}
+
+// ── Website theme (myskin_admin → Website → Theme) ──────────────────────────
+// Button shape follows --btn-radius on every primary/secondary button of the shop.
+.ms-pill,
+.app-header__cta,
+.cart-summary__btn,
+.checkout-summary__place,
+.checkout-summary__coupon-btn,
+.checkout-card__add-btn,
+.addresses-page__add-btn,
+.luxe-card__btn,
+.orders-modal__btn,
+.pd__btn,
+.pl-card__cart,
+.product-card__cart,
+.wl-card__cart,
+.pl-hero__cta,
+.pl-promo__cta,
+.pl-empty__reset,
+.success-page__btn,
+.seller-btn {
+  border-radius: var(--btn-radius, var(--radius-full)) !important;
+}
+
+// "Outline" style: primary buttons become crimson outlines that fill on hover
+html[data-btn-style='outline'] {
+  .btn-primary,
+  .pd__btn--primary,
+  .checkout-summary__place,
+  .cart-summary__btn,
+  .app-header__cta {
+    background: transparent !important;
+    color: var(--brand-primary) !important;
+    border: 1.5px solid var(--brand-primary) !important;
+    box-shadow: none !important;
+
+    &:hover {
+      background: var(--brand-primary) !important;
+      color: var(--text-on-brand) !important;
+    }
+  }
+}

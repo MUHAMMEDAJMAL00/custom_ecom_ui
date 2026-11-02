@@ -1,0 +1,72 @@
+<footer class="app-footer">
+  <div class="app-footer__inner">
+    <div class="app-footer__brand">
+      <a class="app-footer__logo" (click)="goHome()" [attr.aria-label]="shopName + ' home'">
+        <span class="app-footer__name">{{ shopName }}</span>
+      </a>
+      @if (newsletterEnabled) {
+        <p class="app-footer__text">Get the latest updates &amp; offers. Subscribe to our newsletter.</p>
+        <form class="app-footer__form" (submit)="subscribe(); $event.preventDefault()">
+          <input type="email" name="email" [(ngModel)]="email" placeholder="Your email address" />
+          <button type="submit" [disabled]="subscribing">{{ subscribing ? 'Sending…' : 'Subscribe' }}</button>
+        </form>
+        @if (subscribeError) {
+          <p class="app-footer__text app-footer__error">{{ subscribeError }}</p>
+        }
+        @if (subscribed) {
+          <p class="app-footer__text">Thanks for subscribing to {{ shopName }}!</p>
+        }
+      } @else {
+        <p class="app-footer__text">{{ bootstrap.seo.description || 'Thoughtfully chosen products, delivered to your door.' }}</p>
+      }
+      <div class="app-footer__caption">Contact</div>
+      <p class="app-footer__text">
+        <a [href]="'mailto:' + bootstrap.tenant.email">{{ bootstrap.tenant.email }}</a>
+        @if (bootstrap.tenant.phone) {
+          <br /><a [href]="'tel:' + bootstrap.tenant.phone">{{ bootstrap.tenant.phone }}</a>
+        }
+      </p>
+    </div>
+
+    <div class="app-footer__group">
+      <div class="app-footer__heading">Help</div>
+      @for (link of helpLinks; track link.label) {
+        <a class="app-footer__item" [routerLink]="link.url">{{ link.label }}</a>
+      }
+    </div>
+
+    <div class="app-footer__group">
+      <div class="app-footer__heading">Explore</div>
+      @for (category of categories.slice(0, 6); track category.id) {
+        <a class="app-footer__item" (click)="openCategory(category)">{{ category.name }}</a>
+      }
+    </div>
+
+    <div class="app-footer__group">
+      <div class="app-footer__heading">Quick Links</div>
+      @for (link of quickLinks; track link.label) {
+        <a class="app-footer__item" [routerLink]="link.url">{{ link.label }}</a>
+      }
+    </div>
+
+    <div class="app-footer__group">
+      <div class="app-footer__heading">Follow Us</div>
+      <div class="app-footer__social">
+        @for (social of socials; track social.label) {
+          <a [href]="social.url" target="_blank" rel="noopener" [attr.aria-label]="social.label">
+            <i class="bi" [ngClass]="social.icon"></i>
+          </a>
+        }
+      </div>
+      <div class="app-footer__heading app-footer__heading--spaced">My Account</div>
+      <a class="app-footer__item" routerLink="/my-orders">My Orders</a>
+      @if (wishlistEnabled) {
+        <a class="app-footer__item" routerLink="/wishlist">Wishlist</a>
+      }
+      <a class="app-footer__item" routerLink="/cart">Cart</a>
+      <a class="app-footer__item" routerLink="/login">Sign In</a>
+    </div>
+  </div>
+
+  <div class="app-footer__bottom">&copy; {{ year }} {{ shopName }}. All rights reserved.</div>
+</footer>

@@ -1,0 +1,178 @@
+<div class="page-wrap">
+  <div class="page-header">
+    <div class="page-header-left">
+      <div class="page-title-main">Users</div>
+      <div class="page-breadcrumb">
+        <a [routerLink]="'/dashboard' | shopUrl">Dashboard</a>
+        <span class="sep">›</span>
+        <span class="current">Users</span>
+      </div>
+    </div>
+    <div class="page-header-actions">
+      <button class="btn btn-primary" (click)="openAdd()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="16" /><line x1="8" y1="12" x2="16" y2="12" />
+        </svg>
+        Add User
+      </button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="toolbar">
+      <div class="toolbar-left">
+        <div class="search-box">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+          </svg>
+          <input type="text" placeholder="Search…" autocomplete="off" [value]="search"
+                 (input)="onSearchInput($any($event.target).value)" />
+        </div>
+      </div>
+      <div class="toolbar-right">
+        <select class="filter-select" [(ngModel)]="roleFilter" (change)="onFilterChange()">
+          <option value="">Role ▾</option>
+          <option *ngFor="let r of roles" [value]="r.id">{{ r.name }}</option>
+        </select>
+        <select class="filter-select" [(ngModel)]="statusFilter" (change)="onFilterChange()">
+          <option value="">All Statuses</option>
+          <option value="1">Active</option>
+          <option value="0">Inactive</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table class="pos-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Name</th>
+            <th>Username</th>
+            <th>Role</th>
+            <th>Store</th>
+            <th>Status</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngIf="loading">
+            <td colspan="7" class="tbl-empty">
+              <span class="pos-loader"><span></span><span></span><span></span></span>
+            </td>
+          </tr>
+          <tr *ngIf="!loading && errorMessage">
+            <td colspan="7" class="tbl-empty" style="color: #ef4444">{{ errorMessage }}</td>
+          </tr>
+          <tr *ngIf="!loading && !errorMessage && !users.length">
+            <td colspan="7" class="tbl-empty">No users found</td>
+          </tr>
+          <tr *ngFor="let u of users; let i = index" [hidden]="loading">
+            <td>{{ (page - 1) * limit + i + 1 }}</td>
+            <td>
+              <div class="cell-with-img">
+                <div class="row-avatar">{{ (u.name || '?').charAt(0).toUpperCase() }}</div>
+                <span>{{ u.name || '—' }}</span>
+              </div>
+            </td>
+            <td><span class="cell-code">{{ u.username || '—' }}</span></td>
+            <td>{{ u.Role?.name || '—' }}</td>
+            <td>{{ u.Store?.name || '—' }}</td>
+            <td><span class="badge" [ngClass]="u.is_active ? 'badge-active' : 'badge-inactive'">{{ u.is_active ? 'active' : 'inactive' }}</span></td>
+            <td>
+              <app-row-actions [showView]="true" [showEdit]="true" [showDelete]="true"
+                (view)="openView(u)" (edit)="openEdit(u)" (delete)="confirmDelete(u)"></app-row-actions>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="pagination-bar">
+      <div class="pagination-info">
+        Row Per Page
+        <select [ngModel]="limit" (ngModelChange)="onLimitChange($event)">
+          <option [ngValue]="20">20</option>
+          <option [ngValue]="10">10</option>
+          <option [ngValue]="25">25</option>
+          <option [ngValue]="50">50</option>
+        </select>
+        Entries
+      </div>
+      <app-pagination [currentPage]="page" [totalPages]="totalPages" (pageChange)="load($event)"></app-pagination>
+    </div>
+  </div>
+</div>
+
+<app-drawer [open]="drawerMode !== null" [title]="drawerTitle" [saveLabel]="editId ? 'Update User' : 'Save User'"
+            [saving]="saving" [showFooter]="drawerMode === 'form'" (closed)="closeDrawer()" (saveClicked)="handleSave()">
+
+  <form *ngIf="drawerMode === 'form'" [formGroup]="form">
+    <div class="form-grid">
+      <div class="form-group">
+        <label class="form-label">Full Name <span class="req">*</span></label>
+        <input type="text" class="form-control" formControlName="name" placeholder="e.g. John Doe" autocomplete="off" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Username <span class="req" *ngIf="!editId">*</span></label>
+        <input type="text" class="form-control" formControlName="username" placeholder="Letters &amp; numbers only" autocomplete="off" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Email</label>
+        <input type="email" class="form-control" formControlName="email" placeholder="email@example.com" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Phone</label>
+        <input type="text" class="form-control" formControlName="phone" placeholder="+91 9999999999" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Role <span class="req">*</span></label>
+        <select class="form-control" formControlName="role_id">
+          <option value="">Select…</option>
+          <option *ngFor="let r of roles" [value]="r.id">{{ r.name }}</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Primary Store</label>
+        <select class="form-control" formControlName="store_id">
+          <option value="">None</option>
+          <option *ngFor="let s of stores" [value]="s.id">{{ s.name }}</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Status</label>
+        <select class="form-control" formControlName="is_active">
+          <option [ngValue]="1">Active</option>
+          <option [ngValue]="0">Inactive</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group" style="margin-top: 4px">
+      <label class="form-label">{{ editId ? 'New Password' : 'Password' }} <span class="req" *ngIf="!editId">*</span></label>
+      <div class="pwd-input-wrap">
+        <input [type]="showPassword ? 'text' : 'password'" class="form-control" formControlName="password"
+               [placeholder]="editId ? 'Leave blank to keep current' : 'Min 6 characters'" autocomplete="new-password" />
+        <button type="button" class="pwd-eye-btn" tabindex="-1" (click)="togglePassword()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" />
+          </svg>
+        </button>
+      </div>
+      <small class="form-hint" *ngIf="editId">Only fill in to change the password.</small>
+    </div>
+  </form>
+
+  <div *ngIf="drawerMode === 'view' && viewingUser as u">
+    <div class="detail-grid">
+      <div class="detail-item"><label>Full Name</label><span>{{ u.name || '—' }}</span></div>
+      <div class="detail-item"><label>Username</label><span class="cell-code">{{ u.username || '—' }}</span></div>
+      <div class="detail-item"><label>Email</label><span>{{ u.email || '—' }}</span></div>
+      <div class="detail-item"><label>Phone</label><span>{{ u.phone || '—' }}</span></div>
+      <div class="detail-item"><label>Role</label><span>{{ u.Role?.name || '—' }}</span></div>
+      <div class="detail-item"><label>Store</label><span>{{ u.Store?.name || '—' }}</span></div>
+      <div class="detail-item"><label>Status</label><span class="badge" [ngClass]="u.is_active ? 'badge-active' : 'badge-inactive'">{{ u.is_active ? 'active' : 'inactive' }}</span></div>
+      <div class="detail-item"><label>Last Login</label><span>{{ lastLoginDisplay(u) }}</span></div>
+      <div class="detail-item"><label>ID</label><span>{{ u.id }}</span></div>
+    </div>
+  </div>
+</app-drawer>

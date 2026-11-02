@@ -1,0 +1,140 @@
+<div class="page-wrap">
+  <div class="page-header">
+    <div class="page-header-left">
+      <div class="page-title-main">Chart of Accounts</div>
+      <div class="page-breadcrumb"><a [routerLink]="'/dashboard' | shopUrl">Dashboard</a><span class="sep">›</span><span class="current">Chart of Accounts</span></div>
+    </div>
+    <div class="page-header-actions">
+      <button class="btn btn-icon-tool" title="Refresh" (click)="switchTab(tab)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg></button>
+      <button class="btn btn-primary" (click)="tab === 'categories' ? openCatAdd() : openAccAdd()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+        {{ tab === 'categories' ? 'Add Category' : 'Add Account' }}
+      </button>
+    </div>
+  </div>
+
+  <div class="exp-tabs">
+    <button class="exp-tab" [class.active]="tab === 'categories'" (click)="switchTab('categories')">Account Categories</button>
+    <button class="exp-tab" [class.active]="tab === 'accounts'" (click)="switchTab('accounts')">Ledger Accounts</button>
+  </div>
+
+  <!-- Categories tab -->
+  <div *ngIf="tab === 'categories'">
+    <div class="card">
+      <div class="toolbar">
+        <div class="toolbar-left">
+          <div class="search-box"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input type="text" placeholder="Search categories…" autocomplete="off" [(ngModel)]="catSearch" (ngModelChange)="loadCats(1)" /></div>
+        </div>
+        <div class="toolbar-right">
+          <select class="filter-select" [(ngModel)]="catGroup" (change)="loadCats(1)"><option value="">All Groups</option><option value="Asset">Asset</option><option value="Liability">Liability</option><option value="Expenditure">Expenditure</option><option value="Income">Income</option><option value="Equity">Equity</option></select>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table class="pos-table">
+          <thead><tr><th>#</th><th>Name</th><th>Group</th><th>Accounts</th><th>Actions</th></tr></thead>
+          <tbody>
+            <tr *ngIf="catLoading"><td colspan="5" class="tbl-empty"><span class="pos-loader"><span></span><span></span><span></span></span></td></tr>
+            <tr *ngIf="!catLoading && !cats.length"><td colspan="5" class="tbl-empty">No categories found</td></tr>
+            <tr *ngFor="let c of cats; let i = index">
+              <td>{{ (catPage - 1) * catLimit + i + 1 }}</td>
+              <td><strong>{{ c.name }}</strong></td>
+              <td>{{ c.group }}</td>
+              <td>{{ catAccountCount(c) }}</td>
+              <td><app-row-actions [showEdit]="true" [showDelete]="true" (edit)="openCatEdit(c)" (delete)="deleteCat(c)"></app-row-actions></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="pagination-bar">
+        <div class="pagination-info">Row Per Page <select [ngModel]="catLimit" (ngModelChange)="catLimit = $event; loadCats(1)"><option [ngValue]="20">20</option><option [ngValue]="10">10</option><option [ngValue]="50">50</option></select> Entries</div>
+        <app-pagination [currentPage]="catPage" [totalPages]="catTotal" (pageChange)="loadCats($event)"></app-pagination>
+      </div>
+    </div>
+  </div>
+
+  <!-- Accounts tab -->
+  <div *ngIf="tab === 'accounts'">
+    <div class="card">
+      <div class="toolbar">
+        <div class="toolbar-left">
+          <div class="search-box"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input type="text" placeholder="Search accounts…" autocomplete="off" [(ngModel)]="accSearch" (ngModelChange)="loadAccs(1)" /></div>
+        </div>
+        <div class="toolbar-right">
+          <select class="filter-select" [(ngModel)]="accCategoryFilter" (change)="loadAccs(1)"><option value="">All Categories</option><option *ngFor="let c of allCategories" [value]="c.id">{{ c.name }}</option></select>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table class="pos-table">
+          <thead><tr><th>#</th><th>Account Name</th><th>Category</th><th>Group</th><th>Opening Balance</th><th>Actions</th></tr></thead>
+          <tbody>
+            <tr *ngIf="accLoading"><td colspan="6" class="tbl-empty"><span class="pos-loader"><span></span><span></span><span></span></span></td></tr>
+            <tr *ngIf="!accLoading && !accs.length"><td colspan="6" class="tbl-empty">No accounts found</td></tr>
+            <tr *ngFor="let a of accs; let i = index">
+              <td>{{ (accPage - 1) * accLimit + i + 1 }}</td>
+              <td><strong>{{ a.name }}</strong><br><small *ngIf="a.description" style="color:#6b5a60">{{ a.description }}</small></td>
+              <td>{{ a.category?.name || '—' }}</td>
+              <td>{{ a.category?.group || '—' }}</td>
+              <td>{{ formatCurrency(a.opening_balance) }}</td>
+              <td><app-row-actions [showEdit]="true" [showDelete]="true" (edit)="openAccEdit(a)" (delete)="deleteAcc(a)"></app-row-actions></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="pagination-bar">
+        <div class="pagination-info">Row Per Page <select [ngModel]="accLimit" (ngModelChange)="accLimit = $event; loadAccs(1)"><option [ngValue]="20">20</option><option [ngValue]="10">10</option><option [ngValue]="50">50</option></select> Entries</div>
+        <app-pagination [currentPage]="accPage" [totalPages]="accTotal" (pageChange)="loadAccs($event)"></app-pagination>
+      </div>
+    </div>
+  </div>
+</div>
+
+<app-drawer [open]="drawerOpen" [title]="drawerMode === 'cat' ? (editId ? 'Edit Category' : 'Add Account Category') : (editId ? 'Edit Account' : 'Add Ledger Account')"
+            [saveLabel]="drawerMode === 'cat' ? (editId ? 'Update Category' : 'Save Category') : (editId ? 'Update Account' : 'Save Account')"
+            [saving]="saving" (closed)="drawerOpen = false" (saveClicked)="drawerMode === 'cat' ? saveCat() : saveAcc()">
+
+  <!-- Category form -->
+  <ng-container *ngIf="drawerMode === 'cat'">
+    <div class="form-grid">
+      <div class="form-group col-span-2">
+        <label class="form-label">Name <span class="req">*</span></label>
+        <input type="text" class="form-control" [(ngModel)]="formName" placeholder="Category name" autocomplete="off" />
+      </div>
+      <div class="form-group col-span-2">
+        <label class="form-label">Group <span class="req">*</span></label>
+        <select class="form-control" [(ngModel)]="formGroup">
+          <option value="">Select group…</option>
+          <option value="Asset">Asset</option>
+          <option value="Liability">Liability</option>
+          <option value="Expenditure">Expenditure</option>
+          <option value="Income">Income</option>
+          <option value="Equity">Equity</option>
+        </select>
+      </div>
+    </div>
+  </ng-container>
+
+  <!-- Account form -->
+  <ng-container *ngIf="drawerMode === 'acc'">
+    <div class="form-grid">
+      <div class="form-group col-span-2">
+        <label class="form-label">Account Name <span class="req">*</span></label>
+        <input type="text" class="form-control" [(ngModel)]="formName" placeholder="Account name" autocomplete="off" />
+      </div>
+      <div class="form-group col-span-2">
+        <label class="form-label">Category <span class="req">*</span></label>
+        <select class="form-control" [(ngModel)]="formCategory">
+          <option value="">Select category…</option>
+          <option *ngFor="let c of allCategories" [value]="c.id">{{ c.name }} ({{ c.group }})</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Opening Balance</label>
+        <input type="number" class="form-control" step="0.01" [(ngModel)]="formOpening" placeholder="0.00" />
+      </div>
+      <div class="form-group col-span-2">
+        <label class="form-label">Description</label>
+        <textarea class="form-control" rows="2" [(ngModel)]="formDesc"></textarea>
+      </div>
+    </div>
+  </ng-container>
+</app-drawer>

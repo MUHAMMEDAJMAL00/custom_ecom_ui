@@ -1,0 +1,49 @@
+<app-shop-shell>
+  <div class="ms-container page-wrap">
+    <div class="page-head">
+      <div>
+        <h1>Your wishlist</h1>
+        <p>Products you saved for later.</p>
+      </div>
+      <a routerLink="/catalog" class="btn-plain"><i class="bi bi-arrow-left"></i> Continue shopping</a>
+    </div>
+
+    @if (wishlist.items$ | async; as items) {
+      @if (!items.length) {
+        <div class="empty-state">
+          <i class="bi bi-heart"></i>
+          <h2>Your wishlist is empty</h2>
+          <p>Tap the heart on any product to keep it here.</p>
+          <a class="btn-brand" routerLink="/catalog">Browse products</a>
+        </div>
+      } @else {
+        <div class="wishlist-grid">
+          @for (item of items; track item.product_id) {
+            <article class="wl-card">
+              <a class="wl-card__img" [routerLink]="['/catalog/product', item.public_id]">
+                <img [src]="image(item)" [alt]="item.name" />
+              </a>
+              <div class="wl-card__body">
+                <a class="wl-card__name" [routerLink]="['/catalog/product', item.public_id]">{{ item.name }}</a>
+                <span class="wl-card__price">
+                  <strong>{{ item.price | currency: currency : 'symbol' : '1.0-2' }}</strong>
+                  @if (item.mrp > item.price) {
+                    <s>{{ item.mrp | currency: currency : 'symbol' : '1.0-2' }}</s>
+                  }
+                </span>
+                <div class="wl-card__actions">
+                  <button class="btn-brand" type="button" (click)="addToCart(item)"><i class="bi bi-bag"></i> Add to cart</button>
+                  <button class="btn-plain" type="button" (click)="wishlist.remove(item)" aria-label="Remove">
+                    <i class="bi bi-trash3"></i>
+                  </button>
+                </div>
+              </div>
+            </article>
+          }
+        </div>
+      }
+    } @else {
+      <div class="loading-row"><span class="shop-loader"></span></div>
+    }
+  </div>
+</app-shop-shell>

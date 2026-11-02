@@ -1,0 +1,112 @@
+<div class="page-wrap">
+  <div class="page-header">
+    <div class="page-header-left">
+      <div class="page-title-main">Reports &amp; Analytics</div>
+      <div class="page-breadcrumb"><a [routerLink]="'/dashboard' | shopUrl">Dashboard</a><span class="sep">›</span><span class="current">Reports</span></div>
+    </div>
+  </div>
+
+  <!-- Pill tabs -->
+  <div class="report-tabs-wrap">
+    <div class="report-tab-group">
+      <span class="report-tab-label">Business</span>
+      <div class="report-pills">
+        <button class="rpill" [class.active]="activeReport === 'sales'" (click)="selectReport('sales')">Sales</button>
+        <button class="rpill" [class.active]="activeReport === 'purchases'" (click)="selectReport('purchases')">Purchases</button>
+        <button class="rpill" [class.active]="activeReport === 'profit-loss'" (click)="selectReport('profit-loss')">Profit &amp; Loss</button>
+        <button class="rpill" [class.active]="activeReport === 'top-products'" (click)="selectReport('top-products')">Top Products</button>
+        <button class="rpill" [class.active]="activeReport === 'top-customers'" (click)="selectReport('top-customers')">Top Customers</button>
+        <button class="rpill" [class.active]="activeReport === 'inventory'" (click)="selectReport('inventory')">Inventory</button>
+        <button class="rpill" [class.active]="activeReport === 'returns'" (click)="selectReport('returns')">Returns</button>
+        <button class="rpill" [class.active]="activeReport === 'gst-summary'" (click)="selectReport('gst-summary')">GST Summary</button>
+      </div>
+    </div>
+    <div class="report-tab-group">
+      <span class="report-tab-label">Accounting</span>
+      <div class="report-pills">
+        <button class="rpill" [class.active]="activeReport === 'trial-balance'" (click)="selectReport('trial-balance')">Trial Balance</button>
+        <button class="rpill" [class.active]="activeReport === 'balance-sheet'" (click)="selectReport('balance-sheet')">Balance Sheet</button>
+        <button class="rpill" [class.active]="activeReport === 'ar-aging'" (click)="selectReport('ar-aging')">AR Aging</button>
+        <button class="rpill" [class.active]="activeReport === 'ap-aging'" (click)="selectReport('ap-aging')">AP Aging</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filter bar -->
+  <div class="card" style="margin-bottom:16px">
+    <div class="toolbar" style="padding:10px 16px">
+      <div class="toolbar-left" style="gap:8px;flex-wrap:wrap">
+        <label class="filter-label">Period:</label>
+        <input type="date" class="date-filter" [(ngModel)]="dateFrom" />
+        <span class="filter-sep">to</span>
+        <input type="date" class="date-filter" [(ngModel)]="dateTo" />
+        <button class="btn btn-primary btn-sm" (click)="loadReport()">Generate Report</button>
+        <div class="filter-divider"></div>
+        <button class="btn btn-ghost btn-sm" (click)="setPeriod('today')">Today</button>
+        <button class="btn btn-ghost btn-sm" (click)="setPeriod('week')">This Week</button>
+        <button class="btn btn-ghost btn-sm" (click)="setPeriod('month')">This Month</button>
+        <button class="btn btn-ghost btn-sm" (click)="setPeriod('year')">This Year</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stat cards -->
+  <div class="stat-cards" *ngIf="statCards.length">
+    <div class="card" style="cursor:default;margin-bottom:0" *ngFor="let sc of statCards">
+      <div style="display:flex;align-items:center;gap:12px;padding:12px 16px">
+        <div class="stat-icon" [ngClass]="'icon-' + sc.color" style="font-size:22px;width:46px;height:46px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0">{{ sc.icon }}</div>
+        <div style="min-width:0">
+          <div style="font-size:0.75rem;font-weight:600;color:#6b5a60;white-space:nowrap">{{ sc.label }}</div>
+          <div style="font-size:1.3rem;font-weight:700;line-height:1.2" [style.color]="sc.color === 'teal' ? '#059669' : sc.color === 'red' ? '#ef4444' : sc.color === 'orange' ? '#f97316' : sc.color === 'blue' ? '#3b82f6' : '#2a1a20'">{{ sc.value }}</div>
+          <div *ngIf="sc.sub" style="font-size:0.7rem;color:#9c8b91;margin-top:1px">{{ sc.sub }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading -->
+  <div *ngIf="loading" class="card" style="text-align:center;padding:60px 24px">
+    <span class="pos-loader"><span></span><span></span><span></span></span>
+  </div>
+
+  <!-- Main table -->
+  <div class="card" *ngIf="showTable" style="margin-bottom:16px">
+    <div class="card-header" style="display:flex;align-items:center;justify-content:space-between">
+      <span class="card-title" [innerHTML]="tableTitle"></span>
+      <span style="font-size:.78rem;color:var(--text-muted)">{{ tableMeta }}</span>
+    </div>
+    <div class="table-wrap">
+      <table class="pos-table">
+        <thead><tr><th *ngFor="let col of tableColumns">{{ col.label }}</th></tr></thead>
+        <tbody>
+          <tr *ngFor="let r of tableData; let i = index">
+            <td *ngFor="let col of tableColumns" [innerHTML]="cellValue(r, col, i)"></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Second table (P&L breakdown, Balance Sheet right) -->
+  <div class="card" *ngIf="showTable2" style="margin-bottom:16px">
+    <div class="card-header">
+      <span class="card-title" [innerHTML]="table2Title"></span>
+    </div>
+    <div class="table-wrap">
+      <table class="pos-table">
+        <thead><tr><th *ngFor="let col of table2Columns">{{ col.label }}</th></tr></thead>
+        <tbody>
+          <tr *ngFor="let r of table2Data; let i = index">
+            <td *ngFor="let col of table2Columns" [innerHTML]="cellValue(r, col, i)"></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Empty state -->
+  <div *ngIf="!loading && !showTable && !statCards.length" class="card" style="text-align:center;padding:60px 24px">
+    <div style="font-size:48px;opacity:.2;margin-bottom:12px">📊</div>
+    <div style="color:var(--text-muted);font-size:.9rem">Select a report tab and click <strong>Generate Report</strong></div>
+  </div>
+</div>

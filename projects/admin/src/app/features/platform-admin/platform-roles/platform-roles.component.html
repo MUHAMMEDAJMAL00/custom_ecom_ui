@@ -1,0 +1,124 @@
+<div class="roles-page">
+  <div class="page-head">
+    <div>
+      <p class="eyebrow">Administration</p>
+      <h2>Roles &amp; permissions</h2>
+      <p>Fixed platform roles. Super Admin is always full access; Operations and Support can be tuned.</p>
+    </div>
+  </div>
+
+  <div class="success-box" *ngIf="successMessage">{{ successMessage }}</div>
+  <div class="error-box" *ngIf="errorMessage">{{ errorMessage }}</div>
+
+  <div class="empty-state" *ngIf="loading">
+    <span class="pos-loader"><span></span><span></span><span></span></span>
+  </div>
+
+  <div class="roles-grid" *ngIf="!loading">
+    <aside class="role-list">
+      <div
+        class="role-card"
+        *ngFor="let role of roles"
+        [class.is-selected]="role.id === selectedRoleId"
+        (click)="selectRole(role)"
+      >
+        <div class="role-top">
+          <strong>{{ role.label }}</strong>
+          <span class="role-type" [class.is-system]="role.is_system">{{ role.is_system ? 'System' : 'Custom' }}</span>
+        </div>
+        <code>{{ role.name }}</code>
+        <div class="role-meta">
+          <span>{{ role.permission_ids.length }} permissions</span>
+          <span>{{ role.users }} users</span>
+        </div>
+      </div>
+    </aside>
+
+    <section class="matrix-card" *ngIf="selectedRole as role">
+      <div class="matrix-head">
+        <div>
+          <h3>{{ role.label }}</h3>
+          <p>
+            <code>{{ role.name }}</code>
+            <span>{{ selected.size }} of {{ permissions.length }} permissions</span>
+          </p>
+        </div>
+        <button
+          class="btn-save"
+          type="button"
+          (click)="savePermissions()"
+          [disabled]="saving || isOwnerRole || !dirty"
+        >
+          {{ saving ? 'Saving…' : 'Save permissions' }}
+        </button>
+      </div>
+
+      <div class="owner-note" *ngIf="isOwnerRole">
+        The Super Admin role always has every permission and cannot be restricted.
+      </div>
+
+      <div class="matrix-scroll">
+        <section class="permission-group" *ngFor="let group of groups">
+          <div class="group-head">
+            <h4>{{ moduleLabel(group.module) }}</h4>
+            <span>{{ group.permissions.length }}</span>
+          </div>
+
+          <label
+            class="permission-row"
+            *ngFor="let permission of group.permissions"
+            [class.is-disabled]="isOwnerRole"
+          >
+            <input
+              type="checkbox"
+              [checked]="isChecked(permission)"
+              [disabled]="isOwnerRole"
+              (change)="toggle(permission)"
+            />
+            <span class="permission-copy">
+              <strong>{{ permission.action }}</strong>
+              <small>{{ permission.description || moduleLabel(permission.module) + ' · ' + permission.action }}</small>
+            </span>
+          </label>
+        </section>
+      </div>
+    </section>
+  </div>
+
+  <div class="modal-backdrop" *ngIf="showRoleForm" (click)="closeRoleForm()">
+    <div class="modal-card" (click)="$event.stopPropagation()">
+      <div class="modal-head">
+        <div>
+          <p class="eyebrow">{{ editingRole ? 'Edit role' : 'New role' }}</p>
+          <h3>{{ editingRole ? editingRole.label : 'Create platform role' }}</h3>
+        </div>
+        <button type="button" class="icon-btn" (click)="closeRoleForm()" aria-label="Close">×</button>
+      </div>
+
+      <label class="field">
+        <span>Name</span>
+        <input type="text" [(ngModel)]="draft.name" placeholder="e.g. billing_manager" [disabled]="editingRole?.is_system === true" />
+        <small>Lowercase identifier used in code and tokens.</small>
+      </label>
+
+      <label class="field">
+        <span>Label</span>
+        <input type="text" [(ngModel)]="draft.label" placeholder="e.g. Billing manager" />
+      </label>
+
+      <label class="field">
+        <span>Description</span>
+        <textarea rows="2" [(ngModel)]="draft.description" placeholder="What this role is for"></textarea>
+      </label>
+
+      <div class="role-error" *ngIf="roleError">{{ roleError }}</div>
+
+      <div class="modal-actions">
+        <button class="btn-back" type="button" (click)="closeRoleForm()" [disabled]="roleSaving">Cancel</button>
+        <button class="btn-save" type="button" (click)="saveRole()" [disabled]="roleSaving">
+          {{ roleSaving ? 'Saving…' : 'Save role' }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

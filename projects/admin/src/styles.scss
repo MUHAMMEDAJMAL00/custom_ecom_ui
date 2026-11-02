@@ -1,0 +1,292 @@
+@use './styles/shop';
+
+/* ────────────────────────────────────────────────────────────────
+   Platform Admin design system — mirrors MySkin Admin
+   Poppins typography, white surfaces, crimson accents.
+   ──────────────────────────────────────────────────────────────── */
+
+@font-face {
+  font-family: 'Poppins';
+  src: url('/assets/fonts/Poppins-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Poppins';
+  src: url('/assets/fonts/Poppins-Medium.ttf') format('truetype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Poppins';
+  src: url('/assets/fonts/Poppins-SemiBold.ttf') format('truetype');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Poppins';
+  src: url('/assets/fonts/Poppins-Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Poppins';
+  src: url('/assets/fonts/Poppins-ExtraBold.ttf') format('truetype');
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  --topbar-h: 48px;
+
+  /* Backgrounds */
+  --app-bg: #ffffff;
+  --surface: #ffffff;
+  --surface-raised: #fdf4f5;
+  --surface-overlay: rgba(255, 255, 255, 0.94);
+
+  /* Typography */
+  --ink: #2a1a20;
+  --ink-2: #3d262e;
+  --muted: #6b5a60;
+  --muted-2: #9c8b91;
+  --subtle: #d9bfc4;
+
+  /* Borders */
+  --line: #efd6da;
+  --line-2: #f6e7e9;
+
+  /* Brand Palette */
+  --brand: #c8102e;
+  --brand-dark: #8b0a1e;
+  --brand-darker: #6b0617;
+  --brand-mid: #d92a46;
+  --brand-light: #e27384;
+  --brand-tint: #f9e4e7;
+  --brand-tint-2: #fdf4f5;
+  --brand-gradient: linear-gradient(135deg, var(--brand) 0%, var(--brand-dark) 100%);
+  --brand-gradient-hover: linear-gradient(135deg, var(--brand-dark) 0%, var(--brand-darker) 100%);
+
+  /* Accent */
+  --accent: #8b0a1e;
+  --accent-tint: #fdf4f5;
+
+  /* Semantic */
+  --danger: #dc2626;
+  --danger-soft: #fef2f2;
+  --danger-border: #fecaca;
+  --success: #16a34a;
+  --success-soft: #dcfce7;
+  --warning: #f97316;
+  --warning-soft: #fff7ed;
+
+  /* Shadows */
+  --shadow-xs: 0 1px 3px rgba(139, 10, 30, 0.08);
+  --shadow-sm: 0 2px 8px rgba(139, 10, 30, 0.07);
+  --shadow-md: 0 6px 20px rgba(139, 10, 30, 0.09);
+  --shadow-lg: 0 10px 30px rgba(139, 10, 30, 0.12);
+  --shadow-brand: 0 8px 20px rgba(200, 16, 46, 0.28);
+  --shadow-brand-lg: 0 14px 32px rgba(200, 16, 46, 0.34);
+
+  /* Radii */
+  --r-xs: 6px;
+  --r-sm: 8px;
+  --r-md: 10px;
+  --r-lg: 14px;
+  --r-xl: 18px;
+  --r-2xl: 24px;
+  --r-full: 9999px;
+
+  /* Transitions */
+  --t-fast: 0.15s ease;
+  --t-base: 0.25s ease;
+  --t-slow: 0.3s ease;
+
+  /* Bootstrap bridge */
+  --bs-primary: var(--brand);
+  --bs-primary-rgb: 200, 16, 46;
+  --bs-body-color: #2a1a20;
+  --bs-body-bg: #ffffff;
+  --bs-border-color: #efd6da;
+  --bs-link-color: #c8102e;
+  --bs-link-hover-color: #8b0a1e;
+}
+
+/* ── Accent palettes ─────────────────────────────────────────── */
+html[data-accent='blue'] {
+  --brand: #2563eb;
+  --brand-dark: #1d4ed8;
+  --brand-darker: #1e3a8a;
+  --brand-mid: #3b82f6;
+  --brand-light: #93c5fd;
+  --brand-tint: #dbeafe;
+  --brand-tint-2: #eff6ff;
+  --accent: #1d4ed8;
+}
+
+html[data-accent='emerald'] {
+  --brand: #059669;
+  --brand-dark: #047857;
+  --brand-darker: #065f46;
+  --brand-mid: #10b981;
+  --brand-light: #6ee7b7;
+  --brand-tint: #d1fae5;
+  --brand-tint-2: #ecfdf5;
+  --accent: #047857;
+}
+
+html[data-accent='violet'] {
+  --brand: #7c3aed;
+  --brand-dark: #6d28d9;
+  --brand-darker: #4c1d95;
+  --brand-mid: #8b5cf6;
+  --brand-light: #c4b5fd;
+  --brand-tint: #ede9fe;
+  --brand-tint-2: #f5f3ff;
+  --accent: #6d28d9;
+}
+
+html[data-accent='amber'] {
+  --brand: #d97706;
+  --brand-dark: #b45309;
+  --brand-darker: #92400e;
+  --brand-mid: #f59e0b;
+  --brand-light: #fcd34d;
+  --brand-tint: #fef3c7;
+  --brand-tint-2: #fffbeb;
+  --accent: #b45309;
+}
+
+/* ── Dark theme ──────────────────────────────────────────────── */
+html[data-theme='dark'] {
+  --app-bg: #0b1120;
+  --surface: #111827;
+  --surface-raised: #172033;
+  --surface-overlay: rgba(17, 24, 39, 0.94);
+  --ink: #f1f5f9;
+  --ink-2: #e2e8f0;
+  --muted: #94a3b8;
+  --muted-2: #64748b;
+  --subtle: #475569;
+  --line: #243145;
+  --line-2: #1b2537;
+  --brand-tint: color-mix(in srgb, var(--brand) 20%, #111827);
+  --brand-tint-2: color-mix(in srgb, var(--brand) 10%, #111827);
+  --shadow-xs: 0 1px 3px rgba(0, 0, 0, 0.35);
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 6px 20px rgba(0, 0, 0, 0.35);
+  --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.4);
+  --bs-body-color: #f1f5f9;
+  --bs-body-bg: #0b1120;
+  --bs-border-color: #243145;
+}
+
+/* ── Reset & Base ─────────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html, body {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--ink);
+  background: var(--app-bg);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+button, input, select, textarea {
+  font: inherit;
+}
+
+button { cursor: pointer; }
+a { color: inherit; }
+
+/* ── Scrollbar ────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 7px; height: 7px; }
+::-webkit-scrollbar-thumb {
+  background: var(--line);
+  border: 2px solid transparent;
+  border-radius: var(--r-full);
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover { background: var(--subtle); background-clip: content-box; }
+::-webkit-scrollbar-track { background: transparent; }
+
+/* ── Focus & Selection ───────────────────────────────────────── */
+:focus-visible {
+  outline: 2px solid var(--brand-light);
+  outline-offset: 2px;
+  border-radius: var(--r-xs);
+}
+
+::selection {
+  color: #fff;
+  background: var(--brand);
+}
+
+/* ── Shared utility classes ──────────────────────────────────── */
+.premium-glass {
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+}
+
+.text-gradient {
+  background: var(--brand-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ── Keyframes ───────────────────────────────────────────────── */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes shimmer {
+  0%   { background-position: 200% 50%; }
+  100% { background-position: -200% 50%; }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes pulse-ring {
+  0%   { transform: scale(0.9); opacity: 0.8; }
+  50%  { transform: scale(1.1); opacity: 0.4; }
+  100% { transform: scale(0.9); opacity: 0.8; }
+}
+
+@keyframes float-in {
+  from { opacity: 0; transform: scale(0.96) translateY(6px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+@keyframes pos-dot-bounce {
+  0%, 80%, 100% { transform: scale(0.55); opacity: 0.35; }
+  40%           { transform: scale(1); opacity: 1; }
+}

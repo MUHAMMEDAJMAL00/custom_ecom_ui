@@ -1,0 +1,6 @@
+.notif-unread {
+  background: #eff6ff !important;
+}
+.notif-unread td:first-child {
+  border-left: 3px solid #3b82f6;
+}

@@ -1,0 +1,229 @@
+<div class="page-wrap">
+  <div class="page-header">
+    <div class="page-header-left">
+      <div class="page-title-main">Purchase Returns</div>
+      <div class="page-breadcrumb">
+        <a [routerLink]="'/dashboard' | shopUrl">Dashboard</a>
+        <span class="sep">›</span>
+        <span class="current">Purchase Returns</span>
+      </div>
+    </div>
+    <div class="page-header-actions">
+      <button class="btn btn-icon-tool" title="Refresh" (click)="load()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="23 4 23 10 17 10"/>
+          <path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/>
+        </svg>
+      </button>
+      <button class="btn btn-primary" (click)="openCreate()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/>
+        </svg>
+        New Return
+      </button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="toolbar">
+      <div class="toolbar-left">
+        <div class="search-box">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+          <input type="text" placeholder="Search by return# or vendor…" autocomplete="off"
+                 [value]="search" (input)="onSearchInput($any($event.target).value)"/>
+        </div>
+      </div>
+      <div class="toolbar-right">
+        <select class="filter-select" [(ngModel)]="filterStatus" (change)="applyFilter()">
+          <option value="">All Statuses</option>
+          <option value="draft">Draft</option>
+          <option value="approved">Approved</option>
+          <option value="completed">Completed</option>
+          <option value="rejected">Rejected</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table class="pos-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Return #</th>
+            <th>Vendor</th>
+            <th>Linked PO</th>
+            <th>Items</th>
+            <th>Total</th>
+            <th>Refund Method</th>
+            <th>Status</th>
+            <th>Date</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngIf="loading">
+            <td colspan="10" class="tbl-empty"><span class="pos-loader"><span></span><span></span><span></span></span></td>
+          </tr>
+          <tr *ngIf="!loading && errorMessage">
+            <td colspan="10" class="tbl-empty" style="color:#ef4444">{{ errorMessage }}</td>
+          </tr>
+          <tr *ngIf="!loading && !errorMessage && !returns.length">
+            <td colspan="10" class="tbl-empty">No purchase returns found</td>
+          </tr>
+          <tr *ngFor="let item of returns; let i = index">
+            <td>{{ (page - 1) * limit + i + 1 }}</td>
+            <td><code>{{ item.return_number }}</code></td>
+            <td><strong>{{ item.Vendor?.name || '—' }}</strong></td>
+            <td><small>{{ item.Purchase?.purchase_number || '—' }}</small></td>
+            <td>{{ item.items?.length || '—' }}</td>
+            <td style="font-weight:700">{{ formatCurrency(item.total_amount) }}</td>
+            <td><small>{{ item.refund_method || '—' }}</small></td>
+            <td><span class="badge" [ngClass]="helper_statusBadge(item.status)">{{ item.status }}</span></td>
+            <td style="color:#9c8b91;font-size:.78rem">{{ formatDate(item.return_date || item.created_at) }}</td>
+            <td><app-row-actions [showView]="true" (view)="openView(item)"></app-row-actions></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="pagination-bar">
+      <div class="pagination-info">
+        Show
+        <select [ngModel]="limit" (ngModelChange)="limit = $event; load(1)">
+          <option [ngValue]="20">20</option>
+          <option [ngValue]="50">50</option>
+          <option [ngValue]="100">100</option>
+        </select>
+        entries
+      </div>
+      <app-pagination [currentPage]="page" [totalPages]="totalPages" (pageChange)="load($event)"></app-pagination>
+    </div>
+  </div>
+</div>
+
+<app-drawer [open]="drawerMode !== null" [title]="drawerTitle"
+            [showFooter]="drawerMode === 'create'"
+            [saveLabel]="'Create Return'" [saving]="saving"
+            (closed)="closeDrawer()" (saveClicked)="handleSave()">
+
+  <!-- View -->
+  <ng-container *ngIf="drawerMode === 'view' && viewingReturn as r">
+    <div class="detail-grid">
+      <div class="detail-item"><label>Return #</label><span><code>{{ r.return_number }}</code></span></div>
+      <div class="detail-item"><label>Vendor</label><span>{{ r.Vendor?.name || '—' }}{{ r.Vendor?.company ? ' — ' + (r.Vendor?.company || '') : '' }}</span></div>
+      <div class="detail-item"><label>Linked PO</label><span>{{ r.Purchase?.purchase_number || '—' }}</span></div>
+      <div class="detail-item"><label>Return Date</label><span>{{ formatDate(r.return_date) }}</span></div>
+      <div class="detail-item"><label>Status</label><span><span class="badge" [ngClass]="helper_statusBadge(r.status)">{{ r.status }}</span></span></div>
+      <div class="detail-item"><label>Refund Method</label><span>{{ r.refund_method || '—' }}</span></div>
+      <div class="detail-item"><label>Refund Status</label><span>{{ r.refund_status || '—' }}</span></div>
+      <div class="detail-item col-span-2" *ngIf="r.reason"><label>Reason</label><span>{{ r.reason }}</span></div>
+    </div>
+
+    <ng-container *ngIf="r.items && r.items.length">
+      <div class="po-section-title" style="margin-top:12px">Returned Items</div>
+      <table class="pos-table pr-view-items">
+        <thead>
+          <tr>
+            <th style="text-align:left;padding:5px 8px">PRODUCT</th>
+            <th style="text-align:right;padding:5px 8px">QTY</th>
+            <th style="text-align:right;padding:5px 8px">UNIT PRICE</th>
+            <th style="text-align:right;padding:5px 8px">TOTAL</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let ri of r.items">
+            <td style="padding:5px 8px">{{ ri.Product?.name || 'Product #' + ri.product_id }}</td>
+            <td style="padding:5px 8px;text-align:right">{{ ri.quantity }}</td>
+            <td style="padding:5px 8px;text-align:right">{{ formatCurrency(ri.unit_price) }}</td>
+            <td style="padding:5px 8px;text-align:right;font-weight:700">{{ formatCurrency(ri.total_amount || ri.quantity * ri.unit_price) }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </ng-container>
+
+    <div class="pr-fin-summary">
+      <div class="po-f-row"><span>Subtotal</span><span>{{ formatCurrency(r.subtotal) }}</span></div>
+      <div class="po-f-row" *ngIf="r.tax_amount > 0"><span>Tax</span><span>{{ formatCurrency(r.tax_amount) }}</span></div>
+      <div class="po-f-row-grand"><span>Refund Amount</span><span>{{ formatCurrency(r.refund_amount) }}</span></div>
+    </div>
+  </ng-container>
+
+  <!-- Create -->
+  <ng-container *ngIf="drawerMode === 'create'">
+    <div class="form-grid" style="margin-bottom:16px">
+      <div class="form-group">
+        <label class="form-label">Vendor <span class="req">*</span></label>
+        <select class="form-control" [(ngModel)]="prVendorId" (ngModelChange)="onVendorChange()">
+          <option [ngValue]="null">Select vendor…</option>
+          <option *ngFor="let v of vendors" [ngValue]="v.id">{{ v.name }}{{ v.company ? ' (' + v.company + ')' : '' }}</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Linked Purchase (optional)</label>
+        <select class="form-control" [(ngModel)]="prPurchaseId" (ngModelChange)="onPurchaseChange()">
+          <option [ngValue]="null">— None —</option>
+          <option *ngFor="let p of availablePurchases" [ngValue]="p.id">{{ p.purchase_number }} — {{ formatCurrency(p.total_amount) }} ({{ p.status }})</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Return Date</label>
+        <input type="date" class="form-control" [(ngModel)]="prDate" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Refund Method</label>
+        <select class="form-control" [(ngModel)]="prRefundMethod">
+          <option value="adjustment">Adjustment</option>
+          <option value="cash">Cash</option>
+          <option value="bank_transfer">Bank Transfer</option>
+          <option value="credit_note">Credit Note</option>
+          <option value="debit_note">Debit Note</option>
+        </select>
+      </div>
+      <div class="form-group" style="grid-column:span 2">
+        <label class="form-label">Reason</label>
+        <input type="text" class="form-control" [(ngModel)]="prReason" placeholder="Reason for return" />
+      </div>
+    </div>
+
+    <!-- Barcode scan -->
+    <div class="pr-barcode-wrap">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="1" y="4" width="3" height="16"/><rect x="7" y="4" width="1" height="16"/>
+        <rect x="11" y="4" width="3" height="16"/><rect x="17" y="4" width="1" height="16"/>
+        <rect x="21" y="4" width="2" height="16"/>
+      </svg>
+      <input type="text" class="form-control" #barcodeInput placeholder="Scan barcode to add product…" autocomplete="off"
+             (keydown.enter)="scanBarcode(barcodeInput.value); barcodeInput.value = ''" />
+    </div>
+
+    <div style="font-weight:600;font-size:.83rem;margin:0 0 6px;color:#2a1a20">Return Items <span class="req">*</span></div>
+    <div id="pr-items">
+      <div class="pr-item-row" *ngFor="let row of itemRows; let ri = index">
+        <div class="pr-search-wrap">
+          <input type="text" class="form-control" placeholder="Search product…" autocomplete="off"
+                 [value]="row.productName"
+                 (focus)="onSearchProductFocus(row)"
+                 (input)="onSearchProductInput(row, $any($event.target).value)"
+                 (blur)="onSearchProductBlur(row)" />
+          <div class="pr-dropdown" *ngIf="row.inSearch && productSearchIdx === row.idx && productSearchResults.length">
+            <div class="pr-dropdown-item" *ngFor="let p of productSearchResults" (mousedown)="selectProduct(row, p)">
+              <span class="pr-di-name">{{ p.name }}</span>
+              <span class="pr-di-sku" *ngIf="p.sku">{{ p.sku }}</span>
+            </div>
+          </div>
+        </div>
+        <input type="number" class="form-control" placeholder="Qty" min="0.001" step="0.001" style="flex:1;min-width:60px"
+               [(ngModel)]="row.qty" (ngModelChange)="calcTotal()" />
+        <input type="number" class="form-control" placeholder="Price" step="0.01" style="flex:1;min-width:80px"
+               [(ngModel)]="row.price" (ngModelChange)="calcTotal()" />
+        <span class="pr-stock-hint" [class.low]="row.stock.includes('Stock: 0') || row.stock.includes('Stock: -')">{{ row.stock }}</span>
+        <span class="pr-sub">{{ (row.qty || 0) * (row.price || 0) > 0 ? formatCurrency((row.qty || 0) * (row.price || 0)) : '' }}</span>
+        <button type="button" class="po-rem-btn" (click)="removeItemRow(row.idx)" [disabled]="itemRows.length <= 1">✕</button>
+      </div>
+    </div>
+    <button type="button" class="btn btn-outline btn-sm" (click)="addItemRow()" style="margin-bottom:8px">+ Add Item</button>
+    <div class="pr-total-bar">Total: <strong>{{ formatCurrency(calcTotal()) }}</strong></div>
+  </ng-container>
+</app-drawer>

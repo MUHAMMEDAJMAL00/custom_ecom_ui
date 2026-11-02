@@ -1,0 +1,252 @@
+<div class="dash-wrap">
+  <div class="dash-header">
+    <div>
+      <div class="dash-title">Overview</div>
+      <div class="dash-sub">{{ lastUpdated || 'Loading…' }}</div>
+    </div>
+    <button
+      class="btn-outline btn-sm refresh-btn"
+      type="button"
+      title="Refresh dashboard"
+      aria-label="Refresh dashboard"
+      (click)="load()"
+      [disabled]="loading"
+    >
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M20 11a8 8 0 1 0-2.34 5.66M20 4v7h-7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+      </svg>
+    </button>
+  </div>
+
+  <div class="empty-state" *ngIf="loading">
+    <span class="pos-loader" aria-label="Loading dashboard">
+      <span></span><span></span><span></span>
+    </span>
+  </div>
+
+  <div class="empty-state" *ngIf="!loading && errorMessage">
+    <p>{{ errorMessage }}</p>
+    <button class="btn-outline btn-sm" type="button" (click)="load()">Retry</button>
+  </div>
+
+  <ng-container *ngIf="!loading && data">
+    <!-- Stat cards -->
+    <div class="dash-stats">
+      <div class="dash-card">
+        <div class="dash-card-icon icon-blue">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M4 21V5a1 1 0 0 1 1-1h9a1 1 0 0 1 1 1v16M15 9h4a1 1 0 0 1 1 1v11M8 8h3M8 12h3M8 16h3M2 21h20" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </div>
+        <div>
+          <div class="dash-card-lbl">Total Shops</div>
+          <div class="dash-card-val">{{ data.counts.total }}</div>
+          <small>shops on the platform</small>
+        </div>
+      </div>
+
+      <div class="dash-card">
+        <div class="dash-card-icon icon-green">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8" />
+            <path d="m8 12 2.7 2.7L16 9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </div>
+        <div>
+          <div class="dash-card-lbl">Active Storefronts</div>
+          <div class="dash-card-val">{{ data.counts.active }}</div>
+          <small>live and selling</small>
+        </div>
+      </div>
+
+      <div class="dash-card">
+        <div class="dash-card-icon icon-orange">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8" />
+            <path d="M10 9v6M14 9v6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+          </svg>
+        </div>
+        <div>
+          <div class="dash-card-lbl">Suspended</div>
+          <div class="dash-card-val">{{ data.counts.suspended }}</div>
+          <small>storefront and admin closed</small>
+        </div>
+      </div>
+
+      <div class="dash-card">
+        <div class="dash-card-icon icon-red">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M10.3 4.3a2 2 0 0 1 3.4 0l7.4 12.8a2 2 0 0 1-1.7 3H4.6a2 2 0 0 1-1.7-3L10.3 4.3Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" />
+            <path d="M12 9v4M12 16.5h.01" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+          </svg>
+        </div>
+        <div>
+          <div class="dash-card-lbl">Provisioning Failed</div>
+          <div class="dash-card-val">{{ data.counts.provisioning_failed }}</div>
+          <small>{{ data.counts.provisioning }} still provisioning</small>
+        </div>
+      </div>
+    </div>
+
+    <!-- Chart + summary -->
+    <div class="dash-row">
+      <div class="dash-chart-col">
+        <div class="card">
+          <div class="card-header chart-header">
+            <div class="card-title">7-Day Shop Signups</div>
+            <div class="chart-legend">
+              <span><span class="dot dot-red"></span>New shops</span>
+            </div>
+          </div>
+          <div class="card-body">
+            <svg
+              *ngIf="chart"
+              class="trend-chart"
+              [attr.viewBox]="'0 0 720 260'"
+              role="img"
+              aria-label="Shop signups over the last seven days"
+            >
+              <defs>
+                <linearGradient id="trendFill" x1="0" y1="0" x2="0" y2="1">
+                  <stop class="trend-stop-top" offset="0%" stop-opacity="0.28" />
+                  <stop class="trend-stop-bottom" offset="100%" stop-opacity="0.02" />
+                </linearGradient>
+              </defs>
+
+              <g class="chart-grid">
+                <line
+                  *ngFor="let tick of chart.ticks"
+                  x1="46"
+                  [attr.y1]="tick.y"
+                  x2="702"
+                  [attr.y2]="tick.y"
+                />
+              </g>
+
+              <g class="chart-y-labels">
+                <text
+                  *ngFor="let tick of chart.ticks"
+                  x="36"
+                  [attr.y]="tick.y + 4"
+                  text-anchor="end"
+                >{{ tick.label }}</text>
+              </g>
+
+              <path class="chart-area" [attr.d]="chart.areaPath" fill="url(#trendFill)" />
+              <path class="chart-line" [attr.d]="chart.linePath" />
+
+              <g *ngFor="let point of chart.points">
+                <circle class="chart-dot" [attr.cx]="point.x" [attr.cy]="point.y" r="4">
+                  <title>{{ point.title }}</title>
+                </circle>
+                <text
+                  class="chart-value"
+                  [attr.x]="point.x"
+                  [attr.y]="point.y - 12"
+                  text-anchor="middle"
+                >{{ point.value }}</text>
+                <text
+                  class="chart-x-label"
+                  [attr.x]="point.x"
+                  y="244"
+                  text-anchor="middle"
+                >{{ point.label }}</text>
+              </g>
+            </svg>
+
+            <div class="chart-empty" *ngIf="!chart">No signup data yet.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="dash-summary-col">
+        <div class="card summary-card">
+          <div class="card-header chart-header">
+            <div class="card-title">Platform Summary</div>
+          </div>
+          <div class="card-body">
+            <ul class="dash-summary-list">
+              <li>
+                <span>Total Shops</span>
+                <strong>{{ data.counts.total }}</strong>
+              </li>
+              <li>
+                <span>Active Storefronts</span>
+                <strong class="text-green">{{ data.counts.active }}</strong>
+              </li>
+              <li>
+                <span>Suspended</span>
+                <strong class="text-orange">{{ data.counts.suspended }}</strong>
+              </li>
+              <li>
+                <span>Provisioning Failed</span>
+                <strong class="text-red">{{ data.counts.provisioning_failed }}</strong>
+              </li>
+              <li>
+                <span>Needs Attention</span>
+                <strong>{{ data.attention.length }}</strong>
+              </li>
+              <li>
+                <span>Top Module</span>
+                <strong class="summary-module">
+                  {{ topModule ? topModule.label : '—' }}
+                  <small *ngIf="topModule">{{ topModule.tenants }}</small>
+                </strong>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recent tenants -->
+    <div class="card">
+      <div class="card-header recent-header">
+        <div class="card-title">Recent Shops</div>
+        <a class="view-all" routerLink="/platform/tenants">View all</a>
+      </div>
+      <div class="card-body-flush">
+        <div class="table-wrap">
+          <table class="pos-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Shop</th>
+                <th>Slug</th>
+                <th>Status</th>
+                <th>Created</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let tenant of data.recent_tenants; let index = index">
+                <td>{{ index + 1 }}</td>
+                <td>
+                  <div class="tenant-cell">
+                    <span class="tenant-avatar">{{ initials(tenant.name) }}</span>
+                    <strong>{{ tenant.name }}</strong>
+                  </div>
+                </td>
+                <td><code>{{ tenant.slug }}</code></td>
+                <td>
+                  <span class="badge" [ngClass]="statusClass(tenant.status)">
+                    {{ statusLabel(tenant.status) }}
+                  </span>
+                </td>
+                <td class="muted">{{ tenant.created_at | date: 'MMM d, y' }}</td>
+                <td>
+                  <a class="row-link" [routerLink]="['/t', tenant.slug, 'login']">Sign in</a>
+                </td>
+              </tr>
+              <tr *ngIf="!data.recent_tenants.length">
+                <td colspan="6" class="tbl-empty">
+                  No shops yet. <a routerLink="/platform/tenants/new">Create the first shop.</a>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </ng-container>
+</div>

@@ -1,0 +1,117 @@
+<div class="page-wrap">
+  <div class="page-header">
+    <div class="page-header-left">
+      <div class="page-title-main">Journal Entries</div>
+      <div class="page-breadcrumb"><a [routerLink]="'/dashboard' | shopUrl">Dashboard</a><span class="sep">›</span><span class="current">Journal Entries</span></div>
+    </div>
+    <div class="page-header-actions">
+      <button class="btn btn-icon-tool" title="Refresh" (click)="load()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg></button>
+      <button class="btn btn-primary" (click)="openCreate()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+        New Entry
+      </button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="toolbar">
+      <div class="toolbar-left">
+        <div class="search-box"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input type="text" placeholder="Search entries…" autocomplete="off" [(ngModel)]="search" (ngModelChange)="load()" /></div>
+      </div>
+      <div class="toolbar-right">
+        <input type="date" class="form-control" style="width:140px" [(ngModel)]="filterFrom" (ngModelChange)="load()" />
+        <input type="date" class="form-control" style="width:140px;margin-left:6px" [(ngModel)]="filterTo" (ngModelChange)="load()" />
+        <select class="filter-select" style="margin-left:6px" [(ngModel)]="filterManual" (change)="load()">
+          <option value="">All Entries</option>
+          <option value="1">Manual Only</option>
+          <option value="0">Auto Only</option>
+        </select>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table class="pos-table">
+        <thead><tr><th>#</th><th>Reference</th><th>Date</th><th>Description</th><th>Source</th><th>Debit Total</th><th>Credit Total</th><th>Actions</th></tr></thead>
+        <tbody>
+          <tr *ngIf="loading"><td colspan="8" class="tbl-empty"><span class="pos-loader"><span></span><span></span><span></span></span></td></tr>
+          <tr *ngIf="!loading && !entries.length"><td colspan="8" class="tbl-empty">No entries found</td></tr>
+          <tr *ngFor="let e of entries; let i = index">
+            <td>{{ (page - 1) * limit + i + 1 }}</td>
+            <td><strong>{{ e.reference_number || '—' }}</strong></td>
+            <td>{{ e.date }}</td>
+            <td>{{ e.description || '—' }}</td>
+            <td><small>{{ e.reference_type ? (e.reference_type + (e.reference_id ? ' #' + e.reference_id : '')) : 'Manual' }}</small></td>
+            <td>{{ formatCurrency(totalDebit(e)) }}</td>
+            <td>{{ formatCurrency(totalCredit(e)) }}</td>
+            <td><app-row-actions [showView]="true" (view)="openView(e)"></app-row-actions></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="pagination-bar">
+      <div class="pagination-info">Row Per Page <select [ngModel]="limit" (ngModelChange)="limit = $event; load(1)"><option [ngValue]="20">20</option><option [ngValue]="10">10</option><option [ngValue]="50">50</option></select> Entries</div>
+      <app-pagination [currentPage]="page" [totalPages]="total" (pageChange)="load($event)"></app-pagination>
+    </div>
+  </div>
+</div>
+
+<app-drawer [open]="drawerOpen" [title]="drawerMode === 'view' ? ('Journal Entry — ' + (viewingEntry?.reference_number || '')) : 'New Manual Journal Entry'"
+            [showFooter]="drawerMode === 'create'" [saveLabel]="'Post Entry'" [saving]="saving"
+            (closed)="drawerOpen = false" (saveClicked)="submit()">
+
+  <!-- View -->
+  <ng-container *ngIf="drawerMode === 'view' && viewingEntry as e">
+    <div class="detail-grid">
+      <div class="detail-item"><label>Reference</label><span><strong>{{ e.reference_number }}</strong></span></div>
+      <div class="detail-item"><label>Date</label><span>{{ e.date }}</span></div>
+      <div class="detail-item"><label>Source</label><span>{{ e.reference_type || 'Manual' }}{{ e.reference_id ? ' #' + e.reference_id : '' }}</span></div>
+      <div class="detail-item col-span-2"><label>Description</label><span>{{ e.description || '—' }}</span></div>
+    </div>
+    <div style="margin-top:16px"><strong>Journal Lines</strong></div>
+    <div class="table-wrap" style="margin-top:8px">
+      <table class="pos-table">
+        <thead><tr><th>Account</th><th style="text-align:right">Debit</th><th style="text-align:right">Credit</th><th>Note</th></tr></thead>
+        <tbody>
+          <tr *ngFor="let l of e.lines">
+            <td>{{ l.ledger_account?.name || 'Account #' + l.ledger_account_id }}</td>
+            <td style="text-align:right">{{ gtZero(l.debit) ? formatCurrency(l.debit) : '—' }}</td>
+            <td style="text-align:right">{{ gtZero(l.credit) ? formatCurrency(l.credit) : '—' }}</td>
+            <td>{{ l.description || '' }}</td>
+          </tr>
+          <tr *ngIf="!e.lines || !e.lines.length"><td colspan="4" class="tbl-empty">No lines</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </ng-container>
+
+  <!-- Create -->
+  <ng-container *ngIf="drawerMode === 'create'">
+    <div class="form-grid">
+      <div class="form-group"><label class="form-label">Date <span class="req">*</span></label><input type="date" class="form-control" [(ngModel)]="jeDate" /></div>
+      <div class="form-group col-span-2"><label class="form-label">Description</label><input type="text" class="form-control" [(ngModel)]="jeDesc" placeholder="Entry description" /></div>
+    </div>
+    <div style="margin-top:14px"><strong>Lines</strong></div>
+    <div class="table-wrap" style="margin-top:8px">
+      <table class="pos-table">
+        <thead><tr><th>Account</th><th>Debit</th><th>Credit</th><th>Note</th><th></th></tr></thead>
+        <tbody>
+          <tr *ngFor="let l of jeLines; let i = index">
+            <td><select class="form-control" [(ngModel)]="l.accountId" style="min-width:140px"><option [ngValue]="null">Select…</option><option *ngFor="let a of accounts" [ngValue]="a.id">{{ a.name }}</option></select></td>
+            <td><input type="number" class="form-control" min="0" step="0.01" placeholder="0.00" style="width:100px" [(ngModel)]="l.debit" /></td>
+            <td><input type="number" class="form-control" min="0" step="0.01" placeholder="0.00" style="width:100px" [(ngModel)]="l.credit" /></td>
+            <td><input type="text" class="form-control" placeholder="Note" style="width:120px" [(ngModel)]="l.note" /></td>
+            <td><button type="button" style="background:none;border:none;color:#dc2626;cursor:pointer;font-size:16px" (click)="removeLine(i)">✕</button></td>
+          </tr>
+        </tbody>
+        <tfoot>
+          <tr>
+            <td><button type="button" class="btn btn-sm" style="font-size:12px" (click)="addLine()">+ Add Line</button></td>
+            <td><strong>{{ formatCurrency(totalD) }}</strong></td>
+            <td><strong>{{ formatCurrency(totalC) }}</strong></td>
+            <td colspan="2"></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+    <div *ngIf="unbalanced" style="color:#dc2626;font-size:0.83rem;margin-top:6px">⚠ Debit and Credit totals must be equal</div>
+  </ng-container>
+</app-drawer>

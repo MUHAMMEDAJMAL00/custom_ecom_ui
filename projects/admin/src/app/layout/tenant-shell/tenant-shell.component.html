@@ -1,0 +1,31 @@
+<!-- MySkin admin main-layout (core/layout/main-layout): sidebar + topbar + content -->
+<div class="app-shell shop-scope" *ngIf="session$ | async as session; else loading">
+  <div class="sidebar-overlay" [class.open]="sidebarOpen" (click)="sidebarOpen = false"></div>
+
+  <app-shop-sidebar
+    [session]="session"
+    [slug]="slug"
+    [collapsed]="collapsed"
+    [mobileOpen]="sidebarOpen"
+    (navigated)="sidebarOpen = false"
+    (toggleCollapse)="collapsed = !collapsed"
+    (logout)="logout()"
+  ></app-shop-sidebar>
+
+  <div class="main-area">
+    <app-shop-header (toggleMobileSidebar)="toggleSidebar()" (logoutRequested)="logout()"></app-shop-header>
+    <div class="content-area">
+      <router-outlet></router-outlet>
+    </div>
+  </div>
+
+  <app-toast></app-toast>
+  <app-confirm-dialog></app-confirm-dialog>
+</div>
+
+<ng-template #loading>
+  <div class="tenant-loading">
+    <span class="spinner"></span>
+    Loading shop…
+  </div>
+</ng-template>

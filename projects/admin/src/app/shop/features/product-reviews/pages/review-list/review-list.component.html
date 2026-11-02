@@ -1,0 +1,111 @@
+<div class="page-wrap">
+  <div class="page-header">
+    <div class="page-header-left">
+      <div class="page-title-main">Product Reviews</div>
+      <div class="page-breadcrumb">
+        <a [routerLink]="'/dashboard' | shopUrl">Dashboard</a>
+        <span class="sep">›</span>
+        <a [routerLink]="'/products' | shopUrl">Products</a>
+        <span class="sep">›</span>
+        <span class="current">Reviews</span>
+      </div>
+    </div>
+    <div class="page-header-actions">
+      <button class="btn btn-outline" (click)="load()" title="Refresh"><i class="bi bi-arrow-clockwise"></i></button>
+    </div>
+  </div>
+
+  <div class="rl-hint">
+    <i class="bi bi-info-circle"></i>
+    <span>Customers can review a product once it has been delivered to them (they show as <strong>Verified Buyer</strong>).
+      Reviews go live straight away. <strong>Hide</strong> a review that breaks the rules (abuse, spam, personal details);
+      the product's star rating updates automatically.</span>
+  </div>
+
+  <div class="rl-stats">
+    <button type="button" class="rl-stat" [class.on]="status === ''" (click)="status = ''; load(1)">
+      <span>All</span><strong>{{ counts.published + counts.hidden }}</strong>
+    </button>
+    <button type="button" class="rl-stat" [class.on]="status === 'published'" (click)="status = 'published'; load(1)">
+      <span>Live</span><strong>{{ counts.published }}</strong>
+    </button>
+    <button type="button" class="rl-stat" [class.on]="status === 'hidden'" (click)="status = 'hidden'; load(1)">
+      <span>Hidden</span><strong>{{ counts.hidden }}</strong>
+    </button>
+  </div>
+
+  <div class="card">
+    <div class="toolbar">
+      <div class="toolbar-left">
+        <div class="search-box">
+          <i class="bi bi-search"></i>
+          <input type="text" placeholder="Search product, customer or review text…" [value]="search" (input)="onSearch($any($event.target).value)" />
+        </div>
+      </div>
+      <div class="toolbar-right">
+        <select class="filter-select" [(ngModel)]="rating" (change)="load(1)">
+          <option value="">All ratings</option>
+          <option *ngFor="let s of [5, 4, 3, 2, 1]" [value]="s">{{ s }} star{{ s === 1 ? '' : 's' }}</option>
+        </select>
+      </div>
+    </div>
+
+    <div *ngIf="loading" class="rl-empty">Loading reviews…</div>
+    <div *ngIf="!loading && errorMessage" class="rl-empty" style="color: #ef4444">{{ errorMessage }}</div>
+    <div *ngIf="!loading && !errorMessage && !reviews.length" class="rl-empty">
+      <i class="bi bi-chat-square-heart"></i>
+      <p>No reviews {{ status || rating || search ? 'match these filters' : 'yet' }}.</p>
+    </div>
+
+    <div class="rl-list" *ngIf="!loading && reviews.length">
+      <article class="rl-item" *ngFor="let r of reviews" [class.hidden]="r.status === 'hidden'">
+        <div class="rl-product">
+          <div class="rl-product-img">
+            <img *ngIf="r.Product?.image_url" [src]="imageSrc(r.Product?.image_url)" alt="" />
+          </div>
+          <div>
+            <a class="rl-product-name" [href]="productUrl(r)" target="_blank" rel="noopener">{{ r.Product?.name }} <i class="bi bi-box-arrow-up-right"></i></a>
+            <div class="rl-customer">
+              {{ r.Customer?.name || 'Customer' }}
+              <span *ngIf="r.Customer?.email"> · {{ r.Customer?.email }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="rl-content">
+          <div class="rl-top">
+            <span class="rl-pill" [ngClass]="ratingClass(r.rating)">{{ r.rating }} <i class="bi bi-star-fill"></i></span>
+            <strong *ngIf="r.title">{{ r.title }}</strong>
+            <span class="rl-verified" *ngIf="r.is_verified"><i class="bi bi-patch-check-fill"></i> Verified Buyer</span>
+            <span class="rl-status" *ngIf="r.status === 'hidden'"><i class="bi bi-eye-slash"></i> Hidden</span>
+          </div>
+          <p class="rl-body" *ngIf="r.body">{{ r.body }}</p>
+          <div class="rl-photos" *ngIf="r.images?.length">
+            <button type="button" *ngFor="let img of r.images" (click)="lightbox = img"><img [src]="imageSrc(img)" alt="" /></button>
+          </div>
+          <div class="rl-meta">
+            {{ formatDate(r.created_at) }}
+            <span *ngIf="r.helpful_count"> · <i class="bi bi-hand-thumbs-up"></i> {{ r.helpful_count }} found helpful</span>
+          </div>
+        </div>
+
+        <div class="rl-actions">
+          <button class="btn btn-outline btn-sm" (click)="toggleStatus(r)" [disabled]="busyId === r.id">
+            <i class="bi" [ngClass]="r.status === 'published' ? 'bi-eye-slash' : 'bi-eye'"></i>
+            {{ r.status === 'published' ? 'Hide' : 'Show' }}
+          </button>
+          <button class="btn btn-outline btn-sm rl-delete" (click)="remove(r)"><i class="bi bi-trash"></i></button>
+        </div>
+      </article>
+    </div>
+
+    <div class="pagination-bar" *ngIf="totalPages > 1">
+      <div class="pagination-info">{{ total }} reviews</div>
+      <app-pagination [currentPage]="page" [totalPages]="totalPages" (pageChange)="load($event)"></app-pagination>
+    </div>
+  </div>
+</div>
+
+<div class="rl-lightbox" *ngIf="lightbox" (click)="lightbox = null">
+  <img [src]="imageSrc(lightbox)" alt="" />
+</div>

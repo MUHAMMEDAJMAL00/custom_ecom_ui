@@ -1,0 +1,24 @@
+<app-shop-shell>
+  <div class="ms-container page-wrap">
+    @if (loading) {
+      <div class="loading-row"><span class="shop-loader"></span></div>
+    } @else if (notFound) {
+      <div class="empty-state">
+        <i class="bi bi-file-earmark-text"></i>
+        <h2>Page not available</h2>
+        <p>This shop has not published this page yet.</p>
+        <a class="btn-brand" routerLink="/">Back to the shop</a>
+      </div>
+    } @else {
+      <article class="cms">
+        <nav class="crumbs" aria-label="Breadcrumb">
+          <a routerLink="/">Home</a>
+          <span>›</span>
+          <span class="crumbs__current">{{ title }}</span>
+        </nav>
+        <h1>{{ title }}</h1>
+        <div class="cms__content">{{ content }}</div>
+      </article>
+    }
+  </div>
+</app-shop-shell>

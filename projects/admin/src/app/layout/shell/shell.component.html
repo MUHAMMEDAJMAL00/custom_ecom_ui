@@ -1,0 +1,19 @@
+<div class="shell">
+  <app-sidebar [open]="sidebarOpen" (navigate)="closeSidebar()"></app-sidebar>
+
+  <div class="sidebar-scrim" *ngIf="sidebarOpen" (click)="closeSidebar()"></div>
+
+  <div class="main">
+    <app-header
+      [title]="pageTitle"
+      [subtitle]="pageSubtitle"
+      [user]="user$ | async"
+      (toggleSidebar)="toggleSidebar()"
+      (logout)="logout()"
+    ></app-header>
+
+    <main class="content">
+      <router-outlet></router-outlet>
+    </main>
+  </div>
+</div>
