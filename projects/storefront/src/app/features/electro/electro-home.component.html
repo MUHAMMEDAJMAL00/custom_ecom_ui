@@ -1,0 +1,162 @@
+<app-electro-header [bootstrap]="bootstrap" [categories]="categoryTree"></app-electro-header>
+
+<main class="eo">
+  <!-- Hero + promo tiles -->
+  <section class="eo-container eo-hero">
+    <div class="eo-slider">
+      @for (slide of slides; track $index; let i = $index) {
+        <div class="eo-slide" [class.on]="i === slideIndex" [style.background-image]="'url(' + slide.image + ')'">
+          <div class="eo-slide__copy">
+            @if (slide.eyebrow) { <span class="eo-eyebrow">{{ slide.eyebrow }}</span> }
+            <h1>{{ slide.title }}</h1>
+            @if (slide.text) { <p>{{ slide.text }}</p> }
+            <button type="button" class="eo-btn" (click)="open(slide)">{{ slide.cta }} <i class="bi bi-arrow-right"></i></button>
+          </div>
+        </div>
+      }
+      @if (slides.length > 1) {
+        <button type="button" class="eo-arrow is-prev" aria-label="Previous" (click)="step(-1)"><i class="bi bi-chevron-left"></i></button>
+        <button type="button" class="eo-arrow is-next" aria-label="Next" (click)="step(1)"><i class="bi bi-chevron-right"></i></button>
+        <div class="eo-dots">
+          @for (slide of slides; track $index; let i = $index) {
+            <button type="button" [class.on]="i === slideIndex" (click)="goToSlide(i)" [attr.aria-label]="'Slide ' + (i + 1)"></button>
+          }
+        </div>
+      }
+    </div>
+    <div class="eo-tiles">
+      @for (tile of tiles; track $index) {
+        <a class="eo-tile" (click)="open(tile)" [style.background-image]="'url(' + tile.image + ')'">
+          <span class="eo-tile__copy">
+            @if (tile.eyebrow) { <span class="eo-tag">{{ tile.eyebrow }}</span> }
+            <strong>{{ tile.title }}</strong>
+            <small>{{ tile.note }}</small>
+          </span>
+        </a>
+      }
+    </div>
+  </section>
+
+  <!-- Services -->
+  <section class="eo-container eo-services">
+    @for (s of services; track s.title) {
+      <div class="eo-service">
+        <i class="bi" [ngClass]="s.icon"></i>
+        <span><strong>{{ s.title }}</strong><small>{{ s.note }}</small></span>
+      </div>
+    }
+  </section>
+
+  <!-- Categories -->
+  @if (categoryTree.length) {
+    <section class="eo-container eo-block">
+      <div class="eo-head">
+        <h2>Shop by Category</h2>
+        <a (click)="nav.open({ keywords: [] })">All products <i class="bi bi-arrow-right"></i></a>
+      </div>
+      <div class="eo-cats">
+        @for (c of categoryTree; track c.id) {
+          <a class="eo-cat" (click)="nav.open({ categoryId: c.id })">
+            <span class="eo-cat__img"><img [src]="categoryImage(c)" [alt]="c.name" loading="lazy" /></span>
+            <span class="eo-cat__name">{{ c.name }}</span>
+          </a>
+        }
+      </div>
+    </section>
+  }
+
+  <!-- Deals of the day -->
+  @if (deals.length) {
+    <section class="eo-container eo-block eo-deals">
+      <div class="eo-head">
+        <div>
+          <h2><i class="bi bi-lightning-charge-fill"></i> {{ dealsTitle }}</h2>
+          <small>{{ dealsSubtitle }}</small>
+        </div>
+        <span class="eo-row-nav">
+          <button type="button" aria-label="Scroll left" (click)="scrollRow(dealRow, -1)"><i class="bi bi-chevron-left"></i></button>
+          <button type="button" aria-label="Scroll right" (click)="scrollRow(dealRow, 1)"><i class="bi bi-chevron-right"></i></button>
+        </span>
+      </div>
+      <div class="eo-row" #dealRow>
+        @for (p of deals; track p.id) {
+          <div class="eo-row__item"><app-product-card [product]="p" [currency]="currency"></app-product-card></div>
+        }
+      </div>
+    </section>
+  }
+
+  <!-- Promo band -->
+  <section class="eo-container eo-promo">
+    <div class="eo-promo__copy">
+      <span class="eo-eyebrow">{{ promo.eyebrow }}</span>
+      <h2>{{ promo.title }}</h2>
+      <p>{{ promo.highlight }}</p>
+      <button type="button" class="eo-btn is-light" (click)="open(promo.link)">{{ promo.cta }} <i class="bi bi-arrow-right"></i></button>
+    </div>
+    <img class="eo-promo__img" [src]="promo.image" alt="" loading="lazy" />
+  </section>
+
+  <!-- Product row per category -->
+  @for (row of rows; track row.category.id) {
+    <section class="eo-container eo-block">
+      <div class="eo-head">
+        <h2>{{ row.category.name }}</h2>
+        <span class="eo-head__right">
+          <a (click)="nav.open({ categoryId: row.category.id })">View all <i class="bi bi-arrow-right"></i></a>
+          <span class="eo-row-nav">
+            <button type="button" aria-label="Scroll left" (click)="scrollRow(r, -1)"><i class="bi bi-chevron-left"></i></button>
+            <button type="button" aria-label="Scroll right" (click)="scrollRow(r, 1)"><i class="bi bi-chevron-right"></i></button>
+          </span>
+        </span>
+      </div>
+      <div class="eo-row" #r>
+        @for (p of row.products; track p.id) {
+          <div class="eo-row__item"><app-product-card [product]="p" [currency]="currency"></app-product-card></div>
+        }
+      </div>
+    </section>
+  }
+
+  <!-- Brands -->
+  @if (brands.length) {
+    <section class="eo-container eo-block">
+      <div class="eo-head">
+        <h2>{{ brandsTitle }}</h2>
+      </div>
+      <div class="eo-brands">
+        @for (b of brands; track b.id) {
+          <a
+            class="eo-brand"
+            [class.is-top]="isTopBrand(b)"
+            [style.--bh]="brandHue(b)"
+            [title]="b.name"
+            (click)="nav.open({ url: '/catalog/brand/' + b.slug })"
+          >
+            @if (isTopBrand(b)) {
+              <span class="eo-brand__tag"><i class="bi bi-star-fill"></i> Top</span>
+            }
+            <span class="eo-brand__mark">
+              <span class="eo-brand__logo">
+                @if (b.logo_url) {
+                  <img [src]="brandLogo(b)" [alt]="b.name" loading="lazy" />
+                } @else {
+                  {{ brandInitials(b) }}
+                }
+              </span>
+            </span>
+            <span class="eo-brand__name">{{ b.name }}</span>
+            <span class="eo-brand__meta">
+              @if (b.product_count) {
+                <span class="eo-brand__count">{{ b.product_count }} items</span>
+              }
+              <span class="eo-brand__cta">Shop now <i class="bi bi-arrow-right"></i></span>
+            </span>
+          </a>
+        }
+      </div>
+    </section>
+  }
+</main>
+
+<app-electro-footer [bootstrap]="bootstrap" [categories]="categoryTree"></app-electro-footer>

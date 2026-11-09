@@ -63,6 +63,14 @@
   color: var(--muted);
   background: var(--surface);
   border: 1px solid var(--line);
+
+  &.is-danger:hover { color: #dc2626; border-color: #dc2626; }
+}
+
+.matrix-actions {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 6px;
 }
 
 .roles-grid {

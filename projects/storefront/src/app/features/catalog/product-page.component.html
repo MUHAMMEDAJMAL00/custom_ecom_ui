@@ -1,8 +1,9 @@
 <app-shop-shell>
-  <div class="ms-container pd-wrap">
+  <div class="pd">
+  <div class="pd__container">
     @if (loading) {
-      <div class="pd">
-        <div class="skeleton pd__media"></div>
+      <div class="pd__grid">
+        <div class="skeleton pd__image-card"></div>
         <div class="pd__info">
           <div class="skeleton line w60"></div>
           <div class="skeleton line w40"></div>
@@ -10,100 +11,193 @@
         </div>
       </div>
     } @else if (notFound || !product) {
-      <div class="empty">
-        <i class="bi bi-box-seam"></i>
-        <h2>This product isn't available</h2>
-        <p>It may be sold out or no longer listed.</p>
-        <a class="ms-pill" routerLink="/catalog">Browse all products</a>
+      <div class="pd__notfound">
+        <i class="bi bi-search"></i>
+        <h2>Product not found</h2>
+        <p>This product may have been removed or is no longer available.</p>
+        <a class="pd__btn pd__btn--primary pd__btn--inline" routerLink="/catalog">Back to shop</a>
       </div>
     } @else {
-      <nav class="crumbs" aria-label="Breadcrumb">
+      <!-- Breadcrumb -->
+      <nav class="pd__crumbs" aria-label="Breadcrumb">
         <a routerLink="/">Home</a>
-        <span>›</span>
-        <a routerLink="/catalog">All products</a>
+        <i class="bi bi-chevron-right"></i>
         @if (category) {
-          <span>›</span>
           <a [routerLink]="['/catalog', 'category', category.slug]">{{ category.name }}</a>
+          <i class="bi bi-chevron-right"></i>
         }
-        <span>›</span>
-        <span class="crumbs__current">{{ product.name }}</span>
+        <span>{{ product.name }}</span>
       </nav>
 
-      <div class="pd">
-        <div class="pd__media">
-          <img [src]="image" [alt]="product.name" />
-          @if (discount > 0) {
-            <span class="pd__off">{{ discount }}% OFF</span>
+      <div class="pd__grid">
+        <!-- Gallery -->
+        <div class="pd__gallery" [class.pd__gallery--multi]="images.length > 1">
+          <div class="pd__image-card" (touchstart)="onSwipeStart($event)" (touchend)="onSwipeEnd($event)">
+            @for (src of [image]; track src) {
+              <img [src]="src" [alt]="variant?.variant_name || product.name" class="pd__image" />
+            }
+            @if (images.length > 1) {
+              <button type="button" class="pd__nav pd__nav--prev" (click)="showImage(imageIndex - 1)" aria-label="Previous photo">
+                <i class="bi bi-chevron-left"></i>
+              </button>
+              <button type="button" class="pd__nav pd__nav--next" (click)="showImage(imageIndex + 1)" aria-label="Next photo">
+                <i class="bi bi-chevron-right"></i>
+              </button>
+              <span class="pd__counter">{{ imageIndex + 1 }} / {{ images.length }}</span>
+            }
+            @if (discount > 0) {
+              <span class="pd__badge">{{ discount }}% OFF</span>
+            }
+            @if (wishlistEnabled) {
+              <button type="button" class="pd__fav" [class.pd__fav--active]="wishlisted" (click)="toggleWishlist()" [attr.aria-label]="wishlisted ? 'Remove from wishlist' : 'Save to wishlist'">
+                <i class="bi" [class.bi-heart]="!wishlisted" [class.bi-heart-fill]="wishlisted"></i>
+              </button>
+            }
+          </div>
+          @if (images.length > 1) {
+            <div class="pd__thumbs">
+              @for (src of images; track src; let i = $index) {
+                <button
+                  type="button"
+                  class="pd__thumb"
+                  [class.pd__thumb--active]="i === imageIndex"
+                  (click)="showImage(i)"
+                  (mouseenter)="previewImage(i)"
+                  [attr.aria-label]="'Photo ' + (i + 1)"
+                >
+                  <img [src]="src" alt="" loading="lazy" />
+                </button>
+              }
+            </div>
           }
         </div>
 
+        <!-- Info -->
         <div class="pd__info">
-          @if (product.brand) {
-            <span class="pd__brand">{{ product.brand }}</span>
+          <span class="pd__category">{{ product.brand || category?.name || shopName }}</span>
+          <h1 class="pd__title">{{ product.name }}</h1>
+          @if (+(product.rating_count || 0) > 0) {
+            <a class="pd__rating" href="#reviews" (click)="$event.preventDefault(); scrollToReviews()">
+              <span class="pd__rating-pill">{{ +(product.rating_avg || 0) | number: '1.1-1' }} <i class="bi bi-star-fill"></i></span>
+              {{ product.rating_count }} rating{{ +(product.rating_count || 0) === 1 ? '' : 's' }}
+            </a>
           }
-          <h1>{{ product.name }}</h1>
-          @if (product.rating_count) {
-            <div class="pd__rating"><i class="bi bi-star-fill"></i> {{ product.rating_avg }} <span>({{ product.rating_count }} reviews)</span></div>
-          }
+          <div class="pd__seller">
+            <i class="bi bi-shop"></i> Sold by <strong>{{ shopName }}</strong>
+          </div>
 
-          <div class="pd__price">
-            <strong>{{ price | currency: currency : 'symbol' : '1.0-2' }}</strong>
+          <div class="pd__price-row">
+            <span class="pd__price">{{ total | currency: currency : 'symbol' : '1.0-2' }}</span>
             @if (mrp > price) {
-              <s>{{ mrp | currency: currency : 'symbol' : '1.0-2' }}</s>
-              <span class="save">Save {{ mrp - price | currency: currency : 'symbol' : '1.0-2' }}</span>
+              <span class="pd__old-price">{{ mrp * quantity | currency: currency : 'symbol' : '1.0-2' }}</span>
+            }
+            @if (discount > 0) {
+              <span class="pd__discount" title="Already included in this price">{{ discount }}% OFF <small>on MRP</small></span>
             }
           </div>
-          <small class="pd__tax">Inclusive of all taxes</small>
+          <div class="pd__tax">Inclusive of all taxes</div>
 
           @if (product.variants?.length) {
             <div class="pd__block">
-              <span class="pd__label">Choose option</span>
-              <div class="variants">
+              <span class="pd__label">Choose Variant</span>
+              <div class="pd__variant-list">
                 @for (v of product.variants; track v.id) {
-                  <button type="button" [class.on]="variant?.id === v.id" (click)="variant = v">{{ v.variant_name }}</button>
+                  <button
+                    type="button"
+                    class="pd__variant-btn"
+                    [class.pd__variant-btn--active]="variant?.id === v.id"
+                    (click)="selectVariant(v)"
+                  >
+                    <span>{{ v.variant_name }}</span>
+                    <small>{{ v.selling_price | currency: currency : 'symbol' : '1.0-2' }}</small>
+                  </button>
                 }
               </div>
             </div>
           }
 
-          @if (showStock && stock !== null) {
-            <div class="pd__stock" [class.out]="stock <= 0">
-              <i class="bi" [class.bi-check-circle]="stock > 0" [class.bi-x-circle]="stock <= 0"></i>
-              {{ stock > 0 ? 'In stock' : 'Out of stock' }}
+          @if (!isOutOfStock) {
+            <div class="pd__block">
+              <span class="pd__label">Quantity</span>
+              <div class="pd__qty">
+                <button type="button" (click)="changeQty(-1)" [disabled]="quantity <= 1" aria-label="Decrease"><i class="bi bi-dash"></i></button>
+                <input type="text" readonly [value]="quantity" aria-label="Quantity" />
+                <button type="button" (click)="changeQty(1)" [disabled]="quantity >= maxQty" aria-label="Increase"><i class="bi bi-plus"></i></button>
+              </div>
             </div>
           }
 
-          <div class="pd__buy">
-            <div class="qty">
-              <button type="button" (click)="changeQty(-1)" aria-label="Less">−</button>
-              <span>{{ quantity }}</span>
-              <button type="button" (click)="changeQty(1)" aria-label="More">+</button>
-            </div>
-            <button type="button" class="ms-pill" (click)="addToCart()"><i class="bi bi-bag"></i> Add to cart</button>
-            @if (wishlistEnabled) {
-              <button type="button" class="pd__wish" [class.is-on]="wishlisted" (click)="toggleWishlist()" [attr.aria-label]="wishlisted ? 'Remove from wishlist' : 'Save to wishlist'">
-                <i class="bi" [ngClass]="wishlisted ? 'bi-heart-fill' : 'bi-heart'"></i>
+          <div class="pd__actions">
+            @if (isOutOfStock) {
+              <button type="button" class="pd__btn pd__btn--disabled" disabled>Sold Out</button>
+            } @else if (inCart) {
+              <button type="button" class="pd__btn pd__btn--primary" routerLink="/cart"><i class="bi bi-bag-check"></i> View Cart</button>
+              <button type="button" class="pd__btn pd__btn--outline" (click)="buyNow()" [disabled]="adding"><i class="bi bi-lightning-charge"></i> Buy Now</button>
+            } @else {
+              <button type="button" class="pd__btn pd__btn--primary" (click)="addToCart()" [disabled]="adding">
+                @if (adding) {
+                  <i class="bi bi-arrow-repeat spin"></i> Adding…
+                } @else {
+                  <i class="bi bi-bag-plus"></i> Add to Cart
+                }
               </button>
+              <button type="button" class="pd__btn pd__btn--outline" (click)="buyNow()" [disabled]="adding"><i class="bi bi-lightning-charge"></i> Buy Now</button>
+            }
+          </div>
+
+          @if (inCart && maxQty > 0 && maxQty < 10) {
+            <div class="pd__note"><i class="bi bi-info-circle"></i> {{ inCart }} in your cart · only {{ maxQty }} more can be added</div>
+          } @else if (showStock && stock !== null && stock > 0 && stock <= 5) {
+            <div class="pd__note is-low"><i class="bi bi-lightning-charge-fill"></i> Hurry, only {{ stock }} left</div>
+          }
+
+          <div class="pd__perks">
+            @for (perk of perks; track perk.title) {
+              <div class="pd__perk">
+                <i class="bi" [ngClass]="perk.icon"></i>
+                <strong>{{ perk.title }}</strong>
+                <span>{{ perk.note }}</span>
+              </div>
             }
           </div>
 
           @if (product.description) {
             <div class="pd__block">
-              <span class="pd__label">About this product</span>
-              <p class="pd__desc">{{ product.description }}</p>
+              <span class="pd__label">Product Details</span>
+              <div class="pd__desc-wrap" [class.pd__desc-wrap--clamped]="!showFullDescription">
+                <p class="pd__desc">{{ product.description }}</p>
+              </div>
+              @if (product.description.length > 160) {
+                <span class="pd__desc-toggle" (click)="showFullDescription = !showFullDescription">
+                  {{ showFullDescription ? 'Read less' : 'Read more' }}
+                </span>
+              }
             </div>
           }
 
-          <ul class="perks">
-            <li><i class="bi bi-truck"></i> Fast delivery</li>
-            <li><i class="bi bi-arrow-repeat"></i> Easy returns</li>
-            <li><i class="bi bi-shield-check"></i> Secure checkout</li>
-          </ul>
+          <dl class="pd__meta">
+            @if (product.Brand || product.brand) {
+              <div class="pd__meta-row">
+                <dt>Brand</dt>
+                <dd>{{ product.Brand?.name || product.brand }}</dd>
+              </div>
+            }
+            <div class="pd__meta-row">
+              <dt>Availability</dt>
+              <dd [ngClass]="'pd__meta--' + stockStatus.class">{{ stockStatus.label }}</dd>
+            </div>
+            @if (shopEmail) {
+              <div class="pd__meta-row">
+                <dt>Customer Care</dt>
+                <dd><a [href]="'mailto:' + shopEmail">{{ shopEmail }}</a></dd>
+              </div>
+            }
+          </dl>
         </div>
       </div>
 
       @if (reviewsEnabled) {
-        <section class="reviews">
+        <section class="reviews" id="reviews">
           <div class="reviews__head">
             <div>
               <h2>Customer reviews</h2>
@@ -248,6 +342,21 @@
           </div>
         </section>
       }
+
+      <!-- Mobile sticky action bar -->
+      <div class="pd__mbar">
+        @if (isOutOfStock) {
+          <button type="button" class="pd__btn pd__btn--disabled" disabled>Sold Out</button>
+        } @else {
+          @if (inCart) {
+            <button type="button" class="pd__btn pd__btn--outline" routerLink="/cart">View Cart</button>
+          } @else {
+            <button type="button" class="pd__btn pd__btn--outline" (click)="addToCart()" [disabled]="adding">Add to Cart</button>
+          }
+          <button type="button" class="pd__btn pd__btn--primary" (click)="buyNow()" [disabled]="adding">Buy Now</button>
+        }
+      </div>
     }
+  </div>
   </div>
 </app-shop-shell>

@@ -9,6 +9,7 @@ import {
 import { firstValueFrom } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 import { ModuleGroup, PlatformModule } from '../../../core/models/platform-module.model';
+import { Paginated } from '../../../core/models/api-response.model';
 import {
   CreateTenantPayload,
   CreatedInvite,
@@ -35,6 +36,16 @@ interface SlugCheck {
   slug: string;
   available: boolean;
   reason: string | null;
+}
+
+interface TeamDraft {
+  name: string;
+  username: string;
+  email: string;
+  password: string;
+  role: 'admin' | 'manager' | 'staff';
+  status: 'pending' | 'creating' | 'done' | 'error';
+  error: string;
 }
 
 interface TenantFormControls {
@@ -126,6 +137,13 @@ const PRESETS: { name: string; colors: Record<ColorKey, string> }[] = [
     },
   },
   {
+    name: 'Electric Blue',
+    colors: {
+      primary: '#0b5ed7', primary_dark: '#0a2a66', tint: '#dbe8ff', soft: '#f2f6fd',
+      background: '#f5f7fb', text: '#101828', header: '#ffffff', footer: '#0b1220',
+    },
+  },
+  {
     name: 'Black & Gold',
     colors: {
       primary: '#1f1f1f', primary_dark: '#000000', tint: '#f3ecdc', soft: '#faf7f0',
@@ -154,6 +172,7 @@ const LOCALES = ['en-IN', 'en-US', 'en-GB', 'en-AE', 'en-SG', 'de-DE'];
 const LAYOUTS = [
   { key: 'classic', name: 'Classic', text: 'Full storefront layout with hero banners, sections, and category rows.' },
   { key: 'minimal', name: 'Minimal', text: 'Clean hero, featured products, and a short category row.' },
+  { key: 'electro', name: 'Electro', text: 'Electronics & electrical store: category bar, deals, product rows, brands.' },
 ];
 
 @Component({
@@ -168,6 +187,7 @@ export class TenantCreateComponent implements OnInit {
     { label: 'Design', hint: 'Layout and colours' },
     { label: 'Modules', hint: 'Features this shop gets' },
     { label: 'Owner', hint: 'First admin account' },
+    { label: 'Team', hint: 'Extra staff logins (optional)' },
     { label: 'Route', hint: 'Subdomain and domain' },
     { label: 'Review', hint: 'Confirm and create' },
   ];
@@ -208,6 +228,17 @@ export class TenantCreateComponent implements OnInit {
   submitError = '';
 
   result: TenantCreateResult | null = null;
+
+  // Copy settings from an existing shop (step 1)
+  existingTenants: { id: number; name: string; slug: string }[] = [];
+  copyFromId: number | null = null;
+  copyLoading = false;
+  copyError = '';
+  copyNotice = '';
+
+  // Extra staff logins created right after the owner (step 5)
+  team: TeamDraft[] = [];
+  teamNote = '';
 
   constructor(
     private fb: NonNullableFormBuilder,
@@ -250,6 +281,7 @@ export class TenantCreateComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadModules();
+    this.loadExistingTenants();
   }
 
   // ─── Navigation ────────────────────────────────────────────────────────────
@@ -291,9 +323,14 @@ export class TenantCreateComponent implements OnInit {
           (c.owner_mode.value === 'invite' || c.owner_password.valid)
         );
       case 5:
-        return c.subdomain.valid && c.custom_domain.valid;
+        return this.team.every((row) => this.isTeamRowValid(row));
       case 6:
-        return this.isStepValid(1) && this.isStepValid(2) && this.isStepValid(4) && this.isStepValid(5);
+        return c.subdomain.valid && c.custom_domain.valid;
+      case 7:
+        return (
+          this.isStepValid(1) && this.isStepValid(2) && this.isStepValid(4) &&
+          this.isStepValid(5) && this.isStepValid(6)
+        );
       default:
         return false;
     }
@@ -315,7 +352,7 @@ export class TenantCreateComponent implements OnInit {
       if (!ok) return;
     }
 
-    if (this.step === 5) {
+    if (this.step === 6) {
       const ok = await this.ensureSubdomainAvailable();
       if (!ok) return;
     }
@@ -484,6 +521,17 @@ export class TenantCreateComponent implements OnInit {
     };
   }
 
+  /** Sample products for the Electro preview (same Unsplash photos as the demo shop). */
+  readonly electroProducts = [
+    { name: 'Wireless Headphones', brand: 'AUREX', price: '₹7,999', off: '33% OFF', image: this.electroImg('photo-1505740420928-5e560c06d30e') },
+    { name: '5G Smartphone', brand: 'VOLTIX', price: '₹18,999', off: '24% OFF', image: this.electroImg('photo-1511707171634-5f897ff02aa9') },
+    { name: 'LED Bulb (6 pack)', brand: 'LUMORA', price: '₹549', off: '39% OFF', image: this.electroImg('photo-1532007271951-c487760934ae') },
+  ];
+
+  electroImg(id: string, w = 200, h = 200): string {
+    return `https://images.unsplash.com/${id}?w=${w}&h=${h}&q=70&auto=format&fit=crop`;
+  }
+
   get previewVars(): Record<string, string> {
     const t = this.theme;
     const solid = t.button_style !== 'gradient';
@@ -510,7 +558,13 @@ export class TenantCreateComponent implements OnInit {
   }
 
   setLayout(layout: string): void {
+    const previous = this.form.controls.layout_template.value;
     this.form.controls.layout_template.setValue(layout);
+    // Electro looks best in the electrical palette; switch to it once when picked
+    if (layout === 'electro' && previous !== 'electro') {
+      const electric = this.presets.find((preset) => preset.name === 'Electric Blue');
+      if (electric) this.applyPreset(electric);
+    }
   }
 
   layoutName(key: string): string {
@@ -525,6 +579,102 @@ export class TenantCreateComponent implements OnInit {
     const channel = (v: number): string =>
       Math.round(v + (target - v) * p).toString(16).padStart(2, '0');
     return `#${channel((n >> 16) & 255)}${channel((n >> 8) & 255)}${channel(n & 255)}`;
+  }
+
+  // ─── Copy from an existing shop (step 1) ────────────────────────────────────
+  private loadExistingTenants(): void {
+    this.api.get<Paginated<{ id: number; name: string; slug: string }>>('/platform/tenants', { status: 'active', limit: 100 }).subscribe({
+      next: (page) => (this.existingTenants = page.data.map((t) => ({ id: t.id, name: t.name, slug: t.slug }))),
+      error: () => undefined, // the dropdown just stays empty; copying is optional
+    });
+  }
+
+  onCopyFromChange(value: string): void {
+    const id = Number(value) || null;
+    this.copyFromId = id;
+    this.copyError = '';
+    this.copyNotice = '';
+    if (!id) return;
+
+    this.copyLoading = true;
+    Promise.all([
+      firstValueFrom(this.api.get<{ layout_template: string }>(`/platform/tenants/${id}`)),
+      firstValueFrom(this.api.get<ThemeValues>(`/platform/tenants/${id}/settings/theme`)),
+      firstValueFrom(this.api.get<{ key: string; is_core: boolean; enabled: boolean }[]>(`/platform/tenants/${id}/modules`)),
+    ])
+      .then(([tenant, theme, modules]) => {
+        this.copyLoading = false;
+        this.form.patchValue({ layout_template: tenant.layout_template, ...theme });
+        this.selectedModules = new Set(
+          modules.filter((mod) => mod.is_core || mod.enabled).map((mod) => mod.key),
+        );
+        const source = this.existingTenants.find((t) => t.id === id);
+        this.copyNotice = `Layout, colours and modules copied from ${source?.name || 'that shop'}. Review them in the next steps — nothing is saved yet.`;
+      })
+      .catch(() => {
+        this.copyLoading = false;
+        this.copyError = 'Could not copy that shop’s settings.';
+      });
+  }
+
+  // ─── Team (step 5): extra staff logins created right after the owner ───────
+  addTeamMember(): void {
+    this.team.push({ name: '', username: '', email: '', password: '', role: 'staff', status: 'pending', error: '' });
+  }
+
+  removeTeamMember(index: number): void {
+    this.team.splice(index, 1);
+  }
+
+  isTeamRowValid(row: TeamDraft): boolean {
+    return (
+      row.name.trim().length >= 2 &&
+      /^[A-Za-z0-9._-]{3,50}$/.test(row.username.trim()) &&
+      row.password.length >= 8 &&
+      !!row.role
+    );
+  }
+
+  /** Creates each team row as a shop user (same endpoint as Shop edit → Shop users). Best-effort: a failed row is retried, the rest is not blocked by it. */
+  private async createTeamUsers(tenantId: number): Promise<void> {
+    if (!this.team.length) return;
+    let roles: { id: number; name: string }[];
+    try {
+      roles = (await firstValueFrom(this.api.get<{ roles: { id: number; name: string }[] }>(`/platform/tenants/${tenantId}/users`))).roles;
+    } catch {
+      this.team.forEach((row) => {
+        row.status = 'error';
+        row.error = 'Could not load this shop’s roles.';
+      });
+      return;
+    }
+
+    for (const row of this.team) {
+      if (row.status === 'done') continue;
+      const role = roles.find((r) => r.name === row.role);
+      row.status = 'creating';
+      try {
+        await firstValueFrom(
+          this.api.post(`/platform/tenants/${tenantId}/users`, {
+            name: row.name.trim(),
+            username: row.username.trim(),
+            email: row.email.trim() || null,
+            password: row.password,
+            role_id: role?.id,
+            must_change_password: true,
+          }),
+        );
+        row.status = 'done';
+      } catch (error: unknown) {
+        row.status = 'error';
+        row.error = (error as HttpErrorResponse).error?.message || 'Could not create this user.';
+      }
+    }
+  }
+
+  /** Re-runs the batch; rows already created are skipped, so only the failed ones retry. */
+  retryTeamMember(tenantId: number): void {
+    void this.createTeamUsers(tenantId);
   }
 
   // ─── Modules ───────────────────────────────────────────────────────────────
@@ -649,7 +799,7 @@ export class TenantCreateComponent implements OnInit {
   }
 
   get adminUrl(): string {
-    return `${this.storefrontUrl}/admin`;
+    return `${this.storefrontUrl}/admin/login`;
   }
 
   get invite(): CreatedInvite | null {
@@ -732,6 +882,7 @@ export class TenantCreateComponent implements OnInit {
     if (result.run.status === 'succeeded') {
       this.submitError = '';
       this.maxReached = this.steps.length;
+      void this.createTeamUsers(result.tenant.id);
     } else {
       this.submitError = result.run.error || `Provisioning failed at "${result.run.current_step}".`;
     }
@@ -766,6 +917,10 @@ export class TenantCreateComponent implements OnInit {
     this.subdomainCheckedValue = '';
     this.moduleNotice = '';
     this.moduleWarning = '';
+    this.copyFromId = null;
+    this.copyError = '';
+    this.copyNotice = '';
+    this.team = [];
     this.form.reset({
       name: '', slug: '', legal_name: '', gstin: '', email: '', phone: '',
       currency: 'INR', timezone: 'Asia/Kolkata', locale: 'en-IN', logo_url: '',

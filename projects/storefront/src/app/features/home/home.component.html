@@ -33,7 +33,16 @@
   [products]="products"
 ></app-classic-home>
 
-<div class="storefront" *ngIf="bootstrap && !isClassic && !loading && !errorMessage" [ngStyle]="themeVars">
+<app-electro-home
+  *ngIf="bootstrap && isElectro && !loading && !errorMessage"
+  [bootstrap]="bootstrap"
+  [categoryTree]="categories"
+  [banners]="banners"
+  [sections]="sections"
+  [products]="products"
+></app-electro-home>
+
+<div class="storefront" *ngIf="bootstrap && !isClassic && !isElectro && !loading && !errorMessage" [ngStyle]="themeVars">
   <div class="announcement">
     <span>Free delivery on orders over {{ bootstrap.tenant.currency }} 999</span>
     <span class="announcement-right">Secure checkout · Easy returns</span>

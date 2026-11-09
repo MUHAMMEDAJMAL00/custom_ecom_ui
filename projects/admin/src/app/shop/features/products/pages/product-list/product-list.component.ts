@@ -41,6 +41,12 @@ export class ProductListComponent implements OnInit {
 
   form: ReturnType<FormBuilder['group']>;
 
+  // Photos: photos[0] is saved as image_url, the rest as gallery_urls
+  readonly maxPhotos = 13;
+  photos: string[] = [];
+  /** Number of uploads still running. */
+  photosUploading = 0;
+
   // Variant management
   variants: ProductVariantItem[] = [];
   /** False while the edited product's variants failed to load: saving then leaves them untouched. */
@@ -163,6 +169,7 @@ export class ProductListComponent implements OnInit {
     this.editId = null;
     this.variants = [];
     this.variantsLoaded = true;
+    this.photos = [];
     this.form.reset({
       name: '', category_id: '', is_service: 0, sku: '', barcode: '', brand_id: '', seller_id: '', is_active: 1,
       unit_id: '', unit_value: '', purchase_price: 0, selling_price: 0, mrp: null,
@@ -200,6 +207,7 @@ export class ProductListComponent implements OnInit {
     this.productsService.getById(product.id).subscribe({
       next: (p) => {
         this.editId = p.id;
+        this.photos = this.photoList(p);
         this.form.reset({
           name: p.name,
           category_id: p.category_id ?? '',
@@ -238,6 +246,10 @@ export class ProductListComponent implements OnInit {
       this.notify.warning('Product name, SKU and selling price are required');
       return;
     }
+    if (this.photosUploading) {
+      this.notify.warning('Please wait for the photos to finish uploading');
+      return;
+    }
     const raw = this.form.getRawValue();
     const payload: any = {
       name: (raw.name || '').trim(),
@@ -259,6 +271,8 @@ export class ProductListComponent implements OnInit {
       barcode: raw.barcode?.trim() || null,
       is_active: parseInt(raw.is_active, 10),
       is_service: parseInt(raw.is_service, 10),
+      image_url: this.photos[0] || null,
+      gallery_urls: this.photos.length > 1 ? this.photos.slice(1) : null,
       // Omitting variants keeps the saved ones; sending the list replaces them
       variants: !this.variantsLoaded ? undefined : this.variants.map((v) => ({
         ...(v.id ? { id: v.id } : {}),
@@ -289,6 +303,55 @@ export class ProductListComponent implements OnInit {
         this.notify.error(err.error?.message || err.error?.errors?.join(', ') || 'Save failed');
       },
     });
+  }
+
+  // ── Photos ─────────────────────────────────────────────────
+  /** Main photo followed by the gallery, as one ordered list. */
+  photoList(p: Pick<Product, 'image_url' | 'gallery_urls'>): string[] {
+    const list = [p.image_url, ...(p.gallery_urls || [])].filter((u): u is string => !!u);
+    return [...new Set(list)];
+  }
+
+  onPhotosSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const room = this.maxPhotos - this.photos.length - this.photosUploading;
+    const files = Array.from(input.files || []).slice(0, Math.max(0, room));
+    input.value = '';
+    if (!files.length) return;
+    if ((input.files?.length || 0) > files.length) this.notify.warning(`Only ${this.maxPhotos} photos per product — extra files were skipped`);
+
+    // Upload in parallel; each photo is appended as soon as it is stored
+    for (const file of files) {
+      this.photosUploading++;
+      this.productsService.uploadImage(file).subscribe({
+        next: (url) => {
+          this.photos = [...this.photos, url];
+          this.photosUploading--;
+        },
+        error: (err) => {
+          this.photosUploading--;
+          this.notify.error(err.error?.message || `Could not upload ${file.name}`);
+        },
+      });
+    }
+  }
+
+  movePhoto(index: number, delta: number): void {
+    const to = index + delta;
+    if (to < 0 || to >= this.photos.length) return;
+    const next = [...this.photos];
+    [next[index], next[to]] = [next[to], next[index]];
+    this.photos = next;
+  }
+
+  makeMainPhoto(index: number): void {
+    const next = [...this.photos];
+    const [photo] = next.splice(index, 1);
+    this.photos = [photo, ...next];
+  }
+
+  removePhoto(index: number): void {
+    this.photos = this.photos.filter((_, i) => i !== index);
   }
 
   // ── Variants ────────────────────────────────────────────────
@@ -436,6 +499,7 @@ export class ProductListComponent implements OnInit {
     this.variants = [];
     this.variantsLoaded = true;
     this.variantFormOpen = false;
+    this.photos = [];
   }
 
   formatCurrency(n: number | string | null): string {

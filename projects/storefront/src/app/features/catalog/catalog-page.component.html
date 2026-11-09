@@ -1,5 +1,5 @@
 <app-shop-shell>
-  <section class="cat-hero" [class.has-image]="heroImage">
+  <section class="cat-hero">
     <div class="ms-container cat-hero__inner">
       <nav class="crumbs" aria-label="Breadcrumb">
         <a routerLink="/">Home</a>
@@ -20,33 +20,11 @@
       </nav>
       <div class="cat-hero__copy">
         <h1>{{ title }}</h1>
-        @if (subtitle) {
-          <p>{{ subtitle }}</p>
-        }
-        @if (!loading && !notFound) {
-          <small>{{ total }} {{ total === 1 ? 'product' : 'products' }}</small>
-        }
       </div>
-      @if (heroImage) {
-        <img class="cat-hero__img" [src]="heroImage" [alt]="title" />
-      }
     </div>
   </section>
 
   <div class="ms-container cat-body">
-    @if (children.length) {
-      <div class="chips">
-        @for (child of children; track child.id) {
-          <a class="chip" [routerLink]="['/catalog', 'category', child.slug]">
-            @if (categoryImage(child)) {
-              <img [src]="categoryImage(child)" alt="" />
-            }
-            {{ child.name }}
-          </a>
-        }
-      </div>
-    }
-
     @if (notFound) {
       <div class="empty">
         <i class="bi bi-search"></i>
@@ -55,48 +33,145 @@
         <a class="ms-pill" routerLink="/catalog">Browse all products</a>
       </div>
     } @else {
-      <div class="toolbar">
-        <span>{{ loading ? 'Loading…' : total + ' ' + (total === 1 ? 'product' : 'products') }}</span>
-        <label>
-          Sort by
-          <select [value]="sort" (change)="setSort($any($event.target).value)">
-            @for (s of sorts; track s.value) {
-              <option [value]="s.value" [selected]="s.value === sort">{{ s.label }}</option>
-            }
-          </select>
-        </label>
-      </div>
-
-      @if (loading) {
-        <div class="grid">
-          @for (n of [1, 2, 3, 4, 5, 6, 7, 8]; track n) {
-            <div class="skeleton"></div>
-          }
-        </div>
-      } @else if (!products.length) {
-        <div class="empty">
-          <i class="bi bi-bag"></i>
-          <h2>No products here yet</h2>
-          <p>{{ mode === 'search' ? 'Try another search word.' : 'New products are added regularly — check back soon.' }}</p>
-          <a class="ms-pill" routerLink="/">Back to home</a>
-        </div>
-      } @else {
-        <div class="grid">
-          @for (p of products; track p.id) {
-            <app-product-card [product]="p" [currency]="currency"></app-product-card>
-          }
-        </div>
-
-        @if (totalPages > 1) {
-          <nav class="pager" aria-label="Pages">
-            <button type="button" [disabled]="page === 1" (click)="goToPage(page - 1)"><i class="bi bi-chevron-left"></i></button>
-            @for (n of pages; track n) {
-              <button type="button" [class.on]="n === page" (click)="goToPage(n)">{{ n }}</button>
-            }
-            <button type="button" [disabled]="page === totalPages" (click)="goToPage(page + 1)"><i class="bi bi-chevron-right"></i></button>
-          </nav>
+      <div class="cat-layout">
+        @if (filtersOpen) {
+          <div class="filter-scrim" (click)="filtersOpen = false"></div>
         }
-      }
+
+        <aside class="filters" [class.is-open]="filtersOpen">
+          <div class="filters__head">
+            <strong>Filters</strong>
+            <button type="button" class="filters__clear" (click)="clearFilters()" [disabled]="!activeFilterCount">Clear all</button>
+            <button type="button" class="filters__close" (click)="filtersOpen = false" aria-label="Close filters"><i class="bi bi-x-lg"></i></button>
+          </div>
+
+          <section class="fgroup">
+            <h3>Category</h3>
+            <a class="fcat" routerLink="/catalog" [class.on]="!category">All categories</a>
+            @for (c of filterCategories; track c.id) {
+              <a class="fcat" [routerLink]="['/catalog', 'category', c.slug]" [class.on]="isCategoryActive(c)">{{ c.name }}</a>
+            }
+          </section>
+
+          @if (brands.length) {
+            <section class="fgroup">
+              <h3>Brand @if (selectedBrands.length) { <span>{{ selectedBrands.length }}</span> }</h3>
+              <div class="fbrands" [class.is-expanded]="showAllBrands">
+                @for (brand of visibleBrands; track brand.slug) {
+                  <label class="fcheck">
+                    <input
+                      type="checkbox"
+                      [checked]="isBrandSelected(brand.slug)"
+                      (change)="toggleBrand(brand.slug, $any($event.target).checked)"
+                    />
+                    <span class="fcheck__box"></span>
+                    <span class="fcheck__name">{{ brand.name }}</span>
+                    <small>{{ brand.product_count }}</small>
+                  </label>
+                }
+              </div>
+              @if (brands.length > 8) {
+                <button type="button" class="flink" (click)="showAllBrands = !showAllBrands">
+                  {{ showAllBrands ? 'Show less' : '+' + (brands.length - 8) + ' more brands' }}
+                </button>
+              }
+            </section>
+          }
+        </aside>
+
+        <div class="results">
+          <div class="toolbar">
+            <div class="toolbar__left">
+              <button type="button" class="filters-toggle" (click)="filtersOpen = true">
+                <i class="bi bi-funnel"></i> Filters
+                @if (activeFilterCount) { <span>{{ activeFilterCount }}</span> }
+              </button>
+              <span class="toolbar__count">{{ loading ? 'Loading…' : 'Showing ' + total + ' ' + (total === 1 ? 'product' : 'products') }}</span>
+            </div>
+
+            <div class="toolbar__right">
+              <div class="price-filter">
+                <button type="button" class="price-toggle" [class.on]="minPrice || maxPrice" (click)="priceOpen = !priceOpen">
+                  <i class="bi bi-tag"></i> {{ priceLabel }} <i class="bi" [ngClass]="priceOpen ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
+                </button>
+                @if (priceOpen) {
+                  <div class="price-pop">
+                    <div class="price-pop__head">Price range</div>
+                    <div class="fprices">
+                      @for (range of priceRanges; track range.label) {
+                        <button type="button" class="fprice" [class.on]="isPriceRangeActive(range)" (click)="setPriceRange(range.min, range.max)">
+                          {{ range.label }}
+                        </button>
+                      }
+                    </div>
+                    <div class="fprice-custom">
+                      <input type="number" name="min_price" [(ngModel)]="draftMin" placeholder="Min" min="0" />
+                      <span>to</span>
+                      <input type="number" name="max_price" [(ngModel)]="draftMax" placeholder="Max" min="0" />
+                      <button type="button" (click)="applyPrice()">Go</button>
+                    </div>
+                  </div>
+                }
+              </div>
+
+              <label class="sort">
+                <span>Sort by</span>
+                <select [value]="sort" (change)="setSort($any($event.target).value)">
+                  @for (s of sorts; track s.value) {
+                    <option [value]="s.value" [selected]="s.value === sort">{{ s.label }}</option>
+                  }
+                </select>
+              </label>
+            </div>
+          </div>
+
+          @if (activeFilterCount) {
+            <div class="active-filters">
+              <span>Applied:</span>
+              @for (slug of selectedBrands; track slug) {
+                <button type="button" (click)="removeBrand(slug)">{{ brandName(slug) }} <i class="bi bi-x"></i></button>
+              }
+              @if (minPrice || maxPrice) {
+                <button type="button" (click)="clearPrice()">
+                  {{ minPrice ? money(minPrice) : money(0) }} – {{ maxPrice ? money(maxPrice) : 'Any' }}
+                  <i class="bi bi-x"></i>
+                </button>
+              }
+            </div>
+          }
+
+          @if (loading) {
+            <div class="grid grid--listing">
+              @for (n of [1, 2, 3, 4, 5, 6, 7, 8]; track n) {
+                <div class="skeleton"></div>
+              }
+            </div>
+          } @else if (!products.length) {
+            <div class="empty">
+              <i class="bi bi-bag"></i>
+              <h2>No products match these filters</h2>
+              <p>Try another brand or price range.</p>
+              <button type="button" class="ms-pill" (click)="clearFilters()">Clear filters</button>
+            </div>
+          } @else {
+            <div class="grid grid--listing">
+              @for (p of products; track p.id) {
+                <app-product-card [product]="p" [currency]="currency" [listing]="true" [showWishlist]="wishlistEnabled"></app-product-card>
+              }
+            </div>
+
+            @if (totalPages > 1) {
+              <nav class="pager" aria-label="Pages">
+                <button type="button" [disabled]="page === 1" (click)="goToPage(page - 1)"><i class="bi bi-chevron-left"></i></button>
+                @for (n of pages; track n) {
+                  <button type="button" [class.on]="n === page" (click)="goToPage(n)">{{ n }}</button>
+                }
+                <button type="button" [disabled]="page === totalPages" (click)="goToPage(page + 1)"><i class="bi bi-chevron-right"></i></button>
+              </nav>
+            }
+          }
+        </div>
+      </div>
     }
   </div>
 </app-shop-shell>

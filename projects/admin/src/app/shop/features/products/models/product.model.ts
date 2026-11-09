@@ -73,6 +73,7 @@ export interface Product {
   tax_rate: string | number;
   tax_included: number;
   image_url: string | null;
+  gallery_urls?: string[] | null;
   is_active: number;
   is_service: number;
   alert_quantity: number;

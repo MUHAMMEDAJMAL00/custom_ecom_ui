@@ -72,10 +72,37 @@ export class ThemeEditorComponent implements OnInit {
   /** The signed-in shop's name, for the live preview header and footer. */
   readonly shopName = JSON.parse(localStorage.getItem('tenant.session') || '{}')?.tenant?.name || 'Your shop';
 
+  /** Storefront layout (template): changes the whole structure of the website. */
+  readonly layouts = [
+    { key: 'classic', name: 'Classic', text: 'Hero banners, offer sections and category rows — fashion, beauty, lifestyle.' },
+    { key: 'minimal', name: 'Minimal', text: 'Clean hero, featured products and a short category row.' },
+    { key: 'electro', name: 'Electro', text: 'Electronics & electrical store: category bar, deals, product rows, brands.' },
+  ];
+  layout = '';
+  savingLayout = false;
+
   constructor(private api: ApiService, private notify: NotificationService) {}
 
   ngOnInit(): void {
     this.load();
+    this.api.get<{ layout_template: string }>('/settings/theme').subscribe({
+      next: (res) => (this.layout = res.data?.layout_template || 'classic'),
+      error: () => undefined,
+    });
+  }
+
+  /** Switches the storefront layout; colours stay as saved. */
+  setLayout(key: string): void {
+    if (key === this.layout || this.savingLayout || !this.saved) return;
+    this.savingLayout = true;
+    this.api.put('/settings/theme', { theme: JSON.parse(this.saved), layout_template: key }).subscribe({
+      next: () => {
+        this.layout = key;
+        this.savingLayout = false;
+        this.notify.success(`Layout changed to ${this.layouts.find((l) => l.key === key)?.name} — open the website to see it`);
+      },
+      error: () => (this.savingLayout = false),
+    });
   }
 
   load(): void {

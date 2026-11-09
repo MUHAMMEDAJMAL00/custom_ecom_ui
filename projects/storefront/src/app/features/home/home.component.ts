@@ -13,6 +13,7 @@ import {
 } from '../../core/models/storefront.model';
 import { ShopContextService } from '../../core/services/shop-context.service';
 import { StorefrontApiService } from '../../core/services/storefront-api.service';
+import { resolveImageUrl } from '../../core/utils/image.util';
 import { applyClassicTheme } from '../../core/utils/theme.util';
 
 @Component({
@@ -59,6 +60,11 @@ export class HomeComponent implements OnInit {
   }
 
   /** Classic = the MySkin storefront design (features/classic); Minimal = the page below. */
+  /** Electro = the electronics store design (features/electro). */
+  get isElectro(): boolean {
+    return this.bootstrap?.layout_template === 'electro';
+  }
+
   get isClassic(): boolean {
     return this.bootstrap?.layout_template === 'classic';
   }
@@ -202,7 +208,7 @@ export class HomeComponent implements OnInit {
         icon.rel = 'icon';
         document.head.appendChild(icon);
       }
-      icon.href = bootstrap.tenant.favicon_url;
+      icon.href = resolveImageUrl(bootstrap.tenant.favicon_url);
     }
   }
 

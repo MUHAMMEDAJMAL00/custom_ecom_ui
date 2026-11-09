@@ -4,6 +4,7 @@ import { catchError, map, shareReplay, tap } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 import { StoreCategory, StorefrontBootstrap } from '../models/storefront.model';
 import { flattenCategories } from '../utils/category-match';
+import { resolveImageUrl } from '../utils/image.util';
 import { applyClassicTheme } from '../utils/theme.util';
 import { StorefrontApiService } from './storefront-api.service';
 
@@ -51,7 +52,11 @@ export class ShopContextService {
     if (!this.context$) {
       this.context$ = forkJoin({
         bootstrap: this.api.bootstrap(this.slug),
-        categories: this.api.categories(this.slug).pipe(catchError(() => of([] as StoreCategory[]))),
+        // The API lists every category (children are also nested): keep the top level only
+        categories: this.api.categories(this.slug).pipe(
+          map((rows) => rows.filter((c) => !c.parent_id)),
+          catchError(() => of([] as StoreCategory[])),
+        ),
       }).pipe(
         tap((ctx) => {
           this.snapshot = ctx;
@@ -78,7 +83,7 @@ export class ShopContextService {
         icon.rel = 'icon';
         document.head.appendChild(icon);
       }
-      icon.href = bootstrap.tenant.favicon_url;
+      icon.href = resolveImageUrl(bootstrap.tenant.favicon_url);
     }
   }
 }

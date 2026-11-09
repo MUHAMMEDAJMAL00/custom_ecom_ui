@@ -3,7 +3,8 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { ShopContext, ShopContextService } from '../../core/services/shop-context.service';
 
 /**
- * Header + page content + footer for every inner storefront page (Classic template).
+ * Header + page content + footer for every inner storefront page, in the shop's layout
+ * (Classic or Electro).
  * Loads the shop context once; pages render inside it.
  */
 @Component({
@@ -11,11 +12,20 @@ import { ShopContext, ShopContextService } from '../../core/services/shop-contex
   standalone: false,
   template: `
     @if (ctx) {
-      <app-classic-header [bootstrap]="ctx.bootstrap" [categories]="ctx.categories"></app-classic-header>
-      <main class="shop-page">
+      @if (ctx.bootstrap.layout_template === 'electro') {
+        <app-electro-header [bootstrap]="ctx.bootstrap" [categories]="ctx.categories"></app-electro-header>
+      } @else {
+        <app-classic-header [bootstrap]="ctx.bootstrap" [categories]="ctx.categories"></app-classic-header>
+      }
+      <!-- Electro's header is sticky (in the flow); Classic's is fixed, so the page is offset -->
+      <main class="shop-page" [class.is-electro]="ctx.bootstrap.layout_template === 'electro'">
         <ng-content></ng-content>
       </main>
-      <app-classic-footer [bootstrap]="ctx.bootstrap" [categories]="ctx.categories"></app-classic-footer>
+      @if (ctx.bootstrap.layout_template === 'electro') {
+        <app-electro-footer [bootstrap]="ctx.bootstrap" [categories]="ctx.categories"></app-electro-footer>
+      } @else {
+        <app-classic-footer [bootstrap]="ctx.bootstrap" [categories]="ctx.categories"></app-classic-footer>
+      }
     } @else if (error) {
       <div class="shop-state">
         <h1>{{ error }}</h1>
@@ -28,6 +38,7 @@ import { ShopContext, ShopContextService } from '../../core/services/shop-contex
   styles: [`
     :host { display: block; min-height: 100vh; font-family: var(--font-body); color: var(--text-primary); background: var(--bg-page); }
     .shop-page { padding-top: var(--header-h); min-height: 60vh; }
+    .shop-page.is-electro { padding-top: 0; }
     .shop-state { display: grid; place-items: center; gap: 12px; min-height: 70vh; text-align: center; }
     .shop-state h1 { font-size: 1.2rem; }
     .shop-state a { color: var(--brand-primary); }

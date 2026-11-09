@@ -241,6 +241,11 @@
     </div>
   </form>
 
+  <ng-container *ngIf="!loading && tenant">
+    <app-tenant-users #shopUsers [tenantId]="tenant.id"></app-tenant-users>
+    <app-tenant-roles [tenantId]="tenant.id" (changed)="shopUsers.load()"></app-tenant-roles>
+  </ng-container>
+
   <div class="status-backdrop" *ngIf="showSuspend" (click)="cancelSuspend()">
     <div class="status-dialog" (click)="$event.stopPropagation()">
       <h3>Suspend this shop?</h3>

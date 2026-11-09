@@ -71,3 +71,87 @@
 .pf-section-body { padding: 14px; }
 .pf-section-body .form-grid { gap: 10px; margin: 0; }
 .pf-section-body .form-group { margin: 0; }
+
+/* ── Product photos ───────────────────────────────────────── */
+.photo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: 10px;
+}
+
+.photo-tile {
+  position: relative;
+  aspect-ratio: 1;
+  overflow: hidden;
+  background: #f5f5f5;
+  border: 1px solid var(--border-light);
+  border-radius: 8px;
+}
+
+.photo-tile.is-main { border: 2px solid var(--primary); }
+.photo-tile img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+.photo-badge {
+  position: absolute;
+  top: 5px;
+  left: 5px;
+  padding: 1px 7px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: #fff;
+  background: var(--primary);
+  border-radius: 999px;
+}
+
+.photo-actions {
+  position: absolute;
+  inset: auto 0 0;
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+  padding: 5px;
+  background: linear-gradient(transparent, rgb(0 0 0 / 0.55));
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.photo-tile:hover .photo-actions,
+.photo-tile:focus-within .photo-actions { opacity: 1; }
+
+.photo-actions button {
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  font-size: 0.75rem;
+  line-height: 1;
+  color: var(--text-primary);
+  background: #fff;
+  border: 0;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.photo-actions button:disabled { opacity: 0.4; cursor: default; }
+.photo-actions button.is-danger { color: #fff; background: #dc2626; }
+
+.photo-add {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  aspect-ratio: 1;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  text-align: center;
+  border: 1.5px dashed var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.photo-add:hover { color: var(--primary); border-color: var(--primary); }
+.photo-add.is-busy { cursor: progress; opacity: 0.7; }
+.photo-add__icon { font-size: 1.5rem; line-height: 1; }
+
+.photo-hint { display: block; margin-top: 8px; font-size: 0.75rem; color: var(--text-secondary); }

@@ -71,6 +71,7 @@ export class TenantEditComponent implements OnInit {
   readonly layouts = [
     { value: 'classic', label: 'Classic' },
     { value: 'minimal', label: 'Minimal' },
+    { value: 'electro', label: 'Electro (electronics)' },
   ];
 
   private readonly fb = inject(NonNullableFormBuilder);

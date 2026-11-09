@@ -32,6 +32,7 @@ export interface StorefrontBootstrap {
 
 export interface StoreCategory {
   id: number;
+  parent_id?: number | null;
   name: string;
   slug: string;
   description: string | null;
@@ -96,6 +97,8 @@ export interface StoreProduct {
   selling_price: string | number;
   mrp: string | number | null;
   image_url: string | null;
+  gallery_urls?: string[] | null;
+  max_quantity?: number | null;
   description?: string | null;
   brand?: string | null;
   category_id?: number | null;
@@ -140,8 +143,11 @@ export interface ProductQuery {
   limit?: number;
   category?: string;
   brand?: string;
+  brands?: string;
   search?: string;
   sort?: string;
+  min_price?: number | string;
+  max_price?: number | string;
 }
 
 export interface StoreReview {

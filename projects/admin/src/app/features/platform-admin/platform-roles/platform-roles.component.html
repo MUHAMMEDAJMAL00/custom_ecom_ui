@@ -5,6 +5,7 @@
       <h2>Roles &amp; permissions</h2>
       <p>Fixed platform roles. Super Admin is always full access; Operations and Support can be tuned.</p>
     </div>
+    <button class="btn-save" type="button" (click)="openCreate()">+ New role</button>
   </div>
 
   <div class="success-box" *ngIf="successMessage">{{ successMessage }}</div>
@@ -43,14 +44,23 @@
             <span>{{ selected.size }} of {{ permissions.length }} permissions</span>
           </p>
         </div>
-        <button
-          class="btn-save"
-          type="button"
-          (click)="savePermissions()"
-          [disabled]="saving || isOwnerRole || !dirty"
-        >
-          {{ saving ? 'Saving…' : 'Save permissions' }}
-        </button>
+        <div class="matrix-actions">
+          <button class="btn-back" type="button" (click)="openEdit(role)">Edit</button>
+          <button
+            class="btn-back is-danger"
+            type="button"
+            *ngIf="!role.is_system"
+            (click)="deleteRole(role)"
+          >Delete</button>
+          <button
+            class="btn-save"
+            type="button"
+            (click)="savePermissions()"
+            [disabled]="saving || isOwnerRole || !dirty"
+          >
+            {{ saving ? 'Saving…' : 'Save permissions' }}
+          </button>
+        </div>
       </div>
 
       <div class="owner-note" *ngIf="isOwnerRole">

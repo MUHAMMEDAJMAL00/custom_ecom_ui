@@ -64,6 +64,7 @@ export class CartService {
     product: Pick<StoreProduct, 'id' | 'public_id' | 'name' | 'selling_price' | 'mrp' | 'image_url'>,
     variant: StoreVariant | null,
     quantity = 1,
+    done?: (ok: boolean) => void,
   ): void {
     const qty = Math.max(1, Math.min(100, Math.round(quantity)));
 
@@ -89,6 +90,7 @@ export class CartService {
       }
       this.writeGuest(lines);
       this.linesSubject.next(lines);
+      done?.(true);
       return;
     }
 
@@ -99,8 +101,11 @@ export class CartService {
         quantity: qty,
       })
       .subscribe({
-        next: () => this.loadServer(),
-        error: () => undefined,
+        next: () => {
+          this.loadServer();
+          done?.(true);
+        },
+        error: () => done?.(false),
       });
   }
 

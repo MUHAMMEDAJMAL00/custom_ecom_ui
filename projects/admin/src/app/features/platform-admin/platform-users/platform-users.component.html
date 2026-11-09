@@ -97,11 +97,11 @@
             <td>
               <select
                 class="role-select"
-                [value]="user.role_id"
-                (change)="changeRole(user, $any($event.target).value)"
+                (change)="changeRole(user, $any($event.target))"
                 [disabled]="user.id === (currentUser$ | async)?.id"
               >
-                <option *ngFor="let role of roles" [value]="role.id">{{ role.label }}</option>
+                <!-- [selected] per option: a [value] on the select is set before the options exist and is ignored -->
+                <option *ngFor="let role of roles" [value]="role.id" [selected]="role.id === user.role_id">{{ role.label }}</option>
               </select>
             </td>
             <td>

@@ -23,6 +23,8 @@ import { TrustSvgPipe } from './core/pipes/trust-svg.pipe';
 import { TenantCreateComponent } from './features/tenants/tenant-create/tenant-create.component';
 import { TenantDomainsComponent } from './features/tenants/tenant-domains/tenant-domains.component';
 import { TenantEditComponent } from './features/tenants/tenant-edit/tenant-edit.component';
+import { TenantUsersComponent } from './features/tenants/tenant-users/tenant-users.component';
+import { TenantRolesComponent } from './features/tenants/tenant-roles/tenant-roles.component';
 import { TenantListComponent } from './features/tenants/tenant-list/tenant-list.component';
 import { TenantModulesComponent } from './features/tenants/tenant-modules/tenant-modules.component';
 import { HeaderComponent } from './layout/header/header.component';
@@ -46,6 +48,8 @@ import { TenantShellComponent } from './layout/tenant-shell/tenant-shell.compone
     TenantCreateComponent,
     TenantDomainsComponent,
     TenantEditComponent,
+    TenantUsersComponent,
+    TenantRolesComponent,
     TenantModulesComponent,
     TenantLoginComponent,
     TenantShellComponent,

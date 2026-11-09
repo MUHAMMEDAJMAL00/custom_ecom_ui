@@ -24,6 +24,7 @@ import { TenantModulesComponent } from './features/tenants/tenant-modules/tenant
 import { ShellComponent } from './layout/shell/shell.component';
 import { TenantShellComponent } from './layout/tenant-shell/tenant-shell.component';
 import { flattenTenantNav } from './layout/tenant-nav-config';
+import { environment } from '../environments/environment';
 
 // MySkin admin screens (app/shop/features), lazy-loaded under /t/:slug. The guard checks
 // the screen's module and permission from tenant-nav-config.ts.
@@ -77,6 +78,15 @@ const SHOP_SCREENS: Routes = [
   { path: 'messaging', loadChildren: () => import('./shop/features/messaging/messaging.module').then((m) => m.MessagingModule) },
   { path: 'sales/quotations', loadChildren: () => import('./shop/features/quotations/quotations.module').then((m) => m.QuotationsModule) },
 ];
+
+// The admin app is served on the platform host and at /admin on every shop host.
+// A shop host (<slug>.<rootDomain> or a custom domain) opens the shop sign-in;
+// the platform host and localhost open Super Admin.
+function homeRedirect(): string {
+  const host = window.location.hostname.toLowerCase();
+  const platformHosts = [environment.rootDomain.toLowerCase(), 'localhost', '127.0.0.1'];
+  return platformHosts.includes(host) ? 'platform' : 'login';
+}
 
 const ported = new Set(SHOP_SCREENS.map((route) => route.path));
 
@@ -177,7 +187,7 @@ const routes: Routes = [
         })),
     ],
   },
-  { path: '', pathMatch: 'full', redirectTo: 'platform' },
+  { path: '', pathMatch: 'full', redirectTo: homeRedirect },
   { path: '**', component: NotFoundComponent },
 ];
 

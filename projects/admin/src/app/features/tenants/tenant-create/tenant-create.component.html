@@ -13,7 +13,7 @@
 
     <p class="eyebrow">Create shop</p>
     <h2>Set up a new shop</h2>
-    <p class="head-copy">Six steps. The platform creates the shop, owner, roles, branch, and domain automatically.</p>
+    <p class="head-copy">Seven steps. The platform creates the shop, owner, roles, branch, and domain automatically.</p>
     <div class="progress" aria-hidden="true">
       <span [style.width.%]="progress"></span>
     </div>
@@ -51,6 +51,17 @@
         <!-- ─── 1. Profile ──────────────────────────────────────────────── -->
         <ng-container *ngIf="step === 1">
           <div class="section-note">This is the shop's public identity and where platform email is sent.</div>
+
+          <div class="copy-from-box" *ngIf="existingTenants.length">
+            <label for="copy_from">Copy layout, colours and modules from <span>optional</span></label>
+            <select id="copy_from" (change)="onCopyFromChange($any($event.target).value)">
+              <option value="">Start from scratch</option>
+              <option *ngFor="let t of existingTenants" [value]="t.id">{{ t.name }} ({{ t.slug }})</option>
+            </select>
+            <small class="field-hint" *ngIf="copyLoading">Copying…</small>
+            <small class="field-status is-ok" *ngIf="copyNotice && !copyLoading">{{ copyNotice }}</small>
+            <small class="field-error" *ngIf="copyError">{{ copyError }}</small>
+          </div>
 
           <div class="field-grid">
             <div class="field">
@@ -135,7 +146,7 @@
               [class.is-selected]="form.controls.layout_template.value === layout.key"
               (click)="setLayout(layout.key)"
             >
-              <span class="layout-thumb" [class.minimal]="layout.key === 'minimal'">
+              <span class="layout-thumb" [class.minimal]="layout.key === 'minimal'" [class.electro]="layout.key === 'electro'">
                 <span class="thumb-head"></span>
                 <span class="thumb-hero"></span>
                 <span class="thumb-row"><i></i><i></i><i></i></span>
@@ -206,7 +217,47 @@
                 <span>Live preview</span>
                 <span>{{ layoutName(form.controls.layout_template.value) }}</span>
               </div>
-              <div class="preview" [ngStyle]="previewVars" [class.is-minimal]="form.controls.layout_template.value === 'minimal'">
+              <!-- Electro: a scaled-down copy of the Electro storefront (header, category bar, hero, deals) -->
+              <div class="preview ex" [ngStyle]="previewVars" *ngIf="form.controls.layout_template.value === 'electro'">
+                <div class="ex-top"><span><i class="bi bi-truck"></i> Free delivery above ₹999</span><span>Track order · Help</span></div>
+                <div class="ex-main">
+                  <span class="ex-logo"><i class="bi bi-lightning-charge-fill"></i></span>
+                  <strong class="ex-name">{{ form.controls.name.value || 'Your shop' }}</strong>
+                  <span class="ex-search"><span>All categories</span><i class="bi bi-search"></i></span>
+                  <span class="ex-icons"><i class="bi bi-person"></i><i class="bi bi-heart"></i><i class="bi bi-cart3"></i></span>
+                </div>
+                <div class="ex-cats">
+                  <span class="ex-all"><i class="bi bi-grid-3x3-gap-fill"></i> All categories</span>
+                  <span>Mobiles</span><span>Laptops</span><span>Audio</span><span>TV</span>
+                  <span class="ex-deal">Today&#39;s deals</span>
+                </div>
+                <div class="ex-hero">
+                  <div class="ex-slide" [style.background-image]="'url(' + electroImg('photo-1498049794561-7780e7231661', 520, 260) + ')'">
+                    <span class="ex-tag">Mega sale</span>
+                    <strong>Up to 40% off on top tech</strong>
+                    <span class="ex-btn">Shop now</span>
+                  </div>
+                  <div class="ex-tiles">
+                    <span [style.background-image]="'url(' + electroImg('photo-1505740420928-5e560c06d30e', 220, 120) + ')'"><b>Audio</b></span>
+                    <span [style.background-image]="'url(' + electroImg('photo-1513506003901-1e6a229e2d15', 220, 120) + ')'"><b>Lighting</b></span>
+                  </div>
+                </div>
+                <div class="ex-services">
+                  <span><i class="bi bi-truck"></i> Free delivery</span><span><i class="bi bi-shield-check"></i> Warranty</span><span><i class="bi bi-headset"></i> Support</span>
+                </div>
+                <div class="ex-title"><i class="bi bi-lightning-charge-fill"></i> Deals of the Day</div>
+                <div class="ex-products">
+                  <div class="ex-product" *ngFor="let p of electroProducts">
+                    <span class="ex-img" [style.background-image]="'url(' + p.image + ')'"><em>{{ p.off }}</em></span>
+                    <small>{{ p.brand }}</small>
+                    <strong>{{ p.name }}</strong>
+                    <b>{{ p.price }}</b>
+                  </div>
+                </div>
+                <div class="ex-footer">© {{ form.controls.name.value || 'Your shop' }} · Cards · UPI · Wallets</div>
+              </div>
+
+              <div class="preview" [ngStyle]="previewVars" [class.is-minimal]="form.controls.layout_template.value === 'minimal'" *ngIf="form.controls.layout_template.value !== 'electro'">
                 <div class="pv-header">
                   <strong>{{ form.controls.name.value || 'Your shop' }}</strong>
                   <span class="pv-nav"><i></i><i></i><i></i></span>
@@ -333,8 +384,46 @@
           </div>
         </ng-container>
 
-        <!-- ─── 5. Route ───────────────────────────────────────────────── -->
+        <!-- ─── 5. Team ────────────────────────────────────────────────── -->
         <ng-container *ngIf="step === 5">
+          <div class="section-note">Optional. Add admins, managers, or staff now instead of doing it later from the shop's edit page. The owner from the previous step is always created.</div>
+
+          <div class="team-list" *ngIf="team.length">
+            <div class="team-row" *ngFor="let member of team; let i = index">
+              <div class="field">
+                <label>Full name</label>
+                <input type="text" [(ngModel)]="member.name" [ngModelOptions]="{ standalone: true }" placeholder="Priya Nair" />
+              </div>
+              <div class="field">
+                <label>Username</label>
+                <input type="text" [(ngModel)]="member.username" [ngModelOptions]="{ standalone: true }" placeholder="priya.nair" />
+              </div>
+              <div class="field">
+                <label>Email <span>optional</span></label>
+                <input type="email" [(ngModel)]="member.email" [ngModelOptions]="{ standalone: true }" placeholder="priya@shop.com" />
+              </div>
+              <div class="field">
+                <label>Temporary password</label>
+                <input type="password" [(ngModel)]="member.password" [ngModelOptions]="{ standalone: true }" placeholder="At least 8 characters" />
+              </div>
+              <div class="field">
+                <label>Role</label>
+                <select [(ngModel)]="member.role" [ngModelOptions]="{ standalone: true }">
+                  <option value="admin">Admin</option>
+                  <option value="manager">Manager</option>
+                  <option value="staff">Staff</option>
+                </select>
+              </div>
+              <button type="button" class="team-remove" (click)="removeTeamMember(i)" aria-label="Remove">✕</button>
+              <small class="field-error" *ngIf="!isTeamRowValid(member)">Name (2+ chars), username (3+ chars), and an 8+ character password are required.</small>
+            </div>
+          </div>
+
+          <button type="button" class="btn-add-row" (click)="addTeamMember()">+ Add a teammate</button>
+        </ng-container>
+
+        <!-- ─── 6. Route ───────────────────────────────────────────────── -->
+        <ng-container *ngIf="step === 6">
           <div class="section-note">The subdomain is created now. A custom domain can be verified after launch.</div>
 
           <div class="field">
@@ -373,8 +462,8 @@
           </div>
         </ng-container>
 
-        <!-- ─── 6. Review ───────────────────────────────────────────────── -->
-        <ng-container *ngIf="step === 6">
+        <!-- ─── 7. Review ───────────────────────────────────────────────── -->
+        <ng-container *ngIf="step === 7">
           <div class="section-note">Check everything. Creating the shop runs the provisioning service and cannot be undone from here.</div>
 
           <div class="review-grid">
@@ -414,8 +503,16 @@
               </dl>
             </article>
 
+            <article class="review-card" *ngIf="team.length">
+              <div class="review-head"><h4>Team</h4><button type="button" (click)="goToStep(5)">Edit</button></div>
+              <dl>
+                <dt *ngFor="let member of team">{{ member.name || 'Unnamed' }}</dt>
+                <dd *ngFor="let member of team">{{ member.role }}</dd>
+              </dl>
+            </article>
+
             <article class="review-card">
-              <div class="review-head"><h4>Route</h4><button type="button" (click)="goToStep(5)">Edit</button></div>
+              <div class="review-head"><h4>Route</h4><button type="button" (click)="goToStep(6)">Edit</button></div>
               <dl>
                 <dt>Storefront</dt><dd class="break">{{ storefrontUrl }}</dd>
                 <dt>Admin</dt><dd class="break">{{ adminUrl }}</dd>
@@ -438,11 +535,11 @@
           <button
             class="btn-continue"
             type="button"
-            *ngIf="step < 6"
+            *ngIf="step < 7"
             (click)="next()"
             [disabled]="slugStatus === 'checking' || subdomainStatus === 'checking' || isSubmitting"
           >
-            {{ step === 5 ? 'Review' : 'Continue' }}
+            {{ step === 6 ? 'Review' : 'Continue' }}
             <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
               <path d="M5 12h14m0 0-6-6m6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
             </svg>
@@ -450,7 +547,7 @@
           <button
             class="btn-create"
             type="button"
-            *ngIf="step === 6"
+            *ngIf="step === 7"
             (click)="createTenant()"
             [disabled]="isSubmitting"
           >
@@ -490,7 +587,7 @@
 
       <div class="summary-card summary-tip">
         <div class="summary-title">Setup guide</div>
-        <p>Complete profile, design, modules, owner and route. Everything stays editable after launch.</p>
+        <p>Complete profile, design, modules, owner, team and route. Everything stays editable after launch.</p>
       </div>
     </aside>
   </div>
@@ -557,6 +654,17 @@
 
     <div class="result-note" *ngIf="r.modules_added?.length">
       Added automatically: {{ modulesAddedText() }}
+    </div>
+
+    <div class="team-status" *ngIf="isCreated && team.length">
+      <strong>Team logins</strong>
+      <div class="team-status-row" *ngFor="let member of team">
+        <span>{{ member.name }} · {{ member.role }}</span>
+        <span class="status-chip" [ngClass]="'is-' + member.status">
+          {{ member.status === 'done' ? 'Created' : member.status === 'error' ? (member.error || 'Failed') : member.status === 'creating' ? 'Creating…' : 'Pending' }}
+        </span>
+        <button type="button" *ngIf="member.status === 'error'" (click)="retryTeamMember(r.tenant.id)">Retry</button>
+      </div>
     </div>
 
     <div class="result-actions">

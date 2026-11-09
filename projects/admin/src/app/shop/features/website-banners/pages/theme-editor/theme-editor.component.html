@@ -25,6 +25,19 @@
 
   <div class="te-layout" *ngIf="!loading && theme as t">
     <div class="te-controls">
+      <!-- Layout -->
+      <div class="card te-card">
+        <div class="te-card-title">Store layout</div>
+        <div class="te-layouts">
+          <button type="button" *ngFor="let l of layouts" class="te-layout-opt" [class.on]="layout === l.key"
+                  [disabled]="savingLayout" (click)="setLayout(l.key)">
+            <span class="te-layout-thumb" [ngClass]="'is-' + l.key"><i></i><i></i><i></i></span>
+            <span class="te-layout-copy"><strong>{{ l.name }}</strong><small>{{ l.text }}</small></span>
+            <i class="bi bi-check-circle-fill" *ngIf="layout === l.key"></i>
+          </button>
+        </div>
+      </div>
+
       <!-- Presets -->
       <div class="card te-card">
         <div class="te-card-title">Ready-made palettes</div>

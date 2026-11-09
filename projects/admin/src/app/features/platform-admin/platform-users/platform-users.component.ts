@@ -131,10 +131,13 @@ export class PlatformUsersComponent implements OnInit {
     });
   }
 
-  changeRole(user: PlatformUserRow, roleId: string): void {
-    const id = Number(roleId);
+  changeRole(user: PlatformUserRow, select: HTMLSelectElement): void {
+    const id = Number(select.value);
     if (!id || id === user.role_id) return;
-    this.update(user, { role_id: id });
+    this.update(user, { role_id: id }, () => {
+      // Refused (e.g. last Super Admin): put the dropdown back on the saved role
+      select.value = String(user.role_id);
+    });
   }
 
   toggleStatus(user: PlatformUserRow): void {
@@ -191,17 +194,19 @@ export class PlatformUsersComponent implements OnInit {
     });
   }
 
-  private update(user: PlatformUserRow, changes: Record<string, string | number>): void {
+  private update(user: PlatformUserRow, changes: Record<string, string | number>, onError?: () => void): void {
     this.errorMessage = '';
     this.successMessage = '';
 
     this.api.patch<PlatformUserRow>(`/platform/users/${user.id}`, changes).subscribe({
       next: (updated) => {
         this.users = this.users.map((row) => (row.id === updated.id ? updated : row));
-        this.successMessage = `${updated.name} updated.`;
+        this.successMessage = `${updated.name} is now ${updated.role_label}.`;
       },
       error: (error: HttpErrorResponse) => {
         this.errorMessage = error.error?.message || 'Could not update this platform user.';
+        onError?.();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
       },
     });
   }

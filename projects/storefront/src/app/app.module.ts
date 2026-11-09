@@ -12,6 +12,9 @@ import { CatalogPageComponent } from './features/catalog/catalog-page.component'
 import { ProductCardComponent } from './features/catalog/product-card.component';
 import { ProductPageComponent } from './features/catalog/product-page.component';
 import { ShopShellComponent } from './features/catalog/shop-shell.component';
+import { ElectroFooterComponent } from './features/electro/electro-footer.component';
+import { ElectroHeaderComponent } from './features/electro/electro-header.component';
+import { ElectroHomeComponent } from './features/electro/electro-home.component';
 import { HomeComponent } from './features/home/home.component';
 import { AuthPageComponent } from './features/account/auth-page.component';
 import { AccountPageComponent } from './features/account/account-page.component';
@@ -32,6 +35,9 @@ import { CmsPageComponent } from './features/cms/cms-page.component';
     ClassicHeaderComponent,
     ClassicFooterComponent,
     ShopShellComponent,
+    ElectroHeaderComponent,
+    ElectroFooterComponent,
+    ElectroHomeComponent,
     ProductCardComponent,
     CatalogPageComponent,
     ProductPageComponent,

@@ -1,0 +1,167 @@
+<header class="eh">
+  <!-- Utility bar -->
+  <div class="eh-top">
+    <div class="eh-container eh-top__inner">
+      <span><i class="bi bi-truck"></i> Free delivery on orders above {{ bootstrap.tenant.currency }} 999</span>
+      <nav class="eh-top__links">
+        <a (click)="go(['/my-orders'])"><i class="bi bi-box-seam"></i> Track order</a>
+        <a (click)="go(['/pages', 'about'])"><i class="bi bi-info-circle"></i> About us</a>
+        @if (bootstrap.tenant.phone) {
+          <a [href]="'tel:' + bootstrap.tenant.phone"><i class="bi bi-telephone"></i> {{ bootstrap.tenant.phone }}</a>
+        }
+      </nav>
+    </div>
+  </div>
+
+  <!-- Main bar -->
+  <div class="eh-main">
+    <div class="eh-container eh-main__inner">
+      <button type="button" class="eh-icon eh-burger" aria-label="Open menu" (click)="menuOpen = true"><i class="bi bi-list"></i></button>
+
+      <a class="eh-logo" (click)="go(['/'])" [attr.aria-label]="shopName + ' home'">
+        @if (bootstrap.tenant.logo_url) {
+          <img [src]="logoUrl" [alt]="shopName" />
+        } @else {
+          <span class="eh-logo__mark"><i class="bi bi-lightning-charge-fill"></i></span>
+          <span class="eh-logo__name">{{ shopName }}</span>
+        }
+      </a>
+
+      <form class="eh-search" (submit)="search(); $event.preventDefault()">
+        <select name="cat" [(ngModel)]="searchCategory" aria-label="Category">
+          <option value="">All categories</option>
+          @for (c of categories; track c.id) {
+            <option [value]="c.slug">{{ c.name }}</option>
+          }
+        </select>
+        <input type="search" name="q" [(ngModel)]="searchTerm" placeholder="Search for phones, laptops, lights…" />
+        <button type="submit" aria-label="Search"><i class="bi bi-search"></i></button>
+      </form>
+
+      <div class="eh-actions">
+        <a class="eh-action" (click)="account()">
+          <i class="bi bi-person"></i>
+          <span><small>{{ auth.isLoggedIn ? 'Hello' : 'Sign in' }}</small><strong>{{ auth.isLoggedIn ? (auth.user?.name || 'Account') : 'Account' }}</strong></span>
+        </a>
+        @if (wishlistEnabled) {
+          <a class="eh-icon" title="Wishlist" (click)="go(['/wishlist'])">
+            <i class="bi bi-heart"></i>
+            @if (wishlist.count$ | async; as n) { <span class="eh-badge">{{ n }}</span> }
+          </a>
+        }
+        <a class="eh-icon" title="Cart" (click)="go(['/cart'])">
+          <i class="bi bi-cart3"></i>
+          @if (cart.count$ | async; as n) { <span class="eh-badge">{{ n }}</span> }
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Category bar -->
+  <div class="eh-cats">
+    <div class="eh-container eh-cats__inner">
+      <div class="eh-all" (mouseenter)="allOpen = true; closeCatMenu()" (mouseleave)="allOpen = false">
+        <button type="button" class="eh-all__btn" (click)="allOpen = !allOpen" [attr.aria-expanded]="allOpen">
+          <i class="bi bi-grid-3x3-gap-fill"></i> All categories <i class="bi bi-chevron-down"></i>
+        </button>
+        @if (allOpen) {
+          <div class="eh-all__menu">
+            @for (c of categories; track c.id) {
+              <div class="eh-all__item">
+                <a (click)="openCategory(c)">{{ c.name }} @if (c.children.length) { <i class="bi bi-chevron-right"></i> }</a>
+                @if (c.children.length) {
+                  <div class="eh-all__sub">
+                    @for (child of c.children; track child.id) {
+                      <a (click)="openCategory(child)">{{ child.name }}</a>
+                    }
+                  </div>
+                }
+              </div>
+            }
+            <a class="eh-all__all" (click)="go(['/catalog'])">Browse all products <i class="bi bi-arrow-right"></i></a>
+          </div>
+        }
+      </div>
+      <nav class="eh-cats__links">
+        @for (c of topCategories; track c.id) {
+          <a
+            [class.on]="isActive(c) || hoverCat?.id === c.id"
+            (click)="openCategory(c)"
+            (mouseenter)="openCatMenu(c, $event)"
+            (mouseleave)="scheduleCatClose()"
+          >
+            {{ c.name }} <i class="bi bi-chevron-down eh-cats__caret"></i>
+          </a>
+        }
+      </nav>
+
+      <!-- Hover dropdown for the category under the pointer: sub-categories + a few of its products -->
+      @if (hoverCat; as hc) {
+        <div class="eh-mega" [style.left.px]="megaLeft" (mouseenter)="cancelCatClose()" (mouseleave)="scheduleCatClose()">
+          @if (hc.children.length) {
+            <div class="eh-mega__subs">
+              <span class="eh-mega__title">{{ hc.name }}</span>
+              @for (child of hc.children; track child.id) {
+                <a (click)="openCategory(child)"><i class="bi bi-chevron-right"></i> {{ child.name }}</a>
+              }
+            </div>
+          }
+          <div class="eh-mega__products">
+            <span class="eh-mega__title">Popular in {{ hc.name }}</span>
+            @if (catProducts[hc.slug]; as list) {
+              @for (p of list; track p.id) {
+                <a class="eh-mega__product" (click)="openProduct(p)">
+                  <img [src]="productImage(p)" [alt]="p.name" loading="lazy" />
+                  <span>
+                    <strong>{{ p.name }}</strong>
+                    <small>{{ p.selling_price | currency: bootstrap.tenant.currency || 'INR' : 'symbol' : '1.0-0' }}</small>
+                  </span>
+                </a>
+              } @empty {
+                <p class="eh-mega__empty">No products yet.</p>
+              }
+            } @else {
+              <p class="eh-mega__empty">Loading…</p>
+            }
+          </div>
+          <a class="eh-mega__all" (click)="openCategory(hc)">Shop all {{ hc.name }} <i class="bi bi-arrow-right"></i></a>
+        </div>
+      }
+      <div class="eh-cats__right">
+        @if (brandsEnabled) {
+          <a (click)="go(['/catalog', 'brands'])"><i class="bi bi-award"></i> Brands</a>
+        }
+        <a class="eh-deals" (click)="go(['/catalog'])"><i class="bi bi-lightning-charge"></i> Today's deals</a>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- Mobile drawer -->
+@if (menuOpen) {
+  <div class="eh-scrim" (click)="menuOpen = false"></div>
+  <aside class="eh-drawer" aria-label="Menu">
+    <div class="eh-drawer__head">
+      <strong>{{ shopName }}</strong>
+      <button type="button" class="eh-icon" aria-label="Close" (click)="menuOpen = false"><i class="bi bi-x-lg"></i></button>
+    </div>
+    <a class="eh-drawer__link" (click)="go(['/'])"><i class="bi bi-house"></i> Home</a>
+    <a class="eh-drawer__link" (click)="go(['/catalog'])"><i class="bi bi-grid"></i> All products</a>
+    <div class="eh-drawer__caption">Categories</div>
+    @for (c of categories; track c.id) {
+      <div class="eh-drawer__link" (click)="c.children.length ? (openParent = openParent === c.id ? null : c.id) : openCategory(c)">
+        {{ c.name }}
+        @if (c.children.length) { <i class="bi" [class.bi-chevron-down]="openParent !== c.id" [class.bi-chevron-up]="openParent === c.id"></i> }
+      </div>
+      @if (openParent === c.id) {
+        <a class="eh-drawer__link is-child" (click)="openCategory(c)">All {{ c.name }}</a>
+        @for (child of c.children; track child.id) {
+          <a class="eh-drawer__link is-child" (click)="openCategory(child)">{{ child.name }}</a>
+        }
+      }
+    }
+    <div class="eh-drawer__caption">Account</div>
+    <a class="eh-drawer__link" (click)="account()"><i class="bi bi-person"></i> {{ auth.isLoggedIn ? 'My account' : 'Sign in' }}</a>
+    <a class="eh-drawer__link" (click)="go(['/my-orders'])"><i class="bi bi-box-seam"></i> My orders</a>
+  </aside>
+}

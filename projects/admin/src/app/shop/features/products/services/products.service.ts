@@ -72,6 +72,13 @@ export class ProductsService {
     return this.api.delete<void>(`/products/${productId}/variants/${variantId}`).pipe(map(() => undefined));
   }
 
+  /** Uploads one product photo; returns its stored URL. */
+  uploadImage(file: File): Observable<string> {
+    const formData = new FormData();
+    formData.append('image', file);
+    return this.api.upload<any>('/products/upload-image', formData).pipe(map((res) => res.data.url));
+  }
+
   uploadVariantImage(productId: number, file: File): Observable<string> {
     const formData = new FormData();
     formData.append('image', file);

@@ -13,6 +13,9 @@ import { flattenCategories } from '../../core/utils/category-match';
 import { resolveImageUrl } from '../../core/utils/image.util';
 import { HttpErrorResponse } from '@angular/common/http';
 
+/** Same per-line cap the cart service and API enforce. */
+const CART_LINE_MAX = 100;
+
 /** Product detail: /catalog/product/:ref (ref = the product's public id). */
 @Component({
   selector: 'app-product-page',
@@ -26,12 +29,25 @@ export class ProductPageComponent implements OnInit, OnDestroy {
   related: StoreProduct[] = [];
   variant: StoreVariant | null = null;
   quantity = 1;
+  imageIndex = 0;
+  adding = false;
   loading = true;
   notFound = false;
   currency = 'INR';
   showStock = false;
   wishlistEnabled = false;
   wishlisted = false;
+  shopName = '';
+  shopEmail = '';
+  showFullDescription = false;
+
+  /** Shop promises under the buy buttons (same boxes as MySkin's product page). */
+  readonly perks = [
+    { icon: 'bi-truck', title: 'Fast Delivery', note: 'To your doorstep' },
+    { icon: 'bi-arrow-repeat', title: 'Easy Returns', note: 'Hassle-free' },
+    { icon: 'bi-shield-check', title: 'Secure Payment', note: '100% protected' },
+    { icon: 'bi-patch-check', title: 'Genuine Products', note: 'Quality assured' },
+  ];
 
   reviewsEnabled = false;
   reviews: ReviewPage | null = null;
@@ -75,6 +91,8 @@ export class ProductPageComponent implements OnInit, OnDestroy {
           this.loading = true;
           this.notFound = false;
           this.currency = ctx.bootstrap.tenant.currency || 'INR';
+          this.shopName = ctx.bootstrap.tenant.name;
+          this.shopEmail = ctx.bootstrap.tenant.email || '';
           this.showStock = !!ctx.bootstrap.features['inventory'];
           this.wishlistEnabled = ctx.bootstrap.features['wishlist'] === true;
           this.reviewsEnabled = ctx.bootstrap.features['reviews'] === true;
@@ -95,6 +113,8 @@ export class ProductPageComponent implements OnInit, OnDestroy {
         this.product = product;
         this.variant = product.variants?.[0] ?? null;
         this.quantity = 1;
+        this.imageIndex = 0;
+        this.showFullDescription = false;
         this.reviews = null;
         this.myReview = null;
         this.reviewRating = '';
@@ -125,8 +145,82 @@ export class ProductPageComponent implements OnInit, OnDestroy {
       .subscribe((page) => (this.related = (page?.data ?? []).filter((p) => p.id !== id).slice(0, 8)));
   }
 
+  /** Variant photo (if any), the main photo, then the gallery — without duplicates. */
+  get images(): string[] {
+    const raw = [this.variant?.image_url, this.product?.image_url, ...(this.product?.gallery_urls ?? [])];
+    const urls = raw.filter((u): u is string => !!u).map((u) => resolveImageUrl(u));
+    return urls.length ? [...new Set(urls)] : [resolveImageUrl(null)];
+  }
+
   get image(): string {
-    return resolveImageUrl(this.variant?.image_url || this.product?.image_url);
+    const list = this.images;
+    return list[Math.min(this.imageIndex, list.length - 1)];
+  }
+
+  showImage(index: number): void {
+    const count = this.images.length;
+    this.imageIndex = (index + count) % count;
+  }
+
+  /** Desktop hover on a thumbnail previews that photo. */
+  previewImage(index: number): void {
+    if (typeof matchMedia !== 'undefined' && matchMedia('(hover: hover)').matches) this.showImage(index);
+  }
+
+  // Swipe between photos on touch screens
+  private swipeStartX: number | null = null;
+
+  onSwipeStart(event: TouchEvent): void {
+    this.swipeStartX = event.touches[0]?.clientX ?? null;
+  }
+
+  onSwipeEnd(event: TouchEvent): void {
+    if (this.swipeStartX === null) return;
+    const dx = (event.changedTouches[0]?.clientX ?? this.swipeStartX) - this.swipeStartX;
+    this.swipeStartX = null;
+    if (Math.abs(dx) > 40 && this.images.length > 1) this.showImage(this.imageIndex + (dx < 0 ? 1 : -1));
+  }
+
+  scrollToReviews(): void {
+    document.getElementById('reviews')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  selectVariant(v: StoreVariant): void {
+    this.variant = v;
+    this.imageIndex = 0;
+    this.quantity = Math.max(1, Math.min(this.quantity, this.maxQty));
+  }
+
+  /** Units of the chosen product/variant already in the cart. */
+  get inCart(): number {
+    if (!this.product) return 0;
+    const id = this.product.id;
+    const vid = this.variant?.id ?? null;
+    return this.cart.lines
+      .filter((l) => l.product_id === id && (l.variant_id ?? null) === vid)
+      .reduce((sum, l) => sum + Number(l.quantity || 0), 0);
+  }
+
+  /** How many more units can be added: limited by stock, the product's max per order and the cart cap. */
+  get maxQty(): number {
+    const limits = [CART_LINE_MAX];
+    if (this.product?.max_quantity) limits.push(this.product.max_quantity);
+    if (this.showStock && this.stock !== null) limits.push(Math.floor(this.stock));
+    return Math.max(0, Math.min(...limits) - this.inCart);
+  }
+
+  /** Description split into key points (lines, sentences or "; " parts) for a checklist view. */
+  get descPoints(): string[] {
+    const text = this.product?.description?.trim() || '';
+    return text
+      .split(/\r?\n|;\s+|(?<=\.)\s+/)
+      .map((s) => s.trim().replace(/\.$/, ''))
+      .filter(Boolean)
+      .map((s) => s.charAt(0).toUpperCase() + s.slice(1));
+  }
+
+  get total(): number {
+    return this.price * this.quantity;
   }
 
   get price(): number {
@@ -149,14 +243,63 @@ export class ProductPageComponent implements OnInit, OnDestroy {
     return rows.filter((r) => (r.variant_id ?? null) === key).reduce((sum, r) => sum + Number(r.quantity || 0), 0);
   }
 
+  /** Sold out only when stock is tracked and nothing is left (not counting what is already in the cart). */
+  get isOutOfStock(): boolean {
+    return this.showStock && this.stock !== null && this.stock <= 0;
+  }
+
+  get stockStatus(): { label: string; class: string } {
+    if (!this.showStock || this.stock === null) return { label: 'In Stock', class: 'text-success' };
+    if (this.stock <= 0) return { label: 'Out of Stock', class: 'text-danger' };
+    if (this.stock <= 5) return { label: `Only ${this.stock} left`, class: 'text-warning' };
+    return { label: 'In Stock', class: 'text-success' };
+  }
+
   changeQty(delta: number): void {
-    this.quantity = Math.max(1, this.quantity + delta);
+    this.setQty(this.quantity + delta);
+  }
+
+  setQty(value: number | string): void {
+    const n = Math.round(Number(value)) || 1;
+    this.quantity = Math.max(1, Math.min(n, Math.max(1, this.maxQty)));
   }
 
   addToCart(): void {
-    if (!this.product) return;
-    this.cart.add(this.product, this.variant, this.quantity);
-    this.nav.notify(`${this.product.name} added to your cart.`);
+    if (!this.product || this.adding) return;
+    if (this.maxQty <= 0) {
+      this.nav.notify(this.inCart ? `You already have the maximum of this item in your cart.` : 'This item is out of stock.');
+      return;
+    }
+    const qty = Math.min(this.quantity, this.maxQty);
+    const name = this.product.name;
+    this.adding = true;
+    this.cart.add(this.product, this.variant, qty, (ok) => {
+      this.adding = false;
+      if (!ok) {
+        this.nav.notify('Could not add to your cart. Please try again.');
+        return;
+      }
+      this.quantity = 1;
+      this.nav.notify(`${qty} × ${name} added to your cart.`);
+    });
+  }
+
+  /** Adds the chosen quantity (unless the cart already holds it) and goes straight to checkout. */
+  buyNow(): void {
+    if (!this.product || this.adding) return;
+    if (this.inCart || this.maxQty <= 0) {
+      void this.router.navigate(['/checkout']);
+      return;
+    }
+    this.adding = true;
+    this.cart.add(this.product, this.variant, Math.min(this.quantity, this.maxQty), (ok) => {
+      this.adding = false;
+      if (!ok) {
+        this.nav.notify('Could not add to your cart. Please try again.');
+        return;
+      }
+      void this.router.navigate(['/checkout']);
+    });
   }
 
   toggleWishlist(): void {

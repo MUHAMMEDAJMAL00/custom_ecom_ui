@@ -10,7 +10,7 @@
 .hs-empty { padding: 30px; text-align: center; }
 .hs-error { color: #ef4444; }
 
-/* ── Section rail ───────────────────────────────────────── */
+/* ?? Section rail ????????????????????????????????????????????????????? */
 .hs-rail {
   position: sticky;
   top: 76px;
@@ -329,7 +329,63 @@
   gap: 14px;
 }
 
-.hs-grid-cards.compact { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+.hs-grid-cards.compact {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+/* Perk / icon cards: small horizontal tiles, not full image cards */
+.hs-grid-cards.compact .hs-item {
+  flex-flow: row wrap;
+  align-items: stretch;
+  min-height: 86px;
+  border-radius: 10px;
+}
+
+.hs-grid-cards.compact .hs-item-media {
+  width: 48px;
+  height: auto;
+  min-height: 64px;
+  flex: 0 0 48px;
+}
+
+.hs-grid-cards.compact .hs-item-icon { font-size: 1.25rem; }
+.hs-grid-cards.compact .hs-item-noimg { font-size: 1.1rem; }
+
+.hs-grid-cards.compact .hs-item-body {
+  flex: 1;
+  min-width: 0;
+  gap: 1px;
+  padding: 7px 8px;
+}
+
+.hs-grid-cards.compact .hs-item-eyebrow { font-size: 0.58rem; }
+.hs-grid-cards.compact .hs-item-title { font-size: 0.8rem; }
+.hs-grid-cards.compact .hs-item-sub { font-size: 0.68rem; }
+.hs-grid-cards.compact .hs-item-link { font-size: 0.66rem; }
+
+.hs-grid-cards.compact .hs-item-actions {
+  flex: 1 0 100%;
+  flex-direction: row;
+  justify-content: flex-end;
+  gap: 3px;
+  padding: 3px 5px;
+  border-top: 1px solid #f3e3e6;
+  border-left: 0;
+}
+
+.hs-grid-cards.compact .hs-move,
+.hs-grid-cards.compact .hs-item-btns { gap: 3px; }
+
+.hs-grid-cards.compact .hs-item-actions button {
+  width: 22px;
+  height: 20px;
+  font-size: 0.64rem;
+  border-radius: 5px;
+}
+
+.hs-grid-cards.compact .hs-item-style { top: 4px; left: 4px; padding: 1px 5px; font-size: 0.55rem; }
+.hs-grid-cards.compact .hs-item-hidden { top: 4px; right: 4px; padding: 1px 5px; font-size: 0.55rem; }
 
 .hs-item {
   display: flex;
@@ -482,6 +538,7 @@
 
 @media (max-width: 900px) {
   .hs-layout { grid-template-columns: 1fr; }
+  .hs-grid-cards.compact { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .hs-rail { position: static; flex-direction: row; overflow-x: auto; }
   .hs-rail-head { display: none; }
   .hs-tab { flex: 0 0 auto; }

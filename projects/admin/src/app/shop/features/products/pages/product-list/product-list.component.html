@@ -144,6 +144,33 @@
             [saving]="saving" [showFooter]="drawerMode === 'form'" (closed)="closeDrawer()" (saveClicked)="handleSave()">
 
   <form *ngIf="drawerMode === 'form'" [formGroup]="form" class="pf-form">
+    <!-- Photos: the first one is the main photo, the rest form the storefront gallery -->
+    <div class="pf-section">
+      <div class="pf-section-header">
+        <span class="pf-section-title">Photos ({{ photos.length }}/{{ maxPhotos }})</span>
+      </div>
+      <div class="pf-section-body">
+        <div class="photo-grid">
+          <div class="photo-tile" *ngFor="let url of photos; let i = index; let first = first; let last = last" [class.is-main]="first">
+            <img [src]="img(url)" alt="Product photo {{ i + 1 }}" />
+            <span class="photo-badge" *ngIf="first">Main</span>
+            <div class="photo-actions">
+              <button type="button" title="Move left" [disabled]="first" (click)="movePhoto(i, -1)">‹</button>
+              <button type="button" title="Make main photo" *ngIf="!first" (click)="makeMainPhoto(i)">★</button>
+              <button type="button" title="Move right" [disabled]="last" (click)="movePhoto(i, 1)">›</button>
+              <button type="button" title="Remove" class="is-danger" (click)="removePhoto(i)">✕</button>
+            </div>
+          </div>
+          <label class="photo-add" *ngIf="photos.length < maxPhotos" [class.is-busy]="photosUploading">
+            <input type="file" accept="image/*" multiple hidden (change)="onPhotosSelected($event)" [disabled]="photosUploading" />
+            <span class="photo-add__icon">{{ photosUploading ? '…' : '+' }}</span>
+            <span>{{ photosUploading ? 'Uploading ' + photosUploading + '…' : 'Add photos' }}</span>
+          </label>
+        </div>
+        <small class="photo-hint">Select several images at once. The first photo is the main one shown in lists; the rest appear in the product page gallery. Up to 5 MB each.</small>
+      </div>
+    </div>
+
     <!-- Basic Info -->
     <div class="pf-section">
       <div class="pf-section-header"><span class="pf-section-title">Basic Information</span></div>
@@ -371,6 +398,18 @@
   </form>
 
   <div *ngIf="drawerMode === 'view' && viewingProduct as p" class="pf-form">
+    <div class="pf-section" *ngIf="p.image_url || p.gallery_urls?.length">
+      <div class="pf-section-header"><span class="pf-section-title">Photos</span></div>
+      <div class="pf-section-body">
+        <div class="photo-grid">
+          <div class="photo-tile" *ngFor="let url of photoList(p); let first = first" [class.is-main]="first">
+            <img [src]="img(url)" alt="Product photo" />
+            <span class="photo-badge" *ngIf="first">Main</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="pf-section">
       <div class="pf-section-header"><span class="pf-section-title">Product Information</span></div>
       <div class="pf-section-body">

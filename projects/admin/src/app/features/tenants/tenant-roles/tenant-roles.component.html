@@ -1,0 +1,127 @@
+<section class="card" id="sec-roles">
+  <div class="card-head">
+    <span class="step">7</span>
+    <div>
+      <h3>Shop roles &amp; permissions</h3>
+      <p>Roles decide what a shop user may see and do. Create a role, tick its permissions, then give it to users above.</p>
+    </div>
+    <button class="btn-save head-btn" type="button" *ngIf="canEdit && !adding" (click)="startAdd()">+ Add role</button>
+  </div>
+
+  <div class="alert is-ok" *ngIf="successMessage">{{ successMessage }}</div>
+  <div class="alert is-error" *ngIf="errorMessage">{{ errorMessage }}</div>
+
+  <!-- Add role -->
+  <div class="user-form" *ngIf="adding">
+    <h4>New role</h4>
+    <div class="grid cols-2">
+      <div class="field">
+        <label for="r_name">Role name <b>*</b></label>
+        <input id="r_name" type="text" [(ngModel)]="newName" placeholder="e.g. Cashier" maxlength="50" />
+      </div>
+      <div class="field">
+        <label for="r_copy">Start with permissions of</label>
+        <select id="r_copy" [(ngModel)]="copyFrom">
+          <option [ngValue]="null">Nothing (empty role)</option>
+          <option *ngFor="let role of roles" [ngValue]="role.id">{{ label(role.name) }}</option>
+        </select>
+      </div>
+      <div class="field span-2">
+        <label for="r_desc">Description <span>optional</span></label>
+        <input id="r_desc" type="text" [(ngModel)]="newDescription" maxlength="500" placeholder="What this role is for" />
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn-back" type="button" (click)="adding = false" [disabled]="creating">Cancel</button>
+      <button class="btn-save" type="button" (click)="create()" [disabled]="creating || newName.trim().length < 2">
+        <span class="spinner" *ngIf="creating" aria-hidden="true"></span>
+        {{ creating ? 'Creating…' : 'Create role' }}
+      </button>
+    </div>
+  </div>
+
+  <!-- Role list -->
+  <div class="empty" *ngIf="loading">Loading roles…</div>
+  <div class="table-wrap" *ngIf="!loading && roles.length">
+    <table>
+      <thead>
+        <tr>
+          <th>Role</th>
+          <th>Description</th>
+          <th>Users</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let role of roles" [class.is-editing]="openRole?.id === role.id">
+          <td>
+            <span class="role" [class.is-owner]="role.name === 'owner'">{{ label(role.name) }}</span>
+            <small class="hint" *ngIf="isSystem(role)">built-in</small>
+          </td>
+          <td>{{ role.description || '—' }}</td>
+          <td>{{ role.user_count }}</td>
+          <td class="actions">
+            <button class="btn-ghost" type="button" (click)="open(role)">
+              {{ role.name === 'owner' || !canEdit ? 'View permissions' : 'Permissions' }}
+            </button>
+            <button class="btn-ghost is-danger" type="button" *ngIf="canEdit && !isSystem(role)" (click)="remove(role)">Delete</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Permission grid -->
+  <div class="perm-panel" *ngIf="openRole">
+    <div class="perm-head">
+      <h4>Permissions · {{ label(openRole.name) }}</h4>
+      <div class="perm-tools" *ngIf="!isOwnerOpen && canEdit">
+        <button class="btn-ghost" type="button" (click)="setAll(true)">Tick all</button>
+        <button class="btn-ghost" type="button" (click)="setAll(false)">Clear all</button>
+      </div>
+    </div>
+    <p class="perm-note" *ngIf="isOwnerOpen">The owner always has full access to every enabled module; this cannot be changed.</p>
+    <p class="perm-note" *ngIf="!isOwnerOpen">Only modules switched on for this shop are listed. Click a module name to tick or clear its whole row.</p>
+
+    <div class="empty" *ngIf="permLoading">Loading permissions…</div>
+    <div class="table-wrap" *ngIf="!permLoading && permissions.length">
+      <table class="perm-table">
+        <thead>
+          <tr>
+            <th>Module</th>
+            <th *ngFor="let action of actions" class="c">{{ label(action) }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let row of rows">
+            <td>
+              <button type="button" class="row-name" [class.is-on]="rowAllOn(row)" (click)="toggleRow(row)" [disabled]="isOwnerOpen || !canEdit">
+                {{ row.label }}
+              </button>
+            </td>
+            <td *ngFor="let action of actions" class="c">
+              <input
+                *ngIf="row.cells[action] as cell"
+                type="checkbox"
+                [checked]="isOwnerOpen || granted.has(cell.id)"
+                [disabled]="isOwnerOpen || !canEdit"
+                (change)="toggle(cell)"
+                [attr.aria-label]="row.label + ' ' + action"
+                [title]="cell.description || ''"
+              />
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="form-actions">
+      <span class="dirty" *ngIf="permDirty">Unsaved changes</span>
+      <button class="btn-back" type="button" (click)="close()" [disabled]="permSaving">Close</button>
+      <button class="btn-save" type="button" *ngIf="!isOwnerOpen && canEdit" (click)="savePermissions()" [disabled]="permSaving || !permDirty">
+        <span class="spinner" *ngIf="permSaving" aria-hidden="true"></span>
+        {{ permSaving ? 'Saving…' : 'Save permissions' }}
+      </button>
+    </div>
+  </div>
+</section>
